@@ -338,15 +338,15 @@
   "Receives a request from the control channel and calls a handler f on worker object,
   request and args provided.
 
-  If the handler function returns nil or :kara.bus/no-response, the response should
-  not be created and the returned value is an empty Outcome object.
+  If the handler function returns nil or :io.randomseed.utils.bus/no-response,
+  the response should not be created and the returned value is an empty Outcome object.
 
   If the handler returns a Reply object, the response should be generated even if
   its :body field is nil. This is helpful in cases where nil responses are required.
 
-  If the handler returns a Reply object but its :body is set to :kara.bus/no-response
-  then no response will be generated and the response in the returned Outcome object
-  will be set to nil.
+  If the handler returns a Reply object but its :body is set to
+  :io.randomseed.utils.bus/no-response then no response will be generated and
+  the response in the returned Outcome object will be set to nil.
 
   Otherwise an Outcome object will be returned with :request, :response and :data
   fields."
@@ -372,15 +372,15 @@
   there is no data on the control channel and blocks on sending (waits for the
   channel to have some space for a new message).
 
-  If the handler function returns nil or :kara.bus/no-response, the response should
-  not be created and the returned value is an empty Outcome object.
+  If the handler function returns nil or :io.randomseed.utils.bus/no-response,
+  the response should not be created and the returned value is an empty Outcome object.
 
   If the handler returns a Reply object, the response should be generated even if
   its :body field is nil. This is helpful in cases where nil responses are required.
 
-  If the handler returns a Reply object but its :body is set to :kara.bus/no-response
-  then no response will be generated and the response in the returned Outcome object
-  will be set to nil.
+  If the handler returns a Reply object but its :body is set to
+  :io.randomseed.utils.bus/no-response then no response will be generated
+  and the response in the returned Outcome object will be set to nil.
 
   Otherwise an Outcome object will be returned with :request, :response and :data
   fields."
@@ -397,15 +397,15 @@
   request and args provided. Blocks on receiving (waits for data) and on
   sending (waits for the channel to have some space for a new message).
 
-  If the handler function returns nil or :kara.bus/no-response, the response should
-  not be created and the returned value is an empty Outcome object.
+  If the handler function returns nil or :io.randomseed.utils.bus/no-response,
+  the response should not be created and the returned value is an empty Outcome object.
 
   If the handler returns a Reply object, the response should be generated even if
   its :body field is nil. This is helpful in cases where nil responses are required.
 
-  If the handler returns a Reply object but its :body is set to :kara.bus/no-response
-  then no response will be generated and the response in the returned Outcome object
-  will be set to nil.
+  If the handler returns a Reply object but its :body is set to
+  :io.randomseed.utils.bus/no-response then no response will be generated
+  and the response in the returned Outcome object will be set to nil.
 
   Otherwise an Outcome object will be returned with :request, :response and :data
   fields."

@@ -25,7 +25,7 @@ For `deps.edn` add the following as an element of a map under `:deps` or
 `:extra-deps` key:
 
 ```clojure
-io.randomseed/utils {:mvn/version "1.2.14"}
+io.randomseed/utils {:mvn/version "1.0.0"}
 ```
 
 Additionally, if you want to utilize specs and generators provided by the random:utils
