@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo "[random-utils] Building docs, please wait..."
+
+clojure -A:docs
