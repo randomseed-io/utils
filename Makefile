@@ -26,7 +26,7 @@ pom: pom.xml
 			rm -f pom.xml.asc
 
 $(APPNAME).jar: pom.xml
-			clojure -Apack -m mach.pack.alpha.skinny --no-libs --project-path $(APPNAME).jar
+			clojure -T:pack --project-path $(APPNAME).jar
 
 jar: $(APPNAME).jar
 
