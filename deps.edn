@@ -70,7 +70,7 @@
                                      org.clojure/test.check       {:mvn/version "1.1.0"}
                                      orchestra/orchestra          {:mvn/version "2021.01.01-1"}
                                      expound/expound              {:mvn/version "0.8.7"}
-                                     codox/codox                  {:mvn/version "0.10.7"}}
+                                     codox/codox                  {:mvn/version "0.10.8"}}
                        :main-opts   ["-m" "io.randomseed.utils.codox.main"]}
            :dev-nrepl {:jvm-opts    ["-Dnrepl.load=true"]
                        :extra-paths ["aliases/nrepl"]
