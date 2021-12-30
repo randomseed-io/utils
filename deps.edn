@@ -42,12 +42,27 @@
                        :extra-paths ["dev/src" "test"]
                        :jvm-opts    ["-Xmx1024m","-Dclojure.spec.compile-asserts=true"]}
            :test      {:extra-paths ["test"]
+                       :extra-deps  {org.clojure/test.check {:mvn/version "1.1.0"}
+                                     ns-tracker/ns-tracker  {:mvn/version "0.4.0"}
+                                     orchestra/orchestra    {:mvn/version "2021.01.01-1"}
+                                     expound/expound        {:mvn/version "0.8.7"}
+                                     lambdaisland/kaocha    {:mvn/version "1.0.732"}}
+                       :exec-fn     kaocha.runner/-main
+                       :main-opts   ["-m" "kaocha.runner",
+                                     "--config-file"   "tests.edn",
+                                     "--stc-num-tests" "100"
+                                     "--stc-instrumentation"
+                                     "--stc-asserts"
+                                     "--no-profiling"]
+                       :jvm-opts    ["-Xmx512m"]}
+           :test-full {:extra-paths ["test"]
                        :extra-deps  {org.clojure/test.check        {:mvn/version "1.1.0"}
                                      ns-tracker/ns-tracker         {:mvn/version "0.4.0"}
                                      orchestra/orchestra           {:mvn/version "2021.01.01-1"}
                                      expound/expound               {:mvn/version "0.8.7"}
                                      lambdaisland/kaocha           {:mvn/version "1.0.732"}
                                      lambdaisland/kaocha-cloverage {:mvn/version "1.0.75"}}
+                       :exec-fn     kaocha.runner/-main
                        :main-opts   ["-m" "kaocha.runner",
                                      "--config-file"   "tests.edn",
                                      "--stc-num-tests" "100"

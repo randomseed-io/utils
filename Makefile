@@ -15,7 +15,10 @@ push-docs:
 			git subtree push --prefix=docs docs master
 
 test-clj:
-			bin/test --no-profiling
+			bin/test
+
+test-full:
+			bin/test-full
 
 test:
 			@$(MAKE) test-clj
