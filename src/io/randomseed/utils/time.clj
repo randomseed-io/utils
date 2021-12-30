@@ -137,6 +137,7 @@
    :quadrans     :quadranses
    :hour         :hours
    :day          :days
+   :night        :nights
    :week         :weeks
    :weekend      :weekends
    :month        :months
@@ -148,6 +149,14 @@
    :eon          :eons})
 
 (defn parse-duration
+  "Parses time duration expressed as value and unit. For a single argument being a
+  single value it is treated as minutes. For a single value being a collection the
+  function is applied to consecutive values. For the given `d` and `default-unit` the
+  value of `d` is parsed as a long number and the unit is converted into a keyword
+  and should be one of the: `:day`, `:hour`, `:minute`, `:second`, `:millisecond`,
+  `:microsecond` or `:nanosecond` (including their corresponding plural forms). When
+  multiple arguments are given they are parsed in pairs and added to create a single
+  duration."
   ([d]
    (parse-duration d :minutes))
   ([d default-unit]
@@ -164,9 +173,23 @@
                (t/new-duration 0 (or default-unit :minutes)))))
          (if (sequential? d)
            (t/new-duration (safe-parse-long (nth d 0 0) 0)
-                           (let [unit (keyword (nth d 1 (or default-unit :minutes)))]
-                             (get duration-map unit unit)))
-           (t/new-duration (safe-parse-long d 0) (or default-unit :minutes))))))))
+                           (if-some [unit (keyword (nth d 1))]
+                             (or (get duration-map unit unit)
+                                 (if-some [dunit (keyword default-unit)]
+                                   (get duration-map dunit dunit)
+                                   :minutes))
+                             :minutes))
+           (t/new-duration (safe-parse-long d 0)
+                           (if-some [dunit (keyword default-unit)]
+                             (get duration-map dunit dunit)
+                             :minutes)))))))
+  ([d default-unit & pairs]
+   (->> pairs
+        (cons default-unit)
+        (cons d)
+        (partition 2)
+        (map #(parse-duration % :minutes))
+        (reduce t/+))))
 
 (def ^:const unit-to-efn
   {:nanos   t/nanos
