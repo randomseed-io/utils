@@ -8,14 +8,14 @@ To use Random Utilities in your project, add the following to dependencies secti
 `project.clj` or `build.boot`:
 
 ```clojure
-[io.randomseed/utils "1.0.0"]
+[io.randomseed/utils "1.0.1"]
 ```
 
 For `deps.edn` add the following as an element of a map under `:deps` or
 `:extra-deps` key:
 
 ```clojure
-io.randomseed/utils {:mvn/version "1.0.0"}
+io.randomseed/utils {:mvn/version "1.0.1"}
 ```
 
 You can also download JAR from
@@ -29,20 +29,13 @@ org.clojure/spec.alpha {:mvn/version "0.2.194"}
 org.clojure/test.check {:mvn/version "1.1.0"}
 ```
 
-## How it works?
-
-### Namespace inference
-
-When the dynamic variable
-[`io.randomseed.utils/*inferred-namespaces*`](io.randomseed.utils.html#var-*inferred-namespaces*)
-is set to `true` (which is the default setting) all functions that require keyword
-arguments will automatically enrich simple keywords to be namespace-qualified.
-
 ## License
 
 Copyright © 2021 Paweł Wilk
 
-Random Utilities is copyrighted software owned by Paweł Wilk (pw@randomseed.pl).
+random:utils is copyrighted software owned by Paweł Wilk (pw@gnu.org). You may
+redistribute and/or modify this software as long as you comply with the terms of
+the [GNU Lesser General Public License][LICENSE] (version 3).
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
@@ -54,4 +47,5 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-[LICENSE]:    https://github.com/randomseed-io/utils/src/master/README.md
+[LICENSE]:    https://github.com/randomseed-io/utils/blob/master/LICENSE
+
