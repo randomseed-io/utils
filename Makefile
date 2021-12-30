@@ -9,7 +9,7 @@ lint:
 			bin/lint
 
 docs:
-			bin/docs
+			bin/docs "$(VERSION)"
 
 push-docs:
 			git subtree push --prefix=docs docs master
@@ -22,11 +22,11 @@ test:
 
 pom: pom.xml
 			clojure -Spom && awk 'NF > 0' pom.xml > pom.new.xml && mv -f pom.new.xml pom.xml
-			mvn versions:set versions:commit -DnewVersion="$(VERSION)"
+			mvn versions:set versions:commit -DnewVersion="$(VERSION)" versions:set-scm-tag -DnewTag="$(VERSION)"
 			rm -f pom.xml.asc
 
 $(APPNAME).jar: pom.xml
-			clojure -T:pack --project-path $(APPNAME).jar
+			bin/build
 
 jar: $(APPNAME).jar
 
