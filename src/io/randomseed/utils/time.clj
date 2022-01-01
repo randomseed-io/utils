@@ -172,24 +172,21 @@
                (parse-duration (first d))
                (t/new-duration 0 (or default-unit :minutes)))))
          (if (sequential? d)
-           (t/new-duration (safe-parse-long (nth d 0 0) 0)
-                           (if-some [unit (keyword (nth d 1))]
-                             (or (get duration-map unit unit)
-                                 (if-some [dunit (keyword default-unit)]
-                                   (get duration-map dunit dunit)
-                                   :minutes))
-                             :minutes))
+           (let [dunit (some-keyword default-unit)
+                 dunit (or (get duration-map dunit dunit) :minutes)]
+             (->> (partition 2 2 '(nil) d)
+                  (map (fn [d]
+                         (let [unit (some-keyword (nth d 1))]
+                           (t/new-duration (safe-parse-long (nth d 0 0) 0)
+                                           (or (and unit (get duration-map unit unit))
+                                               dunit)))))
+                  (reduce t/+)))
            (t/new-duration (safe-parse-long d 0)
-                           (if-some [dunit (keyword default-unit)]
+                           (if-some [dunit (some-keyword default-unit)]
                              (get duration-map dunit dunit)
                              :minutes)))))))
   ([d default-unit & pairs]
-   (->> pairs
-        (cons default-unit)
-        (cons d)
-        (partition 2)
-        (map #(parse-duration % :minutes))
-        (reduce t/+))))
+   (parse-duration (cons d (cons default-unit pairs)) :minutes)))
 
 (def ^:const unit-to-efn
   {:nanos   t/nanos
