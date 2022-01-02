@@ -4,7 +4,7 @@
   <groupId>io.randomseed</groupId>
   <artifactId>utils</artifactId>
   <packaging>jar</packaging>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
   <name>utils</name>
   <description>Random Utilities</description>
   <url>https://randomseed.io/software/utils/</url>
@@ -17,7 +17,7 @@
   <scm>
     <connection>scm:git:git://github.org/randomseed-io/utils.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/randomseed-io/utils.git</developerConnection>
-    <tag>1.0.1</tag>
+    <tag>1.0.2</tag>
     <url>https://github.com/randomseed-io/utils/</url>
   </scm>
   <dependencies>
