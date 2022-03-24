@@ -233,7 +233,7 @@
          (fn db-getter
            ([db id]   (db-getter db nil id))
            ([db _ id] (jdbc/execute-one! db [q (some-str id)] gen-opts-simple))
-           ([db _ id & more] (apply getter-coll-fn (cons id more))))
+           ([db _ id & more] (getter-coll-fn db (cons id more))))
          (fn [db _ id]
            (jdbc/execute-one! db [q (some-str id)] gen-opts-simple)))
        (if getter-coll-fn
