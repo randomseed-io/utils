@@ -52,8 +52,10 @@
 (defn not-valuable?
   [x]
   (or (nil? x)
-      (and (counted? x) (zero? (count x)))
-      (and (seqable? x) (nil?  (seq   x)))))
+      (and (counted? x) (zero? (count          x)))
+      (and (seqable? x) (nil?  (seq            x)))
+      (and (ident?   x) (nil?  (seq (name      x)))
+                        (nil?  (seq (namespace x))))))
 
 (defn valuable?
   [x]
