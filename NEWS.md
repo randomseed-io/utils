@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.0.5 (2022-03-29)
+
+- Added Reitit support functions
+
 ## 1.0.4 (2022-03-28)
 
 - Improved valenve testing in valuable? and not-valuable?
