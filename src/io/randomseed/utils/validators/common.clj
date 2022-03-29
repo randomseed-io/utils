@@ -2,8 +2,7 @@
 
     ^{:doc    "Random utils, common validators."
       :author "Paweł Wilk"
-      :added  "1.0.0"
-      :no-doc true}
+      :added  "1.0.0"}
 
     io.randomseed.utils.validators.common
 

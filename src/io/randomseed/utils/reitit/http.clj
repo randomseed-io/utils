@@ -2,8 +2,7 @@
 
     ^{:doc    "Random utils, Reitit support functions."
       :author "Paweł Wilk"
-      :added  "1.0.5"
-      :no-doc true}
+      :added  "1.0.5"}
 
     io.randomseed.utils.reitit.http
 
