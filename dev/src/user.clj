@@ -28,6 +28,7 @@
    [io.randomseed.utils.crypto       :as           crypto]
    [io.randomseed.utils.nop-cache    :as        nop-cache]
    [io.randomseed.utils.validators   :as       validators]
+   [io.randomseed.utils.reitit.http  :as             http]
 
    [clojure.core.async               :as             async]
    [clojure.core.async               :refer  [<! <!! >! >!!
