@@ -59,7 +59,9 @@
 
 (defn empty-ident?
   [v]
-  (empty-string? (str v)))
+  (and (empty-string? (name v))
+       (empty-string? (namespace v))))
+
 (defn not-empty-ident?
   [v]
   (or (not-empty-string? (name v))
