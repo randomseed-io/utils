@@ -1,5 +1,12 @@
 # History of random:utils releases
 
+## 1.0.7 (2022-03-30)
+
+- Fixed a bug causing empty keywords not being detected by empty-ident?
+- Added not-empty-string? and not-empty-ident?
+- Improved valuable? and not-valuable?
+- Added macros: not-valuable, when-not-valuable
+
 ## 1.0.6 (2022-03-30)
 
 - Added empty-string? and empty-ident?
