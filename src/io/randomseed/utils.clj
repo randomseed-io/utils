@@ -49,6 +49,14 @@
 
 ;; Values handling
 
+(defn empty-string?
+  ^Boolean [^String s]
+  (zero? (.length ^String s)))
+
+(defn empty-ident?
+  [v]
+  (empty-string? (str v)))
+
 (defn not-valuable?
   [x]
   (or (nil? x)
