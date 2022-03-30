@@ -53,9 +53,17 @@
   ^Boolean [^String s]
   (zero? (.length ^String s)))
 
+(defn not-empty-string?
+  ^Boolean [^String s]
+  (pos? (.length ^String s)))
+
 (defn empty-ident?
   [v]
   (empty-string? (str v)))
+(defn not-empty-ident?
+  [v]
+  (or (not-empty-string? (name v))
+      (not-empty-string? (namespace v))))
 
 (defn not-valuable?
   [x]
