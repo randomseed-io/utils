@@ -90,11 +90,22 @@
   `(when (valuable? ~v)
      ~@more))
 
+(defmacro when-not-valuable
+  [v & more]
+  `(when (not-valuable? ~v)
+     ~@more))
+
 (defmacro valuable
   [& more]
   (if-some [b (butlast more)]
     `(do ~@b (let [l# ~(last more)] (when (valuable? l#) l#)))
     `(let [l# ~(first more)] (when (valuable? l#) l#))))
+
+(defmacro not-valuable
+  [& more]
+  (if-some [b (butlast more)]
+    `(do ~@b (let [l# ~(last more)] (when (not-valuable? l#) l#)))
+    `(let [l# ~(first more)] (when (not-valuable? l#) l#))))
 
 ;; Text handling
 
