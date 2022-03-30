@@ -1,12 +1,17 @@
 # History of random:utils releases
 
+## 1.0.6 (2022-03-30)
+
+- Added empty-string? and empty-ident?
+- Improved valence testing
+
 ## 1.0.5 (2022-03-29)
 
 - Added Reitit support functions
 
 ## 1.0.4 (2022-03-28)
 
-- Improved valenve testing in valuable? and not-valuable?
+- Improved valence testing in valuable? and not-valuable?
 
 ## 1.0.3 (2022-03-24)
 
