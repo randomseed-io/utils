@@ -69,15 +69,21 @@
 
 (defn not-valuable?
   [x]
-  (or (nil? x)
-      (and (string?  x) (empty-string?      x))
-      (and (ident?   x) (empty-string? (str x)))
-      (and (counted? x) (zero? (count       x)))
-      (and (seqable? x) (nil?  (seq         x)))))
+  (cond (nil? x)     true
+        (string?  x) (empty-string? x)
+        (ident?   x) (empty-ident?  x)
+        (counted? x) (zero? (count  x))
+        (seqable? x) (nil?  (seq    x))
+        true         false))
 
 (defn valuable?
   [x]
-  (not (not-valuable? x)))
+  (cond (nil?     x) false
+        (string?  x) (not-empty-string? x)
+        (ident?   x) (not-empty-ident?  x)
+        (counted? x) (pos?  (count      x))
+        (seqable? x) (some? (seq        x))
+        true         true))
 
 (defmacro when-valuable
   [v & more]
