@@ -473,12 +473,7 @@
 
 ;; UUID
 
-(defn random-uuid
-  "Returns random UUID"
-  []
-  (UUID/randomUUID))
-
-(defn uuid
+(defn to-uuid
   ([] (random-uuid))
   ([s] (when (valuable? s) (if (uuid? s) s (UUID/fromString (str s))))))
 
