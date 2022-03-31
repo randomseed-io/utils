@@ -510,13 +510,13 @@
          (bigdec s)
          (Long/parseLong s))))))
 
-(defn parse-long
+(defn some-long
   ([s default]
-   (or (parse-long s) default))
+   (or (some-long s) default))
   ([s]
    (when (valuable? s)
      (if (number? s) (long s)
-         (Long/parseLong (str s))))))
+         (parse-long (str s))))))
 
 (defn safe-parse-num
   ([v default]
@@ -529,7 +529,7 @@
   ([v default]
    (or (safe-parse-long v) default))
   ([v]
-   (try (parse-long v)
+   (try (some-long v)
         (catch Throwable e nil))))
 
 (defn to-long

@@ -20,8 +20,8 @@
         (if (inst? s)
           (t/instant s)
           (t/instant (if multiply?
-                       (* 1000 (parse-long s))
-                       (parse-long s)))))))
+                       (* 1000 (some-long s))
+                       (some-long s)))))))
 
 (defn parse-ts
   [s]
@@ -106,7 +106,7 @@
 
 (defn parse-dur-min
   [v]
-  (when-some [v (parse-long v)]
+  (when-some [v (some-long v)]
     (t/new-duration v :minutes)))
 
 (def ^:const duration-map
