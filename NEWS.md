@@ -1,6 +1,12 @@
 # History of random:utils releases
 
-## 1.0.7 (2022-03-30)
+## 1.1.0 (2022-03-31)
+
+- Renamed parse-long to some-long
+- Removed random-uuid
+- Renamed uuid to to-uuid
+
+## 1.0.7 (2022-04-01)
 
 - Fixed a bug causing empty keywords not being detected by empty-ident?
 - Added not-empty-string? and not-empty-ident?

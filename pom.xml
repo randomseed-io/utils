@@ -4,7 +4,7 @@
   <groupId>io.randomseed</groupId>
   <artifactId>utils</artifactId>
   <packaging>jar</packaging>
-  <version>1.0.7</version>
+  <version>1.1.0</version>
   <name>utils</name>
   <description>Random Utilities</description>
   <url>https://randomseed.io/software/utils/</url>
@@ -17,7 +17,7 @@
   <scm>
     <connection>scm:git:git://github.org/randomseed-io/utils.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/randomseed-io/utils.git</developerConnection>
-    <tag>1.0.7</tag>
+    <tag>1.1.0</tag>
     <url>https://github.com/randomseed-io/utils/</url>
   </scm>
   <dependencies>
@@ -34,7 +34,7 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
-      <version>1.10.3</version>
+      <version>1.11.0</version>
     </dependency>
     <dependency>
       <groupId>spootnik</groupId>
@@ -159,7 +159,7 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>core.async</artifactId>
-      <version>1.3.618</version>
+      <version>1.5.648</version>
     </dependency>
     <dependency>
       <groupId>trptr</groupId>
