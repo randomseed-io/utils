@@ -10,8 +10,8 @@
   <url>https://randomseed.io/software/utils/</url>
   <licenses>
     <license>
-      <name>Copyright</name>
-      <url>https://randomseed.pl/</url>
+      <name>LGPL License</name>
+      <url>https://opensource.org/licenses/lgpl-3.0.html</url>
     </license>
   </licenses>
   <scm>
@@ -70,6 +70,11 @@
       <groupId>tick</groupId>
       <artifactId>tick</artifactId>
       <version>0.5.0-RC5</version>
+    </dependency>
+    <dependency>
+      <groupId>com.taoensso</groupId>
+      <artifactId>encore</artifactId>
+      <version>3.22.0-RC2</version>
     </dependency>
     <dependency>
       <groupId>cambium</groupId>
