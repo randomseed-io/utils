@@ -1,8 +1,10 @@
-(ns io.randomseed.utils.fs
+(ns
 
-  ^{:doc    "Random utils, filesystem utilities."
-    :author "Paweł Wilk"
-    :added  "1.0.0"}
+    ^{:doc    "Random utils, filesystem utilities."
+      :author "Paweł Wilk"
+      :added  "1.0.0"}
+
+    io.randomseed.utils.fs
 
   (:refer-clojure :exclude [parse-long uuid random-uuid])
 

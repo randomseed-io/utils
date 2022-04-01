@@ -1,8 +1,10 @@
-(ns io.randomseed.utils.validators
+(ns
 
-  ^{:doc    "Random utils, validators."
-    :author "Paweł Wilk"
-    :added  "1.0.0"}
+    ^{:doc    "Random utils, validators."
+      :author "Paweł Wilk"
+      :added  "1.0.0"}
+
+    io.randomseed.utils.validators
 
   (:refer-clojure :exclude [parse-long uuid random-uuid])
 

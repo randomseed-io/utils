@@ -1,8 +1,10 @@
-(ns io.randomseed.utils.map
+(ns
 
-  ^{:doc    "Random utils, map utilities."
-    :author "Paweł Wilk"
-    :added  "1.0.0"}
+    ^{:doc    "Random utils, map utilities."
+      :author "Paweł Wilk"
+      :added  "1.0.0"}
+
+    io.randomseed.utils.map
 
   (:refer-clojure :exclude [parse-long uuid random-uuid])
 

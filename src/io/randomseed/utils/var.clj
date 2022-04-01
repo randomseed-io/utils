@@ -1,8 +1,10 @@
-(ns io.randomseed.utils.var
+(ns
 
-  ^{:doc    "Random utils, global variables handling."
-    :author "Paweł Wilk"
-    :added  "1.0.0"}
+    ^{:doc    "Random utils, global variables handling."
+      :author "Paweł Wilk"
+      :added  "1.0.0"}
+
+    io.randomseed.utils.var
 
   (:refer-clojure :exclude [deref resolve reset alter parse-long uuid random-uuid])
 
