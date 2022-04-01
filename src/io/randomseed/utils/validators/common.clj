@@ -6,6 +6,8 @@
 
     io.randomseed.utils.validators.common
 
+  (:refer-clojure :exclude [parse-long uuid random-uuid])
+
   (:import [org.apache.commons.validator.routines
             EmailValidator
             UrlValidator

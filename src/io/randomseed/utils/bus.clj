@@ -6,7 +6,7 @@
 
     io.randomseed.utils.bus
 
-  (:refer-clojure :exclude [load run])
+  (:refer-clojure :exclude [load run parse-long uuid random-uuid])
 
   (:require [clojure.set                     :as               set]
             [clojure.string                  :as               str]

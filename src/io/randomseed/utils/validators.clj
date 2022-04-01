@@ -4,6 +4,8 @@
     :author "Paweł Wilk"
     :added  "1.0.0"}
 
+  (:refer-clojure :exclude [parse-long uuid random-uuid])
+
   (:require [clojure.spec.alpha      :as       s]
             [io.randomseed.utils.log :as     log]
             [io.randomseed.utils.var :as     var]

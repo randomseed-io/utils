@@ -6,6 +6,8 @@
 
     io.randomseed.utils.crypto
 
+  (:refer-clojure :exclude [parse-long uuid random-uuid])
+
   (:import [java.util Random]
            [java.io   Console])
 

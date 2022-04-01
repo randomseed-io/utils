@@ -6,6 +6,8 @@
 
     io.randomseed.utils.time
 
+  (:refer-clojure :exclude [parse-long uuid random-uuid])
+
   (:import  [java.time Instant Duration ZoneRegion]
             [java.util Date Calendar])
 

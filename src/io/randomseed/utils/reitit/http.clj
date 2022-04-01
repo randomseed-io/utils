@@ -6,6 +6,8 @@
 
     io.randomseed.utils.reitit.http
 
+  (:refer-clojure :exclude [parse-long uuid random-uuid])
+
   (:require [reitit.core              :as        r]
             [reitit.ring              :as     ring]
             [ring.util.http-response  :as     resp]

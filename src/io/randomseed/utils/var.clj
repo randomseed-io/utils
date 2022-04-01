@@ -4,7 +4,7 @@
     :author "Paweł Wilk"
     :added  "1.0.0"}
 
-  (:refer-clojure :exclude [deref resolve reset alter])
+  (:refer-clojure :exclude [deref resolve reset alter parse-long uuid random-uuid])
 
   (:require [io.randomseed.utils    :refer :all]
             [io.randomseed.utils.fs :as      fs]))

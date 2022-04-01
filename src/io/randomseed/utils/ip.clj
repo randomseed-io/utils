@@ -6,6 +6,8 @@
 
     io.randomseed.utils.ip
 
+  (:refer-clojure :exclude [parse-long uuid random-uuid])
+  
   (:require [clojure.string :as          str]
             [io.randomseed.utils :refer :all])
 

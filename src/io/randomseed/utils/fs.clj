@@ -4,6 +4,8 @@
     :author "Paweł Wilk"
     :added  "1.0.0"}
 
+  (:refer-clojure :exclude [parse-long uuid random-uuid])
+
   (:require [clojure.java.io                 :as       io]
             [clojure.java.classpath          :as       cp]
             [clojure.edn                     :as      edn]

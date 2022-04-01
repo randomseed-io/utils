@@ -6,6 +6,8 @@
 
     io.randomseed.utils
 
+  (:refer-clojure :exclude [parse-long uuid random-uuid])
+
   (:import [java.security SecureRandom]
            [java.time     Instant Duration ZoneRegion]
            [java.util     UUID Random Locale Date Calendar Collection Collections ArrayList]
@@ -473,9 +475,18 @@
 
 ;; UUID
 
+(def ^{:arglists '(^java.util.UUID []) :tag java.util.UUID}
+  random-uuid
+  (or (ns-resolve 'clojure.core 'random-uuid)
+      (fn ^java.util.UUID [] (java.util.UUID/randomUUID))))
+
 (defn to-uuid
-  ([] (random-uuid))
+  ([] (clojure.core/random-uuid))
   ([s] (when (valuable? s) (if (uuid? s) s (UUID/fromString (str s))))))
+
+(def uuid
+  (or (ns-resolve 'clojure.core 'uuid)
+      to-uuid))
 
 ;; URL
 
@@ -516,7 +527,11 @@
   ([s]
    (when (valuable? s)
      (if (number? s) (long s)
-         (parse-long (str s))))))
+         (clojure.core/parse-long (str s))))))
+
+(def ^{:arglists '([s] [s default])}
+  parse-long
+  some-long)
 
 (defn safe-parse-num
   ([v default]

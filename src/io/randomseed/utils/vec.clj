@@ -6,7 +6,7 @@
 
     io.randomseed.utils.vec
 
-  (:refer-clojure :exclude [merge split-at shuffle])
+  (:refer-clojure :exclude [merge split-at shuffle parse-long uuid random-uuid])
 
   (:require [io.randomseed.utils :refer :all])
 

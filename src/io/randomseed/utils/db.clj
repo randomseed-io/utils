@@ -6,7 +6,7 @@
 
     io.randomseed.utils.db
 
-  (:refer-clojure :exclude [memoize])
+  (:refer-clojure :exclude [memoize parse-long uuid random-uuid])
 
   (:require [clojure.string                :as          str]
             [clojure.core.memoize          :as          mem]

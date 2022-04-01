@@ -6,7 +6,7 @@
 
     io.randomseed.utils.bot
 
-  (:refer-clojure :exclude [load run! stop! get])
+  (:refer-clojure :exclude [load run! stop! get parse-long uuid random-uuid])
 
   (:require [clojure.set                     :as             set]
             [clojure.string                  :as             str]

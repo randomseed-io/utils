@@ -4,6 +4,8 @@
     :author "Paweł Wilk"
     :added  "1.0.0"}
 
+  (:refer-clojure :exclude [parse-long uuid random-uuid])
+
   (:require [io.randomseed.utils :refer :all]))
 
 (defmacro lazy-get
