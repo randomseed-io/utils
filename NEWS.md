@@ -1,6 +1,11 @@
 # History of random:utils releases
 
-## 1.1.0 (2022-03-31)
+## 1.1.1 (2022-04-01)
+
+- Dependencies adjusted for Clojure 1.11.0
+- Updated CircleCI image reference
+
+## 1.1.0 (2022-04-01)
 
 - Renamed parse-long to some-long
 - Removed random-uuid
