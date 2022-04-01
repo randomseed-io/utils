@@ -7,6 +7,8 @@
 
     io.randomseed.utils.var-test
 
+  (:refer-clojure :exclude [parse-long uuid random-uuid])
+
   (:require [clojure.spec.alpha              :as               s]
             [clojure.spec.gen.alpha          :as             gen]
             [orchestra.spec.test             :as              st]

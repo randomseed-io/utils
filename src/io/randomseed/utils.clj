@@ -481,7 +481,7 @@
       (fn ^java.util.UUID [] (java.util.UUID/randomUUID))))
 
 (defn to-uuid
-  ([] (clojure.core/random-uuid))
+  ([] (random-uuid))
   ([s] (when (valuable? s) (if (uuid? s) s (UUID/fromString (str s))))))
 
 (def uuid
@@ -506,6 +506,17 @@
 
 ;; Numbers
 
+(defn- parse-long-java
+  ^Long [^String s]
+  (Long/parseLong ^String s))
+
+(def ^{:private  true
+       :tag      Long
+       :arglists '(^Long [^String v])}
+  parse-long-core
+  (or (ns-resolve 'clojure.core 'parse-long)
+      parse-long-java))
+
 (defn pos-val
   [x]
   (when (and x (number? x) (pos? x))
@@ -518,8 +529,8 @@
    (when (valuable? n)
      (let [s (str n)]
        (if (or (> (count s) 15) (str/index-of s \.))
-         (bigdec s)
-         (Long/parseLong s))))))
+         (bigdec ^String s)
+         (parse-long-core ^String s))))))
 
 (defn some-long
   ([s default]
@@ -527,7 +538,7 @@
   ([s]
    (when (valuable? s)
      (if (number? s) (long s)
-         (clojure.core/parse-long (str s))))))
+         (parse-long-core ^String (str s))))))
 
 (def ^{:arglists '([s] [s default])}
   parse-long
