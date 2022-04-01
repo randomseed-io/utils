@@ -1,5 +1,10 @@
 # History of random:utils releases
 
+## 1.1.2 (2022-04-01)
+
+- Removed Clojure 11.1.0 dependency
+- Added backward compatibility with Clojure versions < 11.1.0
+
 ## 1.1.1 (2022-04-01)
 
 - Dependencies adjusted for Clojure 1.11.0
