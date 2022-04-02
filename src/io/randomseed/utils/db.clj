@@ -249,68 +249,16 @@
 
 (defn make-setter
   ([id-col]
-   (make-setter nil id-col nil nil))
-  ([id-col cols]
-   (make-setter nil id-col cols nil))
-  ([table id-col cols]
-   (make-setter table id-col cols nil))
-  ([table id-col cols setter-coll-fn]
-   (let [id-col-orig id-col
-         id-col      (to-snake-case-simple id-col)
-         tbremoved   (hash-set id-col (keyword id-col) (keyword id-col-orig) id-col-orig)
-         remo        #(apply dissoc % tbremoved)
-         cols        (if (map? cols) (keys cols) cols)
-         cols        (if (coll? cols) (seq cols) cols)
-         cols        (if (coll? cols) cols [(or cols "*")])
-         cols        (map to-snake-case-simple cols)
-         cols        (remove tbremoved cols)
-         table       (to-snake-case-simple table)
-         star?       (= (first cols) "*")
-         cols        (if star? cols (cons id-col cols))
-         rcols       (rest cols)
-         insr        (str-spc "INSERT INTO" (or table "?"))
-         ondup       (str-spc "ON DUPLICATE KEY UPDATE" (join-v=? rcols))
-         q           (if star? insr (str-spc insr
-                                             (braced-join-col-names-no-conv cols)
-                                             (values-? cols) ondup))]
+   (make-setter nil id-col))
+  ([table id-col]
+   (let [id-col (to-snake-case-simple id-col)
+         table  (to-snake-case-simple table)]
      (if table
        (fn db-setter
-         ([db _ id values]
-          (db-setter db id values))
-         ([db id values]
-          (if (and (map? values) (seq values))
-            (when-some [values (seq (remo values))]
-              (let [mk   (map #(to-snake-case-simple (nth % 0)) values)
-                    mv   (map #(nth % 1) values)
-                    mk-f (cons id-col mk)
-                    mv-f (cons (some-str id) mv)
-                    q    (str-spc insr (braced-join-col-names-no-conv mk-f) (values-? mv-f)
-                                  "ON DUPLICATE KEY UPDATE" (join-v=? mk))]
-                (jdbc/execute-one! db (cons q (concat mv-f mv)) gen-opts-simple)))
-            (let [values (if (coll? values) values [values])]
-              (if star?
-                (jdbc/execute-one! db (cons (str q " " (values-? values)) values)
-                                   gen-opts-simple)
-                (jdbc/execute-one! db (cons q (cons (some-str id) (concat values (rest values))))
-                                   gen-opts-simple))))))
+         ([db _ id kvs] (sql/update! db table kvs {id-col id} gen-opts-simple))
+         ([db id kvs]   (sql/update! db table kvs {id-col id} gen-opts-simple)))
        (fn db-setter-table
-         ([db table id values]
-          (if (and (map? values) (seq values))
-            (when-some [values (seq (remo values))]
-              (let [mk   (map #(to-snake-case-simple (nth % 0)) values)
-                    mv   (map #(nth % 1) values)
-                    mk-f (cons id-col mk)
-                    mv-f (cons (some-str id) mv)
-                    q    (str-spc insr (braced-join-col-names-no-conv mk-f) (values-? mv-f)
-                                  "ON DUPLICATE KEY UPDATE" (join-v=? mk))]
-                (jdbc/execute-one! db (cons q (cons table (concat mv-f mv))) gen-opts-simple)))
-            (let [table  (to-snake-case-simple table)
-                  values (if (coll? values) values [values])]
-              (if star?
-                (jdbc/execute-one! db (cons (str q " " (values-? values)) (cons table values))
-                                   gen-opts-simple)
-                (jdbc/execute-one! db (cons q (cons table (cons (some-str id) (concat values (rest values)))))
-                                   gen-opts-simple))))))))))
+         ([db table id kvs] (sql/update! db table kvs {id-col id} gen-opts-simple)))))))
 
 (defn make-deleter
   ([id-col]
