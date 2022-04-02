@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.1.3 (2022-04-02)
+
+- Database setter generator simplified
+
 ## 1.1.2 (2022-04-01)
 
 - Removed Clojure 11.1.0 dependency
