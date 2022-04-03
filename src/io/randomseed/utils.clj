@@ -627,3 +627,14 @@
         (or (re-find #"(.+)--\d+@" $) (re-find #"(.+)@" $))
         (last $)
         (symbol $)))))
+
+;; Function arguments
+
+(defn mapply
+  "Like apply but works on named arguments. Takes function f and a list of
+  arguments to be passed, were the last argument should be a map that will be
+  decomposed and passed as named arguments.
+
+  Returns the result of calling f."
+  [f & args]
+  (apply f (concat (butlast args) (mapcat identity (last args)))))
