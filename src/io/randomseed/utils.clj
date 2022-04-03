@@ -638,3 +638,65 @@
   Returns the result of calling f."
   [f & args]
   (apply f (concat (butlast args) (mapcat identity (last args)))))
+
+;; Console
+
+(defn read-line-with-prompt
+  "Reads a line of text from console with optional prompt. Returns a string or `nil`
+  when the entered string is empty."
+  ([]
+   (some-str (read-line)))
+  ([prompt]
+   (print prompt)
+   (flush)
+   (some-str (read-line))))
+
+(defn ask
+  "Ask user for a string with optional confirmation using ask-fn to get a string (or nil).
+  Repeats until two entered strings are the same and are not empty.
+  Keyword arguments can be given to configure behavior:
+  `prompt` (message displayed when asking for first string),
+  `confirm-prompt` (message displayed when asking for the same string again),
+  `not-match-msg` (message displayed when strings do not match),
+  `empty-msg` (message displayed when the entered string is empty),
+  `retries` (number of retries before quitting the loop; when set to `nil` or not
+  given, it will continue indefinitely),
+  `confirmation?` (requires string to be re-entered for confirmation, defaults to `true`),
+  `allow-empty?` (allows the entered string to be empty; defaults to `false`),
+  `empty-nil?` (returns `nil` instead of an empty string; defaults to `false`),
+  `empty-quits?` (short-circuits on any empty string and returns `nil`; defaults to `false`),
+  `empty-quits-nil?` (returns `nil` when quitting on empty string; defaults to `true`).
+  Returns the entered string or `nil`."
+  ([& {:keys [ask-fn
+              allow-empty?
+              empty-nil?
+              empty-quits?
+              empty-quits-nil?
+              prompt
+              confirm-prompt
+              not-match-msg
+              empty-msg
+              retries
+              confirmation?]
+       :or   {ask-fn           read-line-with-prompt
+              allow-empty?     false
+              empty-nil?       false
+              empty-quits?     false
+              empty-quits-nil? true
+              confirmation?    true
+              prompt           "Enter text: "
+              confirm-prompt   "Repeat text: "
+              not-match-msg    "Texts do not match."
+              empty-msg        "Text is empty."}}]
+   (loop [counter (when retries (unchecked-int (if (pos-int? retries) retries 1)))]
+     (when-not (and counter (zero? counter))
+       (let [p1 (ask-fn prompt)]
+         (if (and (nil? p1) empty-quits?)
+           (when-not empty-quits-nil? "")
+           (let [p2      (if confirmation? (ask-fn confirm-prompt) p1)
+                 counter (when counter (unchecked-dec-int counter))]
+             (if (and (nil? p2) empty-quits?)
+               (when-not empty-quits-nil? "")
+               (if (= p1 p2)
+                 (or p1 (if allow-empty? (when-not empty-nil? "") (do (println empty-msg) (recur counter))))
+                 (do (println not-match-msg) (recur counter)))))))))))
