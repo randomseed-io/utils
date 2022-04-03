@@ -1,5 +1,10 @@
 # History of random:utils releases
 
+## 1.1.4 (2022-04-03)
+
+- Added console reading functions: read-line-with-prompt, crypto/read-pwd, crypto/read-key
+- Added high-level text getting functions: ask, crypto/ask-pass, crypto/ask-key
+
 ## 1.1.3 (2022-04-02)
 
 - Database setter generator simplified
