@@ -52,7 +52,7 @@ Full documentation including usage examples is available at:
 
 ## License
 
-Copyright © 2021 Paweł Wilk
+Copyright © 2021-2022 Paweł Wilk
 
 random:utils is copyrighted software owned by Paweł Wilk (pw@gnu.org). You may
 redistribute and/or modify this software as long as you comply with the terms of
