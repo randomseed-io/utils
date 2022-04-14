@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.1.5 (2022-04-14)
+
+- Fixed a bug in map/nil-keys and map/nil-existing-keys causing error when there was no matching key
+
 ## 1.1.4 (2022-04-03)
 
 - Added console reading functions: read-line-with-prompt, crypto/read-pwd, crypto/read-key
