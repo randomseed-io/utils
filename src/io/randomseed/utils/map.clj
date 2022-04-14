@@ -446,10 +446,13 @@
 (defn nil-keys
   [m keys]
   (when (some? m)
-    (apply assoc m (interleave keys (repeat nil)))))
+    (if-some [keys (seq keys)]
+      (apply assoc m (interleave keys (repeat nil)))
+      m)))
 
 (defn nil-existing-keys
   [m keys]
   (when (some? m)
-    (let [keys (filter (partial contains? m) keys)]
-      (apply assoc m (interleave keys (repeat nil))))))
+    (if-some [keys (seq (filter (partial contains? m) keys))]
+      (apply assoc m (interleave keys (repeat nil)))
+      m)))
