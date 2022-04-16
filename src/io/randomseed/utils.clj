@@ -584,6 +584,8 @@
   (when (and (valuable? v) (string? v))
     (re-pattern v)))
 
+;; Identifiers
+
 (defn some-keyword
   [v]
   (when (valuable? v)
@@ -606,6 +608,29 @@
   [v]
   (when-some [v (some-keyword-up v)]
     (if (simple-keyword? v) v (keyword (name v)))))
+
+(defn some-symbol
+  [v]
+  (when (valuable? v)
+    (if (symbol? v) v
+        (symbol (if (ident? v) v (str v))))))
+
+(defn some-symbol-up
+  [v]
+  (when (valuable? v)
+    (symbol
+     (str/upper-case
+      (str (if (keyword? v) (symbol v) v))))))
+
+(defn some-symbol-simple
+  [v]
+  (when-some [v (some-symbol v)]
+    (if (simple-symbol? v) v (symbol (name v)))))
+
+(defn simple-symbol-up
+  [v]
+  (when-some [v (some-symbol-up v)]
+    (if (simple-symbol? v) v (symbol (name v)))))
 
 ;; Namespaces and global identifiers
 
