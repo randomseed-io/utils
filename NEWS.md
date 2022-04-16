@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.1.6 (2022-04-16)
+
+- Added some-symbol, some-symbol-up, some-symbol-simple, simple-symbol-up
+
 ## 1.1.5 (2022-04-14)
 
 - Fixed a bug in map/nil-keys and map/nil-existing-keys causing error when there was no matching key
