@@ -179,6 +179,14 @@
 
 ;; Getter and setter generators
 
+(defn id-from-db
+  [v]
+  (when v (if (or (number? v) (keyword? v)) v (keyword v))))
+
+(defn id-to-db
+  [v]
+  (when v (if (number? v) v (some-str v))))
+
 (defn make-getter-coll
   "Creates a database getter suitable for use with get-cached-coll- functions. The
   returned function should accept an argument containing multiple identifiers."
@@ -202,17 +210,17 @@
           (db-getter-coll db nil ids))
          ([db _ ids]
           (when-some [ids (seq ids)]
-            (let [ids   (map some-str ids)
+            (let [ids   (map id-to-db ids)
                   query (str q (join-? ids) ")")]
               (->> (sql/query db (cons query ids) gen-opts-simple)
-                   (reduce #(assoc %1 (keyword (get %2 id-col)) %2) {}))))))
+                   (reduce #(assoc %1 (id-from-db (get %2 id-col)) %2) {}))))))
        (fn [db table ids]
          (when-some [ids (seq ids)]
-           (let [ids   (map some-str ids)
+           (let [ids   (map id-to-db ids)
                  table (to-snake-case-simple table)
                  query (str q (join-? ids) ")")]
              (->> (sql/query db (cons query (cons table ids)) gen-opts-simple)
-                  (reduce #(assoc %1 (keyword (get %2 id-col)) %2) {})))))))))
+                  (reduce #(assoc %1 (id-from-db (get %2 id-col)) %2) {})))))))))
 
 (defn make-getter
   ([id-col cols]
@@ -221,7 +229,7 @@
    (make-getter table id-col cols nil))
   ([table id-col cols getter-coll-fn]
    (let [id-col (keyword id-col)
-         cols   (if (map? cols) (keys cols) cols)
+         cols   (if (map? cols)  (keys cols) cols)
          cols   (if (coll? cols) (seq cols) cols)
          cols   (if (coll? cols) cols [(or cols "*")])
          table  (to-snake-case-simple table)
@@ -232,19 +240,19 @@
        (if getter-coll-fn
          (fn db-getter
            ([db id]   (db-getter db nil id))
-           ([db _ id] (jdbc/execute-one! db [q (some-str id)] gen-opts-simple))
+           ([db _ id] (jdbc/execute-one! db [q (id-to-db id)] gen-opts-simple))
            ([db _ id & more] (getter-coll-fn db (cons id more))))
          (fn [db _ id]
-           (jdbc/execute-one! db [q (some-str id)] gen-opts-simple)))
+           (jdbc/execute-one! db [q (id-to-db id)] gen-opts-simple)))
        (if getter-coll-fn
          (fn
            ([db table id]
-            (jdbc/execute-one! db [q (to-snake-case-simple table) (some-str id)]
+            (jdbc/execute-one! db [q (to-snake-case-simple table) (id-to-db id)]
                                gen-opts-simple))
            ([db table id & more]
             (getter-coll-fn db table (cons id more))))
          (fn [db table id]
-           (jdbc/execute-one! db [q (to-snake-case-simple table) (some-str id)]
+           (jdbc/execute-one! db [q (to-snake-case-simple table) (id-to-db id)]
                               gen-opts-simple)))))))
 
 (defn make-setter
@@ -273,10 +281,10 @@
          ([db _ id]
           (db-deleter db id))
          ([db id]
-          (jdbc/execute-one! db [q (some-str id)] gen-opts-simple)))
+          (jdbc/execute-one! db [q (id-to-db id)] gen-opts-simple)))
        (fn db-deleter-table
          ([db table id]
-          (jdbc/execute-one! db [q (to-snake-case-simple table) (some-str id)]
+          (jdbc/execute-one! db [q (to-snake-case-simple table) (id-to-db id)]
                              gen-opts-simple)))))))
 
 ;; Generic getters
@@ -286,16 +294,16 @@
   table. Assumes each result will be related to a single, unique ID."
   [db table ids]
   (when (seq ids)
-    (let [ids (map some-str ids)]
+    (let [ids (map id-to-db ids)]
       (->> (sql/find-by-keys db table (cons (str "id IN " (braced-join-? ids)) ids)
                              gen-opts-simple)
-           (reduce #(assoc %1 (keyword (:id %2)) %2) {})))))
+           (reduce #(assoc %1 (id-from-db (:id %2)) %2) {})))))
 
 (defn get-id
   "Gets properties of the given ID from a database table. For multiple IDs, calls
   get-ids."
   ([db table id]
-   (sql/get-by-id db table (some-str id) gen-opts-simple))
+   (sql/get-by-id db table (id-to-db id) gen-opts-simple))
   ([db table id & more]
    (apply get-ids db table (cons id more))))
 
@@ -342,7 +350,7 @@
   be a cache object encapsulated in an atom."
   [cache ids]
   (when (seq ids)
-    (let [ids (map keyword ids)]
+    (let [ids (map id-from-db ids)]
       (reduce (fn [m id]
                 (let [props (cwr/lookup cache id false)]
                   (if (false? props)
@@ -354,7 +362,7 @@
   "Looks for the entry of the given ID in a cache which should be a cache object
   encapsulated in an atom. For multiple IDs, calls cache-lookup-coll."
   ([cache id]
-   (cwr/lookup cache (keyword id) false))
+   (cwr/lookup cache (id-from-db id) false))
   ([cache id & ids]
    (cache-lookup-coll cache (cons id ids))))
 
@@ -396,12 +404,12 @@
                [cache table db-getter db id & more])}
   ([cache db-getter-or-table db id]
    (if (fn? db-getter-or-table)
-     (cwr/lookup-or-miss cache (keyword id) #(db-getter-or-table db nil %))
-     (cwr/lookup-or-miss cache (keyword id) #(get-id db db-getter-or-table %))))
+     (cwr/lookup-or-miss cache (id-from-db id) #(db-getter-or-table db nil %))
+     (cwr/lookup-or-miss cache (id-from-db id) #(get-id db db-getter-or-table %))))
   ([cache db-getter-or-table db-or-getter id-or-db id2-or-id]
    (if (data-source? db-or-getter)
      (get-cached-coll cache nil db-getter-or-table db-or-getter [id-or-db id2-or-id])
-     (cwr/lookup-or-miss cache (keyword id2-or-id) #(db-or-getter id-or-db db-getter-or-table %))))
+     (cwr/lookup-or-miss cache (id-from-db id2-or-id) #(db-or-getter id-or-db db-getter-or-table %))))
   ([cache db-getter-or-table db-or-getter id-or-db id2-or-id & more]
    (if (data-source? db-or-getter)
      (get-cached-coll cache db-getter-or-table db-or-getter (cons id-or-db (cons id2-or-id more)))
@@ -437,7 +445,7 @@
   ([cache db-getter-or-table db-or-getter prop-or-db id-or-prop id2-or-id]
    (if (data-source? db-or-getter)
      (get-cached-coll-prop cache db-getter-or-table db-or-getter prop-or-db [id-or-prop id2-or-id])
-     (get (get-cached cache db-getter-or-table db-or-getter prop-or-db id2-or-id) (keyword id-or-prop))))
+     (get (get-cached cache db-getter-or-table db-or-getter prop-or-db id2-or-id) (id-from-db id-or-prop))))
   ([cache db-getter-or-table db-or-getter prop-or-db id-or-prop id2-or-id & more]
    (if (data-source? db-or-getter)
      (get-cached-coll-prop cache db-getter-or-table db-or-getter prop-or-db (list id-or-prop id2-or-id more))
@@ -458,11 +466,11 @@
      default))
   ([cache db-getter-or-table db-or-getter prop-or-db default-or-prop id-or-default id2-or-id]
    (if (data-source? db-or-getter)
-     (let [ids (map keyword [id-or-default id2-or-id])
+     (let [ids (map id-from-db [id-or-default id2-or-id])
            m   (get-cached-coll-prop cache db-getter-or-table db-or-getter prop-or-db ids)]
        (reduce #(if (contains? %1 %2) %1 (assoc %1 %2 default-or-prop)) m ids))
      (if-some [props (get-cached cache db-getter-or-table db-or-getter prop-or-db id2-or-id)]
-       (get props (keyword default-or-prop))
+       (get props (id-from-db default-or-prop))
        id-or-default)))
   ([cache db-getter-or-table db-or-getter prop-or-db default-or-prop id-or-default id2-or-id & more]
    (if (data-source? db-or-getter)
@@ -679,7 +687,7 @@
         getter-query  (str-spc "SELECT value FROM" table
                                "WHERE" entity-column "= ? AND id = ?")]
     (fn [db entity-id setting-id]
-      (when-some [entity-id (some-str entity-id)]
+      (when-some [entity-id (id-to-db entity-id)]
         (when-some [setting-id (some-str setting-id)]
           (if db
             (when-some [r (ret-value-key
@@ -701,7 +709,7 @@
         entity-column (some-keyword-simple entity-column)]
     (fn put-setting
       ([db entity-id setting-id value]
-       (when-some [entity-id (some-str entity-id)]
+       (when-some [entity-id (id-to-db entity-id)]
          (when-some [setting-id (some-str setting-id)]
            (if-not db
              (log/err "Cannot store setting" setting-id "in" table "for" entity-id
@@ -717,7 +725,7 @@
                           "into a database table" table))))))
       ([db entity-id setting-id value & pairs]
        (if-let [pairs (prep-pairs pairs)]
-         (when-some [entity-id (some-str entity-id)]
+         (when-some [entity-id (id-to-db entity-id)]
            (when-some [setting-id (some-str setting-id)]
              (if-not db
                (log/err "Cannot store setting" setting-id "in" table "for" entity-id
@@ -728,7 +736,7 @@
                         (->> pairs (cons value) (cons setting-id)
                              (partition 2 2 listed-nil)
                              (map (juxt-seq (constantly entity-id)
-                                            (comp some-str first)
+                                            (comp id-to-db first)
                                             (comp nippy/freeze second))))
                         gen-opts)]
                  (or (pos-int? (::jdbc/update-count (first r)))
@@ -750,13 +758,13 @@
         db-opts-ret       (assoc gen-opts-simple-vec :return-keys false :suffix ret-subquery)]
     (fn del-setting
       ([db entity-id]
-       (when-some [entity-id (some-str entity-id)]
+       (when-some [entity-id (id-to-db entity-id)]
          (if-not db
            (log/err "Cannot delete settings in" table "for" entity-id
                     "because database connection is not set")
            (sql/delete! db table {entity-column entity-id} db-opts-ret))))
       ([db entity-id setting-id]
-       (when-some [entity-id (some-str entity-id)]
+       (when-some [entity-id (id-to-db entity-id)]
          (when-some [setting-id (some-str setting-id)]
            (if-not db
              (log/err "Cannot delete setting" setting-id "in" table "for" entity-id
@@ -766,7 +774,7 @@
                  pos-int?)))))
       ([db entity-id setting-id & setting-ids]
        (if-let [setting-ids (prep-names setting-ids)]
-         (when-some [entity-id (some-str entity-id)]
+         (when-some [entity-id (id-to-db entity-id)]
            (when-some [setting-id (some-str setting-id)]
              (if-not db
                (log/err "Cannot delete settings in" table "for" entity-id
@@ -785,7 +793,7 @@
   "Gets the cached result of calling the given setting getter. Updates cache when
   necessary."
   [cache getter db entity-id setting-id]
-  (let [k [(keyword entity-id) (keyword setting-id)]]
+  (let [k [(id-from-db entity-id) (keyword setting-id)]]
     (cwr/lookup-or-miss cache k #(apply getter db %))))
 
 (defn cached-setting-set
@@ -793,13 +801,13 @@
   operation succeeded."
   ([cache setter db entity-id setting-id value]
    (let [r (setter db entity-id setting-id value)]
-     (cache-evict! cache [(keyword entity-id) (keyword setting-id)]) r))
+     (cache-evict! cache [(id-from-db entity-id) (keyword setting-id)]) r))
   ([cache setter db entity-id setting-id value & pairs]
    (let [r         (apply setter db entity-id setting-id value pairs)
-         entity-id (keyword entity-id)
+         entity-id (id-from-db entity-id)
          seed-vec  (vector entity-id)]
      (apply cache-evict! cache
-            [entity-id (keyword setting-id)]
+            [entity-id (id-from-db setting-id)]
             (map #(conj seed-vec (keyword %))
                  (take-nth 2 pairs)))
      r)))
@@ -809,17 +817,17 @@
   after operation succeeded."
   ([cache deleter db entity-id]
    (when-some [r (deleter db entity-id)]
-     (let [seed-vec (vector (keyword entity-id))]
+     (let [seed-vec (vector (id-from-db entity-id))]
        (apply cache-evict! cache (map #(conj seed-vec (keyword %)) r)) true)))
   ([cache deleter db entity-id setting-id]
    (let [r (deleter db entity-id setting-id)]
-     (cache-evict! cache [(keyword entity-id) (keyword setting-id)]) r))
+     (cache-evict! cache [(id-from-db entity-id) (keyword setting-id)]) r))
   ([cache deleter db entity-id setting-id & pairs]
    (let [r         (apply deleter db entity-id setting-id pairs)
-         entity-id (keyword entity-id)
+         entity-id (id-from-db entity-id)
          seed-vec  (vector entity-id)]
      (apply cache-evict! cache
-            [entity-id (keyword setting-id)]
+            [entity-id (id-from-db setting-id)]
             (map #(conj seed-vec (keyword %))
                  (take-nth 2 pairs)))
      r)))
@@ -827,7 +835,7 @@
 (defn init-cache
   "Initializes single cache by parsing TTL and queue size."
   [{:keys [size ttl seed]}]
-  (cache-prepare (time/parse-duration   ttl)
+  (cache-prepare (time/parse-duration ttl)
                  (safe-parse-long size)
                  (or seed {})))
 
