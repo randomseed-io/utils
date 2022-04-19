@@ -28,6 +28,7 @@
   (:import (javax.sql DataSource)))
 
 (def ^:const underscore (re-pattern "_"))
+(def ^:const dash       (re-pattern "-"))
 
 ;; Builder and conversion functions
 
@@ -52,6 +53,24 @@
        (str (symbol v))
        v))))
 
+(defn- tlcd-c [v]
+  (when v
+    (let [v (csk/->kebab-case-string v)]
+      (if-some [idx (str/index-of v \-)]
+        (let [idx (unchecked-int idx)]
+          (if (pos? (unchecked-subtract-int (count v) idx))
+            (str (subs v 0 idx) "/" (subs v (unchecked-inc-int idx)))
+            v))
+        v))))
+
+(defn- tscd-c [v]
+  (when v
+    (let [v (csk/->snake_case_string v)]
+      (if-some [idx (str/index-of v \_)]
+        (str (subs v 0 idx) "/" (subs v idx))
+        v))))
+(def to-lisp-case-dashed         (mem/fifo tlcd-c  {} :fifo/threshold 512))
+(def to-snake-case-dashed        (mem/fifo tscd-c  {} :fifo/threshold 512))
 (defn as-lisp-vectors
   "Result set builder which returns vectors with underscores in names converted to
   hyphens."
