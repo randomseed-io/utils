@@ -156,9 +156,9 @@
 
 (def gen-opts-simple-dashed
   {:return-keys false
-   :builder-fn  as-lisp-simple-maps
-   :column-fn   to-snake-case-simple-dashed
-   :table-fn    to-snake-case-simple-dashed})
+   :builder-fn  as-lisp-simple-maps-dashed
+   :column-fn   to-snake-case-simple
+   :table-fn    to-snake-case-simple})
 
 (def gen-opts-simple-fully-dashed
   {:return-keys false
@@ -168,9 +168,9 @@
 
 (def gen-opts-dashed
   {:return-keys false
-   :builder-fn  as-lisp-maps
-   :column-fn   to-snake-case-dashed
-   :table-fn    to-snake-case-dashed})
+   :builder-fn  as-lisp-maps-dashed
+   :column-fn   to-snake-case
+   :table-fn    to-snake-case})
 
 (def gen-opts-fully-dashed
   {:return-keys false
