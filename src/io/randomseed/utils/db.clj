@@ -69,6 +69,27 @@
       (if-some [idx (str/index-of v \_)]
         (str (subs v 0 idx) "/" (subs v idx))
         v))))
+
+(defn- tlcsd-c [v]
+  (when v
+    (csk/->kebab-case-string
+     (if (ident? v)
+       (if-some [nsname (namespace v)]
+         (str nsname "-" (name v))
+         (name v))
+       v))))
+
+(defn- tscsd-c [v]
+  (when v
+    (csk/->snake_case_string
+     (if (ident? v)
+       (if-some [nsname (namespace v)]
+         (str (namespace v) "-" (name v))
+         (name v))
+       v))))
+
+(def to-lisp-case-simple-dashed  (mem/fifo tlcsd-c {} :fifo/threshold 512))
+(def to-snake-case-simple-dashed (mem/fifo tscsd-c {} :fifo/threshold 512))
 (def to-lisp-case-dashed         (mem/fifo tlcd-c  {} :fifo/threshold 512))
 (def to-snake-case-dashed        (mem/fifo tscd-c  {} :fifo/threshold 512))
 (defn as-lisp-vectors
