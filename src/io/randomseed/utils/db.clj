@@ -63,7 +63,10 @@
   (when v
     (let [v (csk/->snake_case_string v)]
       (if-some [idx (str/index-of v \_)]
-        (str (subs v 0 idx) "/" (subs v idx))
+        (let [idx (unchecked-int idx)]
+          (if (pos? (unchecked-subtract-int (count v) idx))
+            (str (subs v 0 idx) "/" (subs v (unchecked-inc-int idx)))
+            v))
         v))))
 
 (defn- tlcsd-c [v]
