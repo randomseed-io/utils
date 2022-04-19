@@ -32,14 +32,25 @@
 ;; Builder and conversion functions
 
 (defn- tlcs-c [v] (when v (csk/->kebab-case-string (if (ident? v) (name v) v))))
-(defn- tlc-c  [v] (when v (csk/->kebab-case-string v)))
 (defn- tscs-c [v] (when v (csk/->snake_case_string (if (ident? v) (name v) v))))
-(defn- tsc-c  [v] (when v (csk/->snake_case_string v)))
 
 (def to-lisp-case-simple  (mem/fifo tlcs-c {} :fifo/threshold 512))
 (def to-snake-case-simple (mem/fifo tscs-c {} :fifo/threshold 512))
 (def to-lisp-case         (mem/fifo tlc-c  {} :fifo/threshold 512))
 (def to-snake-case        (mem/fifo tsc-c  {} :fifo/threshold 512))
+(defn- tlc-c [v]
+  (when v
+    (csk/->kebab-case-string
+     (if (qualified-ident? v)
+       (str (symbol v))
+       v))))
+
+(defn- tsc-c [v]
+  (when v
+    (csk/->snake_case_string
+     (if (qualified-ident? v)
+       (str (symbol v))
+       v))))
 
 (defn as-lisp-vectors
   "Result set builder which returns vectors with underscores in names converted to
