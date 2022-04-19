@@ -113,34 +113,33 @@
 
 (defn some-str
   [v]
-  (valuable
-   (when (valuable? v)
-     (str (if (ident? v) (symbol v) v)))))
+  (when (valuable? v)
+    (valuable (str (if (ident? v) (symbol v) v)))))
 
 (defn some-str-up
   [v]
-  (valuable
-   (when (valuable? v)
+  (when (valuable? v)
+    (valuable
      (str/upper-case
       (str (if (ident? v) (symbol v) v))))))
 
 (defn some-str-simple
   [v]
-  (valuable
-   (when (valuable? v)
+  (when (valuable? v)
+    (valuable
      (if (ident? v) (name v) (str v)))))
 
 (defn some-str-simple-up
   [v]
-  (valuable
-   (when (valuable? v)
+  (when (valuable? v)
+    (valuable
      (str/upper-case
       (if (ident? v) (name v) (str v))))))
 
 (defn some-str-simple-down
   [v]
-  (valuable
-   (when (valuable? v)
+  (when (valuable? v)
+    (valuable
      (str/lower-case
       (if (ident? v) (name v) (str v))))))
 
@@ -154,7 +153,7 @@
   [s & more]
   (if-not more
     (str (some-str s))
-    (apply str (interpose " " (map some-str (cons s more))))))
+    (apply str (interpose " " (filter some? (map some-str (cons s more)))))))
 
 (defn some-string
   ^String [^String s]
@@ -243,7 +242,8 @@
     ((if (keyword? id) keyword symbol) ns (name id))))
 
 (defn ensure-str
-  ([v] (or (when (valuable? v) (str (if (ident? v) (symbol v) v))) ""))
+  ([v]
+   (or (when (valuable? v) (str (if (ident? v) (symbol v) v))) ""))
   ([v & more]
    (apply str (map some-str (cons v more)))))
 
@@ -481,8 +481,10 @@
       (fn ^java.util.UUID [] (java.util.UUID/randomUUID))))
 
 (defn to-uuid
-  ([] (random-uuid))
-  ([s] (when (valuable? s) (if (uuid? s) s (UUID/fromString (str s))))))
+  ([]
+   (random-uuid))
+  ([s]
+   (when (valuable? s) (if (uuid? s) s (UUID/fromString (str s))))))
 
 (def uuid
   (or (ns-resolve 'clojure.core 'uuid)
