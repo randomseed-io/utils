@@ -35,10 +35,6 @@
 (defn- tlcs-c [v] (when v (csk/->kebab-case-string (if (ident? v) (name v) v))))
 (defn- tscs-c [v] (when v (csk/->snake_case_string (if (ident? v) (name v) v))))
 
-(def to-lisp-case-simple  (mem/fifo tlcs-c {} :fifo/threshold 512))
-(def to-snake-case-simple (mem/fifo tscs-c {} :fifo/threshold 512))
-(def to-lisp-case         (mem/fifo tlc-c  {} :fifo/threshold 512))
-(def to-snake-case        (mem/fifo tsc-c  {} :fifo/threshold 512))
 (defn- tlc-c [v]
   (when v
     (csk/->kebab-case-string
@@ -88,10 +84,15 @@
          (name v))
        v))))
 
+(def to-lisp-case-simple         (mem/fifo tlcs-c  {} :fifo/threshold 512))
 (def to-lisp-case-simple-dashed  (mem/fifo tlcsd-c {} :fifo/threshold 512))
+(def to-snake-case-simple        (mem/fifo tscs-c  {} :fifo/threshold 512))
 (def to-snake-case-simple-dashed (mem/fifo tscsd-c {} :fifo/threshold 512))
+(def to-lisp-case                (mem/fifo tlc-c   {} :fifo/threshold 512))
 (def to-lisp-case-dashed         (mem/fifo tlcd-c  {} :fifo/threshold 512))
+(def to-snake-case               (mem/fifo tsc-c   {} :fifo/threshold 512))
 (def to-snake-case-dashed        (mem/fifo tscd-c  {} :fifo/threshold 512))
+
 (defn as-lisp-vectors
   "Result set builder which returns vectors with underscores in names converted to
   hyphens."
@@ -231,10 +232,15 @@
 ;; Getter and setter generators
 
 (defn id-from-db
+  "Converts the given ID retrieved from a database to a value suitable to be used in
+  Clojure programs. If v is a number or a keyword, it is returned as is. Otherwise it
+  is converted to a keyword."
   [v]
   (when v (if (or (number? v) (keyword? v)) v (keyword v))))
 
 (defn id-to-db
+  "Converts the given ID to a value suitable to be stored in a database. If v is a
+  number, it is passed as is. Otherwise it is converted to a string."
   [v]
   (when v (if (number? v) v (some-str v))))
 
