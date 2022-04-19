@@ -127,6 +127,24 @@
              :qualifier-fn to-lisp-case-simple
              :label-fn     to-lisp-case-simple)))
 
+(defn as-lisp-simple-maps-dashed
+  "Result set builder which converts underscore characters to hyphens and additionally
+  replaces the first underscore or hyphen with a slash character."
+  [rs opts]
+  (result-set/as-unqualified-modified-maps
+   rs (assoc opts
+             :qualifier-fn to-lisp-case-simple-dashed
+             :label-fn     to-lisp-case-simple-dashed)))
+
+(defn as-lisp-maps-dashed
+  "Result set builder which converts underscore characters to hyphens and additionally
+  replaces the first underscore or hyphen with a slash character."
+  [rs opts]
+  (result-set/as-modified-maps
+   rs (assoc opts
+             :qualifier-fn to-lisp-case-dashed
+             :label-fn     to-lisp-case-dashed)))
+
 (def gen-opts-simple
   {:return-keys false
    :builder-fn  as-lisp-simple-maps
