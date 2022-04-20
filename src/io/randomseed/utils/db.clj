@@ -687,8 +687,9 @@
                            (jdbc/execute-one! db [getter-query entity-id setting-id]))]
               (try
                 (nippy/thaw r)
-                (catch Throwable _
+                (catch Throwable e
                   (log/err "Error de-serializing setting" setting-id "for" entity-id "in" table)
+                  (log/err e)
                   ::get-failed)))
             (log/err "Cannot get setting" setting-id "in" table "for" entity-id
                      "because database connection is not set")))))))
