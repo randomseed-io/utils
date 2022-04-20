@@ -160,6 +160,19 @@
   ^String [^String s]
   (if (or (not (string? s)) (empty? s)) nil s))
 
+(defn replace-first
+  "Replaces first encounter of a character c in the given string s with a character r."
+  [s c r]
+  (if (string? s)
+    (if-some [idx (str/index-of s c)]
+      (let [idx (unchecked-int idx)
+            cnt (unchecked-int (count s))]
+        (if (> cnt (unchecked-subtract-int cnt idx) 1)
+          (str (subs s 0 idx) r (subs s (unchecked-inc-int idx)))
+          s))
+      s)
+    s))
+
 (defn to-lisp-str
   "ip_address --> ip-address"
   [v]
@@ -170,6 +183,12 @@
   "abc/ip_address --> ip-address"
   [v]
   (to-lisp-str (if (ident? v) (name v) v)))
+
+(defn to-lisp-str-replace-first
+  "ipCaddress_to --> ipRaddress-to"
+  [v c r]
+  (when-some [v (some-str v)]
+    (csk/->kebab-case-string (replace-first v c r))))
 (defn to-snake-str
   "ip-address --> ip_address"
   [v]
@@ -180,6 +199,12 @@
   "abc/ip-address --> ip_address"
   [v]
   (to-snake-str (if (ident? v) (name v) v)))
+
+(defn to-snake-str-replace-first
+  "ipCaddress-to --> ipRaddress_to"
+  [v c r]
+  (when-some [v (some-str v)]
+    (csk/->snake_case_string (replace-first v c r))))
 ;; Names
 
 (defn normalize-name
