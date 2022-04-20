@@ -189,6 +189,12 @@
   [v c r]
   (when-some [v (some-str v)]
     (csk/->kebab-case-string (replace-first v c r))))
+
+(defn to-lisp-slashed-str
+  "ip_address_is --> ip/address-is"
+  [v]
+  (to-lisp-str-replace-first v \_ \/))
+
 (defn to-snake-str
   "ip-address --> ip_address"
   [v]
@@ -205,6 +211,12 @@
   [v c r]
   (when-some [v (some-str v)]
     (csk/->snake_case_string (replace-first v c r))))
+
+(defn to-snake-slashed-str
+  "ip-address-is --> ip/address_is"
+  [v]
+  (to-snake-str-replace-first v \- \/))
+
 ;; Names
 
 (defn normalize-name
