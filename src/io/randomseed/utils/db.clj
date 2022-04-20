@@ -15,7 +15,7 @@
             [camel-snake-kebab.core        :as          csk]
             [next.jdbc                     :as         jdbc]
             [next.jdbc.sql                 :as          sql]
-            [next.jdbc.result-set          :as   result-set]
+            [next.jdbc.result-set          :as           rs]
             [next.jdbc.sql.builder         :as      builder]
             [taoensso.nippy                :as        nippy]
             [io.randomseed.utils           :refer      :all]
@@ -32,177 +32,68 @@
 
 ;; Builder and conversion functions
 
-(defn- tlcs-c [v] (when v (csk/->kebab-case-string (if (ident? v) (name v) v))))
-(defn- tscs-c [v] (when v (csk/->snake_case_string (if (ident? v) (name v) v))))
+(def to-lisp          (mem/fifo to-lisp-str          {} :fifo/threshold 512))
+(def to-lisp-simple   (mem/fifo to-lisp-simple-str   {} :fifo/threshold 512))
+(def to-lisp-slashed  (mem/fifo to-lisp-slashed-str  {} :fifo/threshold 512))
+(def to-snake         (mem/fifo to-snake-str         {} :fifo/threshold 512))
+(def to-snake-simple  (mem/fifo to-snake-simple-str  {} :fifo/threshold 512))
+(def to-snake-slashed (mem/fifo to-snake-slashed-str {} :fifo/threshold 512))
 
-(defn- tlc-c [v]
-  (when v
-    (csk/->kebab-case-string
-     (if (qualified-ident? v)
-       (str (symbol v))
-       v))))
+(def opts-map
+  {:return-keys  false
+   :builder-fn   rs/as-modified-maps
+   :column-fn    to-snake
+   :table-fn     to-snake
+   :qualifier-fn to-lisp
+   :label-fn     to-lisp})
 
-(defn- tsc-c [v]
-  (when v
-    (csk/->snake_case_string
-     (if (qualified-ident? v)
-       (str (symbol v))
-       v))))
+(def opts-simple-map
+  {:return-keys  false
+   :builder-fn   rs/as-unqualified-modified-maps
+   :column-fn    to-snake
+   :table-fn     to-snake
+   :qualifier-fn to-lisp
+   :label-fn     to-lisp})
 
-(defn- tlcd-c [v]
-  (when v
-    (let [v (csk/->kebab-case-string v)]
-      (if-some [idx (str/index-of v \-)]
-        (let [idx (unchecked-int idx)]
-          (if (pos? (unchecked-subtract-int (count v) idx))
-            (str (subs v 0 idx) "/" (subs v (unchecked-inc-int idx)))
-            v))
-        v))))
+(def opts-slashed-map
+  {:return-keys  false
+   :builder-fn   rs/as-unqualified-modified-maps
+   :column-fn    to-snake
+   :table-fn     to-snake
+   :qualifier-fn (constantly nil)
+   :label-fn     to-lisp-slashed})
 
-(defn- tscd-c [v]
-  (when v
-    (let [v (csk/->snake_case_string v)]
-      (if-some [idx (str/index-of v \_)]
-        (let [idx (unchecked-int idx)]
-          (if (pos? (unchecked-subtract-int (count v) idx))
-            (str (subs v 0 idx) "/" (subs v (unchecked-inc-int idx)))
-            v))
-        v))))
+(def opts-vec
+  {:return-keys  false
+   :builder-fn   rs/as-modified-arrays
+   :column-fn    to-snake
+   :table-fn     to-snake
+   :qualifier-fn to-lisp
+   :label-fn     to-lisp})
 
-(defn- tlcsd-c [v]
-  (when v
-    (csk/->kebab-case-string
-     (if (ident? v)
-       (if-some [nsname (namespace v)]
-         (str nsname "-" (name v))
-         (name v))
-       v))))
+(def opts-simple-vec
+  {:return-keys  false
+   :builder-fn   rs/as-unqualified-modified-arrays
+   :column-fn    to-snake
+   :table-fn     to-snake
+   :qualifier-fn to-lisp
+   :label-fn     to-lisp})
 
-(defn- tscsd-c [v]
-  (when v
-    (csk/->snake_case_string
-     (if (ident? v)
-       (if-some [nsname (namespace v)]
-         (str (namespace v) "-" (name v))
-         (name v))
-       v))))
-
-(def to-lisp-case-simple         (mem/fifo tlcs-c  {} :fifo/threshold 512))
-(def to-lisp-case-simple-dashed  (mem/fifo tlcsd-c {} :fifo/threshold 512))
-(def to-snake-case-simple        (mem/fifo tscs-c  {} :fifo/threshold 512))
-(def to-snake-case-simple-dashed (mem/fifo tscsd-c {} :fifo/threshold 512))
-(def to-lisp-case                (mem/fifo tlc-c   {} :fifo/threshold 512))
-(def to-lisp-case-dashed         (mem/fifo tlcd-c  {} :fifo/threshold 512))
-(def to-snake-case               (mem/fifo tsc-c   {} :fifo/threshold 512))
-(def to-snake-case-dashed        (mem/fifo tscd-c  {} :fifo/threshold 512))
-
-(defn as-lisp-vectors
-  "Result set builder which returns vectors with underscores in names converted to
-  hyphens."
-  [rs opts]
-  (result-set/as-modified-arrays
-   rs (assoc opts
-             :qualifier-fn to-lisp-case
-             :label-fn     to-lisp-case)))
-
-(defn as-lisp-simple-vectors
-  "Result set builder which returns vectors with underscores in names converted to
-  hyphens and namespaces removed."
-  [rs opts]
-  (result-set/as-unqualified-modified-arrays
-   rs (assoc opts
-             :qualifier-fn to-lisp-case-simple
-             :label-fn     to-lisp-case-simple)))
-
-(defn as-lisp-maps
-  "Result set builder which converts underscore characters to hyphens."
-  [rs opts]
-  (result-set/as-modified-maps
-   rs (assoc opts
-             :qualifier-fn to-lisp-case
-             :label-fn     to-lisp-case)))
-
-(defn as-lisp-simple-maps
-  "Result set builder which converts underscore characters to hyphens."
-  [rs opts]
-  (result-set/as-unqualified-modified-maps
-   rs (assoc opts
-             :qualifier-fn to-lisp-case-simple
-             :label-fn     to-lisp-case-simple)))
-
-(defn as-lisp-simple-maps-dashed
-  "Result set builder which converts underscore characters to hyphens and additionally
-  replaces the first underscore or hyphen with a slash character."
-  [rs opts]
-  (result-set/as-unqualified-modified-maps
-   rs (assoc opts
-             :qualifier-fn to-lisp-case-simple-dashed
-             :label-fn     to-lisp-case-simple-dashed)))
-
-(defn as-lisp-maps-dashed
-  "Result set builder which converts underscore characters to hyphens and additionally
-  replaces the first underscore or hyphen with a slash character."
-  [rs opts]
-  (result-set/as-modified-maps
-   rs (assoc opts
-             :qualifier-fn to-lisp-case-dashed
-             :label-fn     to-lisp-case-dashed)))
-
-(def gen-opts-simple
-  {:return-keys false
-   :builder-fn  as-lisp-simple-maps
-   :column-fn   to-snake-case-simple
-   :table-fn    to-snake-case-simple})
-
-(def gen-opts-simple-dashed
-  {:return-keys false
-   :builder-fn  as-lisp-simple-maps-dashed
-   :column-fn   to-snake-case-simple
-   :table-fn    to-snake-case-simple})
-
-(def gen-opts-simple-fully-dashed
-  {:return-keys false
-   :builder-fn  as-lisp-simple-maps-dashed
-   :column-fn   to-snake-case-simple-dashed
-   :table-fn    to-snake-case-simple-dashed})
-
-(def gen-opts-dashed
-  {:return-keys false
-   :builder-fn  as-lisp-maps-dashed
-   :column-fn   to-snake-case
-   :table-fn    to-snake-case})
-
-(def gen-opts-fully-dashed
-  {:return-keys false
-   :builder-fn  as-lisp-maps-dashed
-   :column-fn   to-snake-case-dashed
-   :table-fn    to-snake-case-dashed})
-
-(def gen-opts
-  {:return-keys false
-   :builder-fn  as-lisp-maps
-   :column-fn   to-snake-case
-   :table-fn    to-snake-case})
-
-(def gen-opts-simple-vec
-  {:return-keys false
-   :builder-fn  as-lisp-simple-vectors
-   :column-fn   to-snake-case-simple
-   :table-fn    to-snake-case-simple})
-
-(def gen-opts-vec
-  {:return-keys false
-   :builder-fn  as-lisp-vectors
-   :column-fn   to-snake-case
-   :table-fn    to-snake-case})
+(def opts-slashed-vec
+  {:return-keys  false
+   :builder-fn   rs/as-unqualified-modified-arrays
+   :column-fn    to-snake
+   :table-fn     to-snake
+   :qualifier-fn (constantly nil)
+   :label-fn     to-lisp-slashed})
 
 (defn join-col-names
   [cols]
-  (str/join "," (map to-snake-case-simple cols)))
+  (str/join "," (map to-snake-simple cols)))
 
 (defn braced-join-col-names
   [cols]
-  (str "(" (str/join "," (map to-snake-case-simple cols)) ")"))
+  (str "(" (str/join "," (map to-snake-simple cols)) ")"))
 
 (defn braced-join-col-names-no-conv
   [cols]
@@ -247,7 +138,7 @@
                        (cache/fifo-cache-factory :threshold (long queue-size))
                        (cache/ttl-cache-factory  :ttl (time/millis ttl))))))
 
-(defn memoizer
+  (defn memoizer
   "Creates a function for creating memoized functions with predefined TTL and queue
   size taken from config. If the function is not given it will try to dereference
   symbol present in the config under the :memoizer key."
@@ -262,34 +153,34 @@
        (memoize f cache-size cache-ttl)
        f))))
 
-(defn invalidate!
+  (defn invalidate!
   [f key-params]
   (if (seq key-params)
     (mem/memo-clear! f key-params)
     (mem/memo-clear! f)))
 
-(defn invalidator
+  (defn invalidator
   [f]
   (if f
     (fn [& key-params] (invalidate! f key-params))
     (constantly nil)))
 
-;; Getter and setter generators
+  ;; Getter and setter generators
 
-(defn id-from-db
+  (defn id-from-db
   "Converts the given ID retrieved from a database to a value suitable to be used in
   Clojure programs. If v is a number or a keyword, it is returned as is. Otherwise it
   is converted to a keyword."
   [v]
   (when v (if (or (number? v) (keyword? v)) v (keyword v))))
 
-(defn id-to-db
+  (defn id-to-db
   "Converts the given ID to a value suitable to be stored in a database. If v is a
   number, it is passed as is. Otherwise it is converted to a string."
   [v]
   (when v (if (number? v) v (some-str v))))
 
-(defn make-getter-coll
+  (defn make-getter-coll
   "Creates a database getter suitable for use with get-cached-coll- functions. The
   returned function should accept an argument containing multiple identifiers."
   ([id-col]
@@ -301,10 +192,10 @@
          cols   (if (map? cols) (keys cols) cols)
          cols   (if (coll? cols) (seq cols) cols)
          cols   (if (coll? cols) cols [(or cols "*")])
-         table  (to-snake-case-simple table)
+         table  (to-snake-simple table)
          q      (str-spc "SELECT" (join-col-names cols)
                          "FROM"   (or table "?")
-                         "WHERE"  (to-snake-case-simple id-col)
+                         "WHERE"  (to-snake-simple id-col)
                          "IN (")]
      (if table
        (fn db-getter-coll
@@ -314,14 +205,14 @@
           (when-some [ids (seq ids)]
             (let [ids   (map id-to-db ids)
                   query (str q (join-? ids) ")")]
-              (->> (sql/query db (cons query ids) gen-opts-simple)
+              (->> (sql/query db (cons query ids) opts-simple-map)
                    (reduce #(assoc %1 (id-from-db (get %2 id-col)) %2) {}))))))
        (fn [db table ids]
          (when-some [ids (seq ids)]
            (let [ids   (map id-to-db ids)
-                 table (to-snake-case-simple table)
+                 table (to-snake-simple table)
                  query (str q (join-? ids) ")")]
-             (->> (sql/query db (cons query (cons table ids)) gen-opts-simple)
+             (->> (sql/query db (cons query (cons table ids)) opts-simple-map)
                   (reduce #(assoc %1 (id-from-db (get %2 id-col)) %2) {})))))))))
 
 (defn make-getter
@@ -334,60 +225,60 @@
          cols   (if (map? cols)  (keys cols) cols)
          cols   (if (coll? cols) (seq cols) cols)
          cols   (if (coll? cols) cols [(or cols "*")])
-         table  (to-snake-case-simple table)
+         table  (to-snake-simple table)
          q      (str-spc "SELECT" (join-col-names cols)
                          "FROM"   (or table "?")
-                         "WHERE"  (to-snake-case-simple id-col) "= ?")]
+                         "WHERE"  (to-snake-simple id-col) "= ?")]
      (if table
        (if getter-coll-fn
          (fn db-getter
            ([db id]   (db-getter db nil id))
-           ([db _ id] (jdbc/execute-one! db [q (id-to-db id)] gen-opts-simple))
+           ([db _ id] (jdbc/execute-one! db [q (id-to-db id)] opts-simple-map))
            ([db _ id & more] (getter-coll-fn db (cons id more))))
          (fn [db _ id]
-           (jdbc/execute-one! db [q (id-to-db id)] gen-opts-simple)))
+           (jdbc/execute-one! db [q (id-to-db id)] opts-simple-map)))
        (if getter-coll-fn
          (fn
            ([db table id]
-            (jdbc/execute-one! db [q (to-snake-case-simple table) (id-to-db id)]
-                               gen-opts-simple))
+            (jdbc/execute-one! db [q (to-snake-simple table) (id-to-db id)]
+                               opts-simple-map))
            ([db table id & more]
             (getter-coll-fn db table (cons id more))))
          (fn [db table id]
-           (jdbc/execute-one! db [q (to-snake-case-simple table) (id-to-db id)]
-                              gen-opts-simple)))))))
+           (jdbc/execute-one! db [q (to-snake-simple table) (id-to-db id)]
+                              opts-simple-map)))))))
 
 (defn make-setter
   ([id-col]
    (make-setter nil id-col))
   ([table id-col]
-   (let [id-col (to-snake-case-simple id-col)
-         table  (to-snake-case-simple table)]
+   (let [id-col (to-snake-simple id-col)
+         table  (to-snake-simple table)]
      (if table
        (fn db-setter
-         ([db _ id kvs] (sql/update! db table kvs {id-col id} gen-opts-simple))
-         ([db id kvs]   (sql/update! db table kvs {id-col id} gen-opts-simple)))
+         ([db _ id kvs] (sql/update! db table kvs {id-col id} opts-simple-map))
+         ([db id kvs]   (sql/update! db table kvs {id-col id} opts-simple-map)))
        (fn db-setter-table
-         ([db table id kvs] (sql/update! db table kvs {id-col id} gen-opts-simple)))))))
+         ([db table id kvs] (sql/update! db table kvs {id-col id} opts-simple-map)))))))
 
 (defn make-deleter
   ([id-col]
    (make-deleter nil id-col))
   ([table id-col]
    (let [id-col (keyword id-col)
-         table  (to-snake-case-simple table)
+         table  (to-snake-simple table)
          q      (str-spc "DELETE FROM" (or table "?")
-                         "WHERE" (to-snake-case-simple id-col) "= ?")]
+                         "WHERE" (to-snake-simple id-col) "= ?")]
      (if table
        (fn db-deleter
          ([db _ id]
           (db-deleter db id))
          ([db id]
-          (jdbc/execute-one! db [q (id-to-db id)] gen-opts-simple)))
+          (jdbc/execute-one! db [q (id-to-db id)] opts-simple-map)))
        (fn db-deleter-table
          ([db table id]
-          (jdbc/execute-one! db [q (to-snake-case-simple table) (id-to-db id)]
-                             gen-opts-simple)))))))
+          (jdbc/execute-one! db [q (to-snake-simple table) (id-to-db id)]
+                             opts-simple-map)))))))
 
 ;; Generic getters
 
@@ -398,14 +289,14 @@
   (when (seq ids)
     (let [ids (map id-to-db ids)]
       (->> (sql/find-by-keys db table (cons (str "id IN " (braced-join-? ids)) ids)
-                             gen-opts-simple)
+                             opts-simple-map)
            (reduce #(assoc %1 (id-from-db (:id %2)) %2) {})))))
 
 (defn get-id
   "Gets properties of the given ID from a database table. For multiple IDs, calls
   get-ids."
   ([db table id]
-   (sql/get-by-id db table (id-to-db id) gen-opts-simple))
+   (sql/get-by-id db table (id-to-db id) opts-simple-map))
   ([db table id & more]
    (apply get-ids db table (cons id more))))
 
@@ -783,8 +674,8 @@
   a Clojure data structure. Table name and entity column name must be quoted if
   needed before passing to this function."
   [table entity-column]
-  (let [table         (to-snake-case-simple table)
-        entity-column (to-snake-case-simple entity-column)
+  (let [table         (to-snake-simple table)
+        entity-column (to-snake-simple entity-column)
         ret-value-key (keyword (name table) "value")
         getter-query  (str-spc "SELECT value FROM" table
                                "WHERE" entity-column "= ? AND id = ?")]
@@ -822,7 +713,7 @@
                              {:id           setting-id
                               entity-column entity-id
                               :value        (nippy/freeze value)}
-                             gen-opts)))
+                             opts-map)))
                  (log/err "Error putting setting" setting-id
                           "into a database table" table))))))
       ([db entity-id setting-id value & pairs]
@@ -840,7 +731,7 @@
                              (map (juxt-seq (constantly entity-id)
                                             (comp id-to-db first)
                                             (comp nippy/freeze second))))
-                        gen-opts)]
+                        opts-map)]
                  (or (pos-int? (::jdbc/update-count (first r)))
                      (log/err "Error putting settings into a database table" table
                               "for" entity-id))))))
@@ -849,15 +740,15 @@
 (defn make-setting-deleter
   "Creates a setting deleter on a basis of the given table and entity column."
   [table entity-column]
-  (let [table-str         (to-snake-case-simple table)
+  (let [table-str         (to-snake-simple table)
         table             (some-keyword-simple table-str)
-        entity-column-str (to-snake-case-simple entity-column)
+        entity-column-str (to-snake-simple entity-column)
         entity-column     (some-keyword-simple entity-column-str)
         ret-subquery      "RETURNING id"
         deleter-subquery  (str-spc "DELETE FROM" table-str
                                    "WHERE" entity-column-str "= ? AND id IN ")
-        db-opts           (assoc gen-opts-simple :return-keys false)
-        db-opts-ret       (assoc gen-opts-simple-vec :return-keys false :suffix ret-subquery)]
+        db-opts           (assoc opts-simple-map :return-keys false)
+        db-opts-ret       (assoc opts-simple-vec :return-keys false :suffix ret-subquery)]
     (fn del-setting
       ([db entity-id]
        (when-some [entity-id (id-to-db entity-id)]
