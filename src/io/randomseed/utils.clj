@@ -17,6 +17,7 @@
                [clojure.set                  :as      set]
                [clojure.java.io              :as       io]
                [clojure.main                 :as    cmain]
+               [camel-snake-kebab.core       :as      csk]
                [crypto.equality              :as       eq]
                [buddy.core.crypto            :as   crypto]
                [buddy.core.codecs            :as   codecs]
@@ -159,6 +160,26 @@
   ^String [^String s]
   (if (or (not (string? s)) (empty? s)) nil s))
 
+(defn to-lisp-str
+  "ip_address --> ip-address"
+  [v]
+  (when-some [v (some-str v)]
+    (csk/->kebab-case-string v)))
+
+(defn to-lisp-simple-str
+  "abc/ip_address --> ip-address"
+  [v]
+  (to-lisp-str (if (ident? v) (name v) v)))
+(defn to-snake-str
+  "ip-address --> ip_address"
+  [v]
+  (when-some [v (some-str v)]
+    (csk/->snake_case_string v)))
+
+(defn to-snake-simple-str
+  "abc/ip-address --> ip_address"
+  [v]
+  (to-snake-str (if (ident? v) (name v) v)))
 ;; Names
 
 (defn normalize-name
