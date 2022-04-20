@@ -25,7 +25,12 @@
 
 ;; Type conversions when reading from a DB
 
-(defonce add-reader-date
+(defonce
+  ^{:arglists '([])
+    :doc      "Extends `next.jdbc.result-set/ReadableColumn` protocol to support date/time
+  conversions so `java.sql.Date` data are passed as-is and `java.sql.Timestamp`
+  data are converted to `java.sql.Timestamp`."}
+  add-reader-date
   (fn []
     (extend-protocol rs/ReadableColumn
 
@@ -39,7 +44,12 @@
       (read-column-by-label [^Timestamp v _]     (.toInstant ^Timestamp v))
       (read-column-by-index [^Timestamp v _2 _3] (.toInstant ^Timestamp v)))))
 
-(defonce add-reader-blob
+(defonce
+  ^{:arglists '([])
+    :doc      "Extends `next.jdbc.result-set/ReadableColumn` protocol to support binary large
+  object (BLOB) conversions, so `java.sql.Blob` data are converted to an array of
+  bytes (`bytes[]`)."}
+  add-reader-blob
   (fn []
     (extend-protocol rs/ReadableColumn
 
@@ -49,13 +59,22 @@
       (read-column-by-index [^Blob v _2 _3] (.getBytes ^Blob v (long 1) ^long (.length ^Blob v))))))
 
 (defn add-all-readers
+  "Adds all opinionated readers by calling `add-reader-date` and `add-reader-blob`."
   []
   (add-reader-date)
   (add-reader-blob))
 
 ;; Type conversions when writing to a DB
 
-(defonce add-setter-date
+(defonce
+  ^{:arglists '([])
+    :doc      "Extends `next.jdbc.prepare/SettableParameter` protocol to support date/time
+  conversions so `java.sql.Date` data are saved using `.setDate` method and
+  `java.sql.Timestamp`, `java.time.Instant`, `java.time.ZonedTime`,
+  `java.time.LocalDate`, `java.time.LocalDateTime` and `java.util.Date` are saved with
+  `.setTimestamp`. Also note that `java.time.Instant`, `java.time.ZonedDateTime` and
+  `java.util.Date` are explicitly converted to UTC before saving."}
+  add-setter-date
   (fn []
     (extend-protocol jp/SettableParameter
 
@@ -104,7 +123,13 @@
                        ^Timestamp (Timestamp/from ^java.time.Instant (.toInstant ^java.util.Date v))
                        ^Calendar  (Calendar/getInstance ^TimeZone utc-time-zone))))))
 
-(defonce add-setter-ip-address
+(defonce
+  ^{:arglists '([])
+    :doc      "Extends `next.jdbc.prepare/SettableParameter` protocol to support IP address
+  conversions so `inet.ipaddr.ipv4.IPv4Address` data are converted to `inet.ipaddr.ipv6.IPv6Address`,
+  then to an array of bytes and then saved using `.setBytes` method. Similarly,
+  `inet.ipaddr.ipv6.IPv6Address` data are converted to an array of bytes and then saved with `.setBytes`."}
+  add-setter-ip-address
   (fn []
     (extend-protocol jp/SettableParameter
 
@@ -119,11 +144,13 @@
         (.setBytes ^PreparedStatement ps ^long i (.getBytes ^IPv6Address v))))))
 
 (defn add-all-setters
+  "Adds all opinionated setters by calling `add-setter-date` and `add-setter-ip-address`."
   []
   (add-setter-date)
   (add-setter-ip-address))
 
 (defn add-all-accessors
+  "Adds all opinionated readers and setters by calling `add-all-readers` and `add-all-setters`."
   []
   (add-all-readers)
   (add-all-setters))
