@@ -689,7 +689,7 @@
                 (nippy/thaw r)
                 (catch Throwable e
                   (log/err "Error de-serializing setting" setting-id "for" entity-id "in" table)
-                  (log/err e)
+                  (log/dbg e)
                   ::get-failed)))
             (log/err "Cannot get setting" setting-id "in" table "for" entity-id
                      "because database connection is not set")))))))
