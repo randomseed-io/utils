@@ -1,5 +1,18 @@
 # History of random:utils releases
 
+## 1.2.0 (2022-04-20)
+
+- Numeric ID keys support in generic database getters and setters
+- Database builders and converters greatly simplified (removed some of the predefined options)
+- More verbose error reporting during de-serialization
+- Added `io.randomseed.utils.db.types` with opinionated database readers and writers
+- Improved `some-str-*` functions, added filtering out empty strings in `some-str-spc`
+- Added string processing functions:
+  `to-lisp-str`, `to-snake-str`, `to-lisp-simple-str`, `to-snake-simple-str`
+  `replace-first`, `to-lisp-str-replace-first`, `to-snake-str-replace-first`,
+  `to-lisp-slashed-str`, `to-snake-slashed-str`.
+
+
 ## 1.1.6 (2022-04-16)
 
 - Added some-symbol, some-symbol-up, some-symbol-simple, simple-symbol-up
