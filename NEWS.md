@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.1 (2022-04-21)
+
+- Removed type hints for primitive locals.
+
 ## 1.2.0 (2022-04-20)
 
 - Numeric ID keys support in generic database getters and setters
