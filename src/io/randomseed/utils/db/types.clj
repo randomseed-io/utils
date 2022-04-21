@@ -81,45 +81,45 @@
       java.sql.Date
 
       (set-parameter [^java.sql.Date v ^PreparedStatement ps ^long i]
-        (.setDate ^PreparedStatement ps ^long i ^java.sql.Date v))
+        (.setDate ^PreparedStatement ps i ^java.sql.Date v))
 
       java.sql.Timestamp
 
       (set-parameter [^Timestamp v ^PreparedStatement ps ^long i]
-        (.setTimestamp ^PreparedStatement ps ^long i ^java.sql.Timestamp v))
+        (.setTimestamp ^PreparedStatement ps i ^java.sql.Timestamp v))
 
       java.time.Instant
 
       (set-parameter [^java.time.Instant v ^PreparedStatement ps ^long i]
-        (.setTimestamp ^PreparedStatement ps ^long i
+        (.setTimestamp ^PreparedStatement ps i
                        ^Timestamp (Timestamp/from ^java.time.Instant v)
                        ^Calendar  (Calendar/getInstance ^TimeZone utc-time-zone)))
 
       java.time.ZonedDateTime
 
       (set-parameter [^java.time.LocalDate v ^PreparedStatement ps ^long i]
-        (.setTimestamp ^PreparedStatement ps ^long i
+        (.setTimestamp ^PreparedStatement ps i
                        ^Timestamp (Timestamp/from ^java.time.Instant (.toInstant ^java.time.ZonedDateTime v))
                        ^Calendar  (Calendar/getInstance ^TimeZone utc-time-zone)))
 
       java.time.LocalDate
 
       (set-parameter [^java.time.LocalDate v ^PreparedStatement ps ^long i]
-        (.setTimestamp ^PreparedStatement ps ^long i
+        (.setTimestamp ^PreparedStatement ps i
                        ^Timestamp (Timestamp/valueOf ^java.time.LocalDateTime (.atStartOfDay ^java.time.LocalDate v))
                        ^Calendar  (Calendar/getInstance)))
 
       java.time.LocalDateTime
 
       (set-parameter [^java.time.LocalDateTime v ^PreparedStatement ps ^long i]
-        (.setTimestamp ^PreparedStatement ps ^long i
+        (.setTimestamp ^PreparedStatement ps i
                        ^Timestamp (Timestamp/valueOf ^java.time.LocalDateTime v)
                        ^Calendar  (Calendar/getInstance)))
 
       java.util.Date
 
       (set-parameter [^java.util.Date v ^PreparedStatement ps ^long i]
-        (.setTimestamp ^PreparedStatement ps ^long i
+        (.setTimestamp ^PreparedStatement ps i
                        ^Timestamp (Timestamp/from ^java.time.Instant (.toInstant ^java.util.Date v))
                        ^Calendar  (Calendar/getInstance ^TimeZone utc-time-zone))))))
 
@@ -136,12 +136,12 @@
       IPv4Address
 
       (set-parameter [^IPv4Address v ^PreparedStatement ps ^long i]
-        (.setBytes ^PreparedStatement ps ^long i (.getBytes ^IPv6Address (.toIPv6 ^IPv4Address v))))
+        (.setBytes ^PreparedStatement ps i (.getBytes ^IPv6Address (.toIPv6 ^IPv4Address v))))
 
       IPv6Address
 
       (set-parameter [^IPv6Address v ^PreparedStatement ps ^long i]
-        (.setBytes ^PreparedStatement ps ^long i (.getBytes ^IPv6Address v))))))
+        (.setBytes ^PreparedStatement ps i (.getBytes ^IPv6Address v))))))
 
 (defn add-all-setters
   "Adds all opinionated setters by calling `add-setter-date` and `add-setter-ip-address`."
