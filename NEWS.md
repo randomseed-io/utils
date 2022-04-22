@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.2 (2022-04-22)
+
+- Added `db.types/add-setter-uuid`.
+
 ## 1.2.1 (2022-04-21)
 
 - Removed type hints for primitive locals.
@@ -19,60 +23,60 @@
 
 ## 1.1.6 (2022-04-16)
 
-- Added some-symbol, some-symbol-up, some-symbol-simple, simple-symbol-up
+- Added `some-symbol`, `some-symbol-up`, `some-symbol-simple`, `simple-symbol-up`.
 
 ## 1.1.5 (2022-04-14)
 
-- Fixed a bug in map/nil-keys and map/nil-existing-keys causing error when there was no matching key
+- Fixed a bug in `map/nil-keys` and `map/nil-existing-keys` causing error when there was no matching key.
 
 ## 1.1.4 (2022-04-03)
 
-- Added console reading functions: read-line-with-prompt, crypto/read-pwd, crypto/read-key
-- Added high-level text getting functions: ask, crypto/ask-pass, crypto/ask-key
+- Added console reading functions: read-line-with-prompt, crypto/read-pwd, crypto/read-key.
+- Added high-level text getting functions: ask, crypto/ask-pass, crypto/ask-key.
 
 ## 1.1.3 (2022-04-02)
 
-- Database setter generator simplified
+- Database setter generator simplified.
 
 ## 1.1.2 (2022-04-01)
 
-- Removed Clojure 11.1.0 dependency
-- Added backward compatibility with Clojure versions < 11.1.0
+- Removed Clojure 11.1.0 dependency.
+- Added backward compatibility with Clojure versions < 11.1.0.
 
 ## 1.1.1 (2022-04-01)
 
-- Dependencies adjusted for Clojure 1.11.0
-- Updated CircleCI image reference
+- Dependencies adjusted for Clojure 1.11.0.
+- Updated CircleCI image reference.
 
 ## 1.1.0 (2022-04-01)
 
-- Renamed parse-long to some-long
-- Removed random-uuid
-- Renamed uuid to to-uuid
+- Renamed parse-long to some-long.
+- Removed random-uuid.
+- Renamed uuid to to-uuid.
 
 ## 1.0.7 (2022-04-01)
 
-- Fixed a bug causing empty keywords not being detected by empty-ident?
-- Added not-empty-string? and not-empty-ident?
-- Improved valuable? and not-valuable?
-- Added macros: not-valuable, when-not-valuable
+- Fixed a bug causing empty keywords not being detected by empty-ident?.
+- Added not-empty-string? and not-empty-ident?.
+- Improved valuable? and not-valuable?.
+- Added macros: not-valuable, when-not-valuable.
 
 ## 1.0.6 (2022-03-30)
 
-- Added empty-string? and empty-ident?
-- Improved valence testing
+- Added empty-string? and empty-ident?.
+- Improved valence testing.
 
 ## 1.0.5 (2022-03-29)
 
-- Added Reitit support functions
+- Added Reitit support functions.
 
 ## 1.0.4 (2022-03-28)
 
-- Improved valence testing in valuable? and not-valuable?
+- Improved valence testing in valuable? and not-valuable?.
 
 ## 1.0.3 (2022-03-24)
 
-- Fixed typo causing db/make-getter to produce unusable ternary function
+- Fixed typo causing db/make-getter to produce unusable ternary function.
 
 ## 1.0.2 (2022-01-02)
 
@@ -85,5 +89,3 @@
 ## 1.0.0 (2021-12-28)
 
 - Initial release.
-
-
