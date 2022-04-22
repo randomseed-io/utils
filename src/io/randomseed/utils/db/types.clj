@@ -6,14 +6,15 @@
 
     io.randomseed.utils.db.types
 
-  (:require [potemkin.namespaces  :as  p]
-            [next.jdbc.result-set :as rs]
-            [next.jdbc.prepare    :as jp])
+  (:require [potemkin.namespaces  :as    p]
+            [next.jdbc.result-set :as   rs]
+            [next.jdbc.prepare    :as   jp]
+            [clj-uuid             :as uuid])
 
   (:import  [java.sql Blob Connection PreparedStatement Timestamp]
             [javax.sql DataSource]
             [java.lang.reflect Method]
-            [java.util Calendar GregorianCalendar TimeZone]
+            [java.util UUID Calendar GregorianCalendar TimeZone]
             [java.io Closeable]
             [inet.ipaddr.ipv4 IPv4Address]
             [inet.ipaddr.ipv6 IPv6Address]))
@@ -143,11 +144,26 @@
       (set-parameter [^IPv6Address v ^PreparedStatement ps ^long i]
         (.setBytes ^PreparedStatement ps i (.getBytes ^IPv6Address v))))))
 
+(defonce
+  ^{:arglists '([])
+    :doc      "Extends `next.jdbc.prepare/SettableParameter` protocol to support UUID
+  conversions so `java.util.UUID` data are converted to an array of bytes and then
+  saved using `.setBytes` method."}
+  add-setter-uuid
+  (fn []
+    (extend-protocol jp/SettableParameter
+
+      java.util.UUID
+
+      (set-parameter [^UUID v ^PreparedStatement ps ^long i]
+        (.setBytes ^PreparedStatement ps i ^bytes (uuid/to-byte-array ^UUID v))))))
+
 (defn add-all-setters
   "Adds all opinionated setters by calling `add-setter-date` and `add-setter-ip-address`."
   []
   (add-setter-date)
-  (add-setter-ip-address))
+  (add-setter-ip-address)
+  (add-setter-uuid))
 
 (defn add-all-accessors
   "Adds all opinionated readers and setters by calling `add-all-readers` and `add-all-setters`."
