@@ -8,7 +8,10 @@
 
   (:refer-clojure :exclude [parse-long uuid random-uuid])
 
-  (:require [io.randomseed.utils :refer :all]))
+  (:require [io.randomseed.utils :refer    :all]
+            [lazy-map.core       :as   lazy-map])
+
+  (:import  [lazy_map.core LazyMapEntry LazyMap]))
 
 (defmacro lazy-get
   "Like get but the default value is an expression that is going to be evaluated only
@@ -456,3 +459,56 @@
     (if-some [keys (seq (filter (partial contains? m) keys))]
       (apply assoc m (interleave keys (repeat nil)))
       m)))
+
+(defmacro lazy
+  "Creates a lazy map from a literal map. All values are unrealized."
+  ([]
+   `(lazy-map/lazy-map nil))
+  ([m]
+   (#'lazy-map/lazy-map &form &env m)))
+
+(defn to-lazy
+  "Converts the given map to a lazy map."
+  ([]
+   (lazy))
+  ([m]
+   (lazy-map/->?LazyMap m)))
+
+(defn lazy?
+  "Returns `true` if the given argument is a lazy map."
+  [m]
+  (instance? LazyMap m))
+
+(defn select-keys-lazy
+  "Like `clojure.core/select-keys` but preserves unrealized values as they are."
+  [m keyseq]
+  (loop [ret  (lazy-map/lazy-map nil)
+         keys (seq keyseq)]
+    (if keys
+      (let [entry (find m (first keys))]
+        (recur
+         (if entry
+           (assoc ret (.key_ ^LazyMapEntry entry) (.val_ ^LazyMapEntry entry))
+           ret)
+         (next keys)))
+      ret)))
+
+(defn merge-lazy
+  "Merges two lazy maps."
+  [m1 m2]
+  (let [c1 (count m1)
+        c2 (count m2)]
+    (if (pos? c1)
+      (if (pos? c2)
+        (if (> c1 c2)
+          (reduce (if (lazy? m2)
+                    #(assoc %1 (.key_ ^LazyMapEntry %2) (.val_ ^LazyMapEntry %2))
+                    conj)
+                  (lazy-map/->?LazyMap m1) m2)
+          (reduce (if (lazy? m1)
+                    #(let [k (.key_ ^LazyMapEntry %2)]
+                       (if (contains? %1 k) %1 (assoc %1 k (.val_ ^LazyMapEntry %2))))
+                    #(if (contains? %1 (key %2)) %1 (conj %1 %2)))
+                  (lazy-map/->?LazyMap m2) m1))
+        (lazy-map/->?LazyMap m1))
+      (when m2 (lazy-map/->?LazyMap m2)))))
