@@ -1,5 +1,10 @@
 # History of random:utils releases
 
+## 1.2.3 (2022-04-27)
+
+- Lazy map support functions added compatible with `com.intuitiveexplanations/lazy-map`:
+  `map/lazy`, `map/to-lazy`, `map/lazy?`, `map/select-keys-lazy`, `map/merge-lazy`.
+
 ## 1.2.2 (2022-04-22)
 
 - Added `db.types/add-setter-uuid`.
