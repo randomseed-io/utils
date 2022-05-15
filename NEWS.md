@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.4 (2022-05-15)
+
+- Added `var/update`.
+
 ## 1.2.3 (2022-04-27)
 
 - Lazy map support functions added compatible with `com.intuitiveexplanations/lazy-map`:
