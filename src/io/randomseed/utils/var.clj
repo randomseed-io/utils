@@ -6,7 +6,8 @@
 
     io.randomseed.utils.var
 
-  (:refer-clojure :exclude [deref resolve reset alter parse-long uuid random-uuid])
+  (:refer-clojure :exclude [deref resolve reset alter update
+                            parse-long uuid random-uuid])
 
   (:require [io.randomseed.utils    :refer :all]
             [io.randomseed.utils.fs :as      fs]))
@@ -71,8 +72,24 @@
   `(alter-var-root (var ~v) ~f ~@args))
 
 (defn make
+  "Creates a Var identified in a namespace with a fully qualified identifier `n` and
+  sets its value to `value`. If the Var does not exist, it will be created. Returns
+  the given value used to change the root binding of a Var."
   [n value]
   (if-some [n (resolve-core (symbol n))]
     (alter-var-root n (constantly value))
     (do (intern (symbol (namespace n)) (symbol (name n)) value)
         value)))
+
+(defn update
+  "Updates a Var identified in a namespace with a fully qualified identifier `n`, using a
+  function `f`. The function will receive current value of the Var and any optional
+  arguments passed, and its returned value will be used to alter the root binding. If
+  the Var does not exist, it will be created and the function `f` will receive `nil`
+  as its first argument. Returns a value returned by calling `f`."
+  [n f & args]
+  (if-some [n (resolve-core (symbol n))]
+    (apply alter-var-root n f args)
+    (let [value (apply f nil args)]
+      (intern (symbol (namespace n)) (symbol (name n)) value)
+      value)))
