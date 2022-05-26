@@ -125,62 +125,22 @@
   [v]
   (instance? DataSource v))
 
-;; Memoization
+;; Getter and setter generators
 
-(defn memoize
-  "Creates memoized version of a database accessing or other function."
-  ([f]
-   (memoize f 256 150000))
-  ([f queue-size]
-   (memoize f queue-size 150000))
-  ([f queue-size ttl]
-   (mem/memoizer f (-> {}
-                       (cache/fifo-cache-factory :threshold (long queue-size))
-                       (cache/ttl-cache-factory  :ttl (time/millis ttl))))))
-
-  (defn memoizer
-  "Creates a function for creating memoized functions with predefined TTL and queue
-  size taken from config. If the function is not given it will try to dereference
-  symbol present in the config under the :memoizer key."
-  ([config]
-   (when-some [f (var/deref-symbol (:memoizer config))]
-     (memoizer f config)))
-  ([f config]
-   (let [cache-size (:cache-size config)
-         cache-ttl  (:cache-ttl  config)
-         cache-ttl  (when cache-ttl (time/millis cache-ttl))]
-     (if (and (pos-int? cache-size) (pos-int? cache-ttl))
-       (memoize f cache-size cache-ttl)
-       f))))
-
-  (defn invalidate!
-  [f key-params]
-  (if (seq key-params)
-    (mem/memo-clear! f key-params)
-    (mem/memo-clear! f)))
-
-  (defn invalidator
-  [f]
-  (if f
-    (fn [& key-params] (invalidate! f key-params))
-    (constantly nil)))
-
-  ;; Getter and setter generators
-
-  (defn id-from-db
+(defn id-from-db
   "Converts the given ID retrieved from a database to a value suitable to be used in
   Clojure programs. If v is a number or a keyword, it is returned as is. Otherwise it
   is converted to a keyword."
   [v]
   (when v (if (or (number? v) (keyword? v)) v (keyword v))))
 
-  (defn id-to-db
+(defn id-to-db
   "Converts the given ID to a value suitable to be stored in a database. If v is a
   number, it is passed as is. Otherwise it is converted to a string."
   [v]
   (when v (if (number? v) v (some-str v))))
 
-  (defn make-getter-coll
+(defn make-getter-coll
   "Creates a database getter suitable for use with get-cached-coll- functions. The
   returned function should accept an argument containing multiple identifiers."
   ([id-col]
@@ -358,6 +318,49 @@
    (cwr/lookup cache (id-from-db id) false))
   ([cache id & ids]
    (cache-lookup-coll cache (cons id ids))))
+
+;; Memoization
+
+(defn memoize
+  "Creates memoized version of a database accessing or other function. With only 1
+  argument defaults to a FIFO cache with length of 256 and TTL cache with expiration
+  of 150 seconds. When 2 arguments are given it only creates FIFO cache of the given
+  length, without TTL. When `queue-size` is `nil` or <= 0, the FIFO cache will not be
+  created. When `ttl` is `nil` or <= 0, the TTL cache will not be created."
+  ([f]
+   (memoize f 256 150000))
+  ([f queue-size]
+   (memoize f queue-size nil))
+  ([f queue-size ttl]
+   (mem/memoizer f (cache-prepare ttl queue-size {}))))
+
+(defn memoizer
+  "Creates a memoized functions with predefined TTL and queue size taken from
+  config. If the function is not given it will try to dereference symbol present in
+  the config under the `:memoizer` key. Uses `io.randomseed.utils.db/memoize` to
+  initialize caches."
+  ([config]
+   (when-some [f (var/deref-symbol (:memoizer config))]
+     (memoizer f config)))
+  ([f config]
+   (let [cache-size (:cache-size config)
+         cache-ttl  (:cache-ttl  config)
+         cache-ttl  (when cache-ttl (time/millis cache-ttl))]
+     (if (or (pos-int? cache-size) (pos-int? cache-ttl))
+       (memoize f cache-size cache-ttl)
+       f))))
+
+(defn invalidate!
+  [f key-params]
+  (if (seq key-params)
+    (mem/memo-clear! f key-params)
+    (mem/memo-clear! f)))
+
+(defn invalidator
+  [f]
+  (if f
+    (fn [& key-params] (invalidate! f key-params))
+    (constantly nil)))
 
 ;; Cached getters and setters
 
