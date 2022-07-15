@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.6 (2022-07-15)
+
+- Common validators improved.
+
 ## 1.2.5 (2022-05-26)
 
 - Memoization improved.
