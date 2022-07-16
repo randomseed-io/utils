@@ -300,9 +300,34 @@
   "Recursively transforms values of a map coll using function f. The function should
   take a value and return new value."
   [^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll]
-  (reduce-kv (fn [^clojure.lang.IPersistentMap m, ^clojure.lang.Keyword k, v]
+  (reduce-kv (fn [^clojure.lang.IPersistentMap m, k, v]
                (assoc m k (if (map? v) (map-values f v) (f v))))
              (empty coll) coll))
+
+(defn- map-values-with-path-core
+  "Recursively transforms values of a map coll using function f. The function should
+  take a value and a sequence of visited keys in reverse order, and return a new
+  value. Third argument should be an initial key-path."
+  ([^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll, kpath]
+   (reduce-kv (fn [m k v]
+                (assoc m k (if (map? v)
+                             (map-values-with-path-core f v (conj kpath k))
+                             (f v (conj kpath k)))))
+              (empty coll) coll)))
+
+(defn map-values-with-rpath
+  "Recursively transforms values of a map coll using function f. The function should
+  take a value and a sequence of visited keys in reverse order (stored in a
+  persistent list), and return a new value."
+  [^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll]
+  (map-values-with-path-core f coll ()))
+
+(defn map-values-with-path
+  "Recursively transforms values of a map coll using function f. The function should
+  take a value and a sequence of visited keys (stored in a vector), and return a new
+  value."
+  [^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll]
+  (map-values-with-path-core f coll []))
 
 (defn update-values
   "Returns the map with its values identified with keys from vmap updated with the
