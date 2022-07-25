@@ -9,6 +9,7 @@
   (:refer-clojure :exclude [parse-long uuid random-uuid])
 
   (:require [clojure.spec.alpha      :as       s]
+            [io.randomseed.utils.map :as     map]
             [io.randomseed.utils.log :as     log]
             [io.randomseed.utils.var :as     var]
             [io.randomseed.utils     :refer :all])
@@ -90,3 +91,34 @@
                      (or default-pass?           (do (log/msg "Unknown parameter" k) false)))
                    (recur (next items))))
             true)))))
+
+(defn- first-bad-parameter
+  [m vmap default-pass?]
+  (loop [items (seq m)]
+    (when items
+      (let [[k v] (first items)
+            rest  (next items)]
+        (if (contains? vmap k)
+          (if (valid? (get vmap k) v) (recur rest) [:parameter/invalid k rest])
+          (if default-pass?           (recur rest) [:parameter/unknown k rest]))))))
+
+(defn validate-parameters
+  [m vmap default-pass?]
+  (lazy-seq
+   (when-some [f (first-bad-parameter m vmap default-pass?)]
+     (let [[reason k rest] f]
+       (cons [reason k] (validate-parameters rest vmap default-pass?))))))
+
+(defn explain
+  ([] nil)
+  ([m vmap]
+   (explain m vmap false nil))
+  ([m vmap default-pass?]
+   (explain m vmap default-pass? nil))
+  ([m vmap default-pass? required-params]
+   (let [reasons (validate-parameters m vmap default-pass?)]
+     (if (nil? required-params)
+       reasons
+       (lazy-seq
+        (when (has-required? required-params m)
+          (cons [:parameter/missing-of required-params] reasons)))))))
