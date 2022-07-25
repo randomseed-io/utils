@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.8 (2022-07-25)
+
+- Added `validators/explain`.
+
 ## 1.2.7 (2022-07-17)
 
 - Added `map/map-values-with-path` and `map/map-values-with-rpath`.
