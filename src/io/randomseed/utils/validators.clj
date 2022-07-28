@@ -69,20 +69,46 @@
   ^Boolean [required-params m]
   (or (nil? m)
       (zero? (count m))
-      (reduce-kv (fn [_ k _]
-                   (and (contains? required-params k) (reduced true)))
-                 false m)))
+      (let [required-params (if (set? required-params) required-params (set required-params))]
+        (reduce-kv (fn [_ k _]
+                     (and (contains? required-params k) (reduced true)))
+                   false m))))
+
+(defn has-all-required?
+  ^Boolean [required-params m]
+  (or (nil? m)
+      (zero? (count m))
+      (reduce (fn [_ k]
+                (or (contains? m k) (reduced false)))
+              true required-params)))
+
+(defn has-n-required?
+  ^Boolean [min-required required-params m]
+  (or (nil? m)
+      (not (pos? min-required))
+      (let [cm (count m)]
+        (or (zero? cm)
+            (and (>= cm min-required)
+                 (true? (reduce (fn [num k]
+                                  (if (contains? m k)
+                                    (let [num (unchecked-inc-int num)]
+                                      (if (= num min-required) (reduced true) num))
+                                    num))
+                                (unchecked-int 0) required-params)))))))
 
 (defn validate
   ([] true)
   ([m vmap]
-   (validate m vmap false nil))
+   (validate m vmap false nil nil))
   ([m vmap default-pass?]
-   (validate m vmap default-pass? nil))
+   (validate m vmap default-pass? nil nil))
   ([m vmap default-pass? required-params]
+   (validate m vmap default-pass? required-params nil))
+  ([m vmap default-pass? required-params required-check-fn]
    (and (or (nil? required-params)
-            (or (has-required? required-params m)
-                (do (log/msg "No required parameter was found") false)))
+            (let [required-check-fn (or required-check-fn has-all-required?)]
+              (or (required-check-fn required-params m)
+                  (do (log/msg "No required parameter was found") false))))
         (loop [items (seq m)]
           (if items
             (let [[k v] (first items)]
@@ -102,6 +128,45 @@
           (if (valid? (get vmap k) v) (recur rest) [:parameter/invalid k rest])
           (if default-pass?           (recur rest) [:parameter/unknown k rest]))))))
 
+(defn- first-missing-parameter
+  [required-params m]
+  (loop [items (seq required-params)]
+    (if items
+      (let [k    (first items)
+            rest (next items)]
+        (if (contains? m k)
+          (recur rest)
+          [:parameter/missing k rest])))))
+
+(defn explain-required
+  [required-params m]
+  (if-not (has-required? required-params m)
+    (map #(vector :parameter/missing %) required-params)))
+
+(defn explain-all-required
+  [required-params m]
+  (if (some? m)
+    (lazy-seq
+     (if-some [f (first-missing-parameter required-params m)]
+       (let [[reason k rest] f]
+         (cons [reason k] (explain-all-required rest m)))))))
+
+(defn explain-n-required
+  [min-required required-params m]
+  (let [min-required (min min-required (count required-params))]
+    (if (and (some? m) (pos? min-required))
+      (loop [items       (seq required-params)
+             to-be-found (unchecked-int min-required)
+             to-report   nil]
+        (if (pos? to-be-found)
+          (if items
+            (let [k    (first items)
+                  rest (next items)]
+              (if (contains? m k)
+                (recur rest (unchecked-dec-int to-be-found) to-report)
+                (recur rest to-be-found (cons [:parameter/missing k] to-report))))
+            (seq to-report)))))))
+
 (defn validate-parameters
   [m vmap default-pass?]
   (lazy-seq
@@ -112,13 +177,14 @@
 (defn explain
   ([] nil)
   ([m vmap]
-   (explain m vmap false nil))
+   (explain m vmap false nil nil))
   ([m vmap default-pass?]
-   (explain m vmap default-pass? nil))
+   (explain m vmap default-pass? nil nil))
   ([m vmap default-pass? required-params]
-   (let [reasons (validate-parameters m vmap default-pass?)]
-     (if (nil? required-params)
-       reasons
-       (lazy-seq
-        (when (has-required? required-params m)
-          (cons [:parameter/missing-of required-params] reasons)))))))
+   (explain m vmap default-pass? required-params nil))
+  ([m vmap default-pass? required-params required-check-fn]
+   (let [reasons (validate-parameters m vmap default-pass?)
+         reasons (if (nil? required-params) reasons
+                     (let [required-check-fn (or required-check-fn explain-all-required)]
+                       (concat (required-check-fn required-params m) reasons)))]
+     (if (first reasons) reasons))))
