@@ -1,5 +1,14 @@
 # History of random:utils releases
 
+## 1.2.9 (2022-07-28)
+
+- Improved `validators/explain` and `validators/validate`.
+- Introduced 3 operational modes of required parameters validation:
+  - matching all of the required parameters,
+  - matching at least 1 required parameter,
+  - matching at least n required parameters.
+- Replaced `when` with `if` where appropriate.
+
 ## 1.2.8 (2022-07-25)
 
 - Added `validators/explain`.
