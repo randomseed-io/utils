@@ -19,7 +19,7 @@
 (defn to-address
   [s]
   (if (instance? IPAddress s) s
-      (when-some [s (and s (not-empty (str s)))]
+      (if-some [s (and s (not-empty (str s)))]
         (let [^IPAddressString ipa (IPAddressString. ^String s)]
           (.getAddress ^IPAddressString ipa)))))
 
@@ -59,7 +59,7 @@
 
 (defn plain-ip
   [ip]
-  (when ip
+  (if ip
     (let [ip (to-address ip)]
       (or (to-v4 ip) ip))))
 
@@ -73,8 +73,8 @@
   "Takes a sequence of IP addresses and returns a vector of Trie trees with IP address
   ranges."
   [p]
-  (when p
-    (let [{a :ipv4 b :ipv6} (when (map? p) p)]
+  (if p
+    (let [{a :ipv4 b :ipv6} (if (map? p) p)]
       (if (or (and (or (nil? a) (instance? IPv4AddressTrie a)) (instance? IPv6AddressTrie b))
               (and (nil? b) (instance? IPv4AddressTrie a)))
         p
@@ -89,13 +89,10 @@
                       (group-by ipv6?))
               p6 (seq (get p true))
               p4 (seq (get p false))
-              t6 (when p6 (IPv6AddressTrie.))
-              t4 (when p4 (IPv4AddressTrie.))]
-          (when p6 (locking t6 (doseq [ip p6] (when-not (in6t? t6 ip)
-                                                (.add ^IPv6AddressTrie t6
-                                                      ^IPv6Address ip)))))
-          (when p4 (locking t4 (doseq [ip p4] (when-not (in4t? t4 ip)
-                                                (.add ^IPv4AddressTrie t4
-                                                      ^IPv4Address ip)))))
+              t6 (if p6 (IPv6AddressTrie.))
+              t4 (if p4 (IPv4AddressTrie.))]
+          (if p6 (locking t6 (doseq [ip p6] (if-not (in6t? t6 ip)
+                                              (.add ^IPv6AddressTrie t6 ^IPv6Address ip)))))
+          (if p4 (locking t4 (doseq [ip p4] (if-not (in4t? t4 ip)
+                                              (.add ^IPv4AddressTrie t4 ^IPv4Address ip)))))
           {:ipv4 t4 :ipv6 t6})))))
-

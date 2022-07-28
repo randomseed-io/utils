@@ -101,45 +101,45 @@
 (defmacro valuable
   [& more]
   (if-some [b (butlast more)]
-    `(do ~@b (let [l# ~(last more)] (when (valuable? l#) l#)))
-    `(let [l# ~(first more)] (when (valuable? l#) l#))))
+    `(do ~@b (let [l# ~(last more)] (if (valuable? l#) l#)))
+    `(let [l# ~(first more)] (if (valuable? l#) l#))))
 
 (defmacro not-valuable
   [& more]
   (if-some [b (butlast more)]
-    `(do ~@b (let [l# ~(last more)] (when (not-valuable? l#) l#)))
-    `(let [l# ~(first more)] (when (not-valuable? l#) l#))))
+    `(do ~@b (let [l# ~(last more)] (if (not-valuable? l#) l#)))
+    `(let [l# ~(first more)] (if (not-valuable? l#) l#))))
 
 ;; Text handling
 
 (defn some-str
   [v]
-  (when (valuable? v)
+  (if (valuable? v)
     (valuable (str (if (ident? v) (symbol v) v)))))
 
 (defn some-str-up
   [v]
-  (when (valuable? v)
+  (if (valuable? v)
     (valuable
      (str/upper-case
       (str (if (ident? v) (symbol v) v))))))
 
 (defn some-str-simple
   [v]
-  (when (valuable? v)
+  (if (valuable? v)
     (valuable
      (if (ident? v) (name v) (str v)))))
 
 (defn some-str-simple-up
   [v]
-  (when (valuable? v)
+  (if (valuable? v)
     (valuable
      (str/upper-case
       (if (ident? v) (name v) (str v))))))
 
 (defn some-str-simple-down
   [v]
-  (when (valuable? v)
+  (if (valuable? v)
     (valuable
      (str/lower-case
       (if (ident? v) (name v) (str v))))))
@@ -176,7 +176,7 @@
 (defn to-lisp-str
   "ip_address --> ip-address"
   [v]
-  (when-some [v (some-str v)]
+  (if-some [v (some-str v)]
     (csk/->kebab-case-string v)))
 
 (defn to-lisp-simple-str
@@ -187,7 +187,7 @@
 (defn to-lisp-str-replace-first
   "ipCaddress_to --> ipRaddress-to"
   [v c r]
-  (when-some [v (some-str v)]
+  (if-some [v (some-str v)]
     (csk/->kebab-case-string (replace-first v c r))))
 
 (defn to-lisp-slashed-str
@@ -198,7 +198,7 @@
 (defn to-snake-str
   "ip-address --> ip_address"
   [v]
-  (when-some [v (some-str v)]
+  (if-some [v (some-str v)]
     (csk/->snake_case_string v)))
 
 (defn to-snake-simple-str
@@ -209,7 +209,7 @@
 (defn to-snake-str-replace-first
   "ipCaddress-to --> ipRaddress_to"
   [v c r]
-  (when-some [v (some-str v)]
+  (if-some [v (some-str v)]
     (csk/->snake_case_string (replace-first v c r))))
 
 (defn to-snake-slashed-str
@@ -231,7 +231,7 @@
      (clojure.core/name some-name)
      (if (seqable? some-name)
        (if (seq some-name) (str some-name) default-name)
-       (when some-name (str some-name))))))
+       (if some-name (str some-name))))))
 
 (defn normalize-name-with-ns
   "Takes a name expressed as a string or an identifier. If the object is an identifier
@@ -247,7 +247,7 @@
        (clojure.core/name some-name))
      (if (seqable? some-name)
        (if (seq some-name) (str some-name) default-name)
-       (when some-name (str some-name))))))
+       (if some-name (str some-name))))))
 
 ;; Bytes
 
@@ -275,7 +275,7 @@
    (not-empty bary))
   ([bary & byte-arys]
    (let [byte-arys (remove empty? (cons bary byte-arys))]
-     (when (seq byte-arys)
+     (if (seq byte-arys)
        (let [sum-size (apply + (map count byte-arys))
              buff     (byte-array sum-size)
              bbuff    (java.nio.ByteBuffer/wrap buff)]
@@ -301,7 +301,7 @@
 
 (defn ensure-str
   ([v]
-   (or (when (valuable? v) (str (if (ident? v) (symbol v) v))) ""))
+   (or (if (valuable? v) (str (if (ident? v) (symbol v) v))) ""))
   ([v & more]
    (apply str (map some-str (cons v more)))))
 
@@ -315,14 +315,14 @@
 
 (defn ensure-keyword
   [id]
-  (when id
+  (if id
     (if (keyword? id)
       id
       (if (ident? id)
         (if (simple-ident? id)
           (keyword id)
           (keyword (namespace id) (name id)))
-        (keyword (when (valuable? id) id))))))
+        (keyword (if (valuable? id) id))))))
 
 (defn ensure-ident-keyword
   [id]
@@ -355,7 +355,7 @@
   "Returns the collection if it's not empty. Otherwise returns `nil`."
   {:added "1.0.0"}
   [obj]
-  (when (seq obj) obj))
+  (if (seq obj) obj))
 
 (defmacro is
   [pred val & body]
@@ -422,10 +422,10 @@
   "Like rand-int but optionally uses random number generator."
   {:added "1.0.0"}                      ; was: :tag 'int
   ([^long n]
-   (when (some? n)
+   (if (some? n)
      (rand-int n)))
   ([^long n ^Random rng]
-   (when (some? n)
+   (if (some? n)
      (if (nil? rng)
        (get-rand-int n)
        (if (zero? n) (int n) (.nextInt rng n))))))
@@ -438,7 +438,7 @@
   ([^long x
     ^long iteration
     ^Boolean shrink-now]
-   (when (some? x)
+   (if (some? x)
      (if (zero? x) x
          (if-not shrink-now x
                  (if (zero? iteration) 1
@@ -448,7 +448,7 @@
     ^long iteration
     ^Boolean shrink-now
     ^Random rng]
-   (when (some? x)
+   (if (some? x)
      (if (nil? rng)
        (random-digits-len x iteration shrink-now)
        (if (zero? x) x
@@ -466,7 +466,7 @@
    (apply str (repeatedly num #(rand-int 10))))
   ([^long num
     ^Random rng]
-   (when (some? num)
+   (if (some? num)
      (if (nil? rng)
        (gen-digits num)
        (apply str (repeatedly num #(.nextInt rng 10)))))))
@@ -496,7 +496,7 @@
    (lazy-iterator-seq coll (.iterator coll)))
   ([^Iterable coll ^java.util.Iterator iter]
    (lazy-seq
-    (when (.hasNext ^java.util.Iterator iter)
+    (if (.hasNext ^java.util.Iterator iter)
       (cons (.next ^java.util.Iterator iter)
             (lazy-iterator-seq ^Iterable coll ^java.util.Iterator iter))))))
 
@@ -542,7 +542,7 @@
   ([]
    (random-uuid))
   ([s]
-   (when (valuable? s) (if (uuid? s) s (UUID/fromString (str s))))))
+   (if (valuable? s) (if (uuid? s) s (UUID/fromString (str s))))))
 
 (def uuid
   (or (ns-resolve 'clojure.core 'uuid)
@@ -552,8 +552,8 @@
 
 (defn sanitize-base-url
   [^String url]
-  (when-some [url (str/trim (str url))]
-    (when (some? (seq url))
+  (if-some [url (str/trim (str url))]
+    (if (some? (seq url))
       (let [url (if (str/starts-with? url "http") url (str "https://" url))
             url (if (str/ends-with?   url    "/") url (str url "/"))]
         url))))
@@ -561,7 +561,7 @@
 (defn parse-url
   "Parses URL into a map."
   [u]
-  (when (and u (string? u) (> (count u) 0))
+  (if (and u (string? u) (> (count u) 0))
     (http/parse-url u)))
 
 ;; Numbers
@@ -579,14 +579,13 @@
 
 (defn pos-val
   [x]
-  (when (and x (number? x) (pos? x))
-    x))
+  (if (and x (number? x) (pos? x)) x))
 
 (defn parse-num
   ([n default]
    (or (parse-num n) default))
   ([n]
-   (when (valuable? n)
+   (if (valuable? n)
      (let [s (str n)]
        (if (or (> (count s) 15) (str/index-of s \.))
          (bigdec ^String s)
@@ -596,7 +595,7 @@
   ([s default]
    (or (some-long s) default))
   ([s]
-   (when (valuable? s)
+   (if (valuable? s)
      (if (number? s) (long s)
          (parse-long-core ^String (str s))))))
 
@@ -627,8 +626,7 @@
   ([n default]
    (or (parse-percent n) default))
   ([n]
-   (when-some [n (parse-num n)]
-     (/ n 100))))
+   (if-some [n (parse-num n)] (/ n 100))))
 
 (def percent parse-percent)
 
@@ -641,64 +639,63 @@
 
 (defn parse-re
   [v]
-  (when (and (valuable? v) (string? v))
-    (re-pattern v)))
+  (if (and (valuable? v) (string? v)) (re-pattern v)))
 
 ;; Identifiers
 
 (defn some-keyword
   [v]
-  (when (valuable? v)
+  (if (valuable? v)
     (if (keyword? v) v
         (keyword (if (symbol? v) v (str v))))))
 
 (defn some-keyword-up
   [v]
-  (when (valuable? v)
+  (if (valuable? v)
     (keyword
      (str/upper-case
       (str (if (keyword? v) (symbol v) v))))))
 
 (defn some-keyword-simple
   [v]
-  (when-some [v (some-keyword v)]
+  (if-some [v (some-keyword v)]
     (if (simple-keyword? v) v (keyword (name v)))))
 
 (defn simple-keyword-up
   [v]
-  (when-some [v (some-keyword-up v)]
+  (if-some [v (some-keyword-up v)]
     (if (simple-keyword? v) v (keyword (name v)))))
 
 (defn some-symbol
   [v]
-  (when (valuable? v)
+  (if (valuable? v)
     (if (symbol? v) v
         (symbol (if (ident? v) v (str v))))))
 
 (defn some-symbol-up
   [v]
-  (when (valuable? v)
+  (if (valuable? v)
     (symbol
      (str/upper-case
       (str (if (keyword? v) (symbol v) v))))))
 
 (defn some-symbol-simple
   [v]
-  (when-some [v (some-symbol v)]
+  (if-some [v (some-symbol v)]
     (if (simple-symbol? v) v (symbol (name v)))))
 
 (defn simple-symbol-up
   [v]
-  (when-some [v (some-symbol-up v)]
+  (if-some [v (some-symbol-up v)]
     (if (simple-symbol? v) v (symbol (name v)))))
 
 ;; Namespaces and global identifiers
 
 (defn try-require
   [n]
-  (when n
-    (when-some [n (if (ident? n) n (some-str n))]
-      (when-some [n (symbol n)]
+  (if n
+    (if-some [n (if (ident? n) n (some-str n))]
+      (if-some [n (symbol n)]
         (try (do (require n) n)
              (catch java.io.FileNotFoundException _))))))
 
@@ -773,15 +770,15 @@
               confirm-prompt   "Repeat text: "
               not-match-msg    "Texts do not match."
               empty-msg        "Text is empty."}}]
-   (loop [counter (when retries (unchecked-int (if (pos-int? retries) retries 1)))]
-     (when-not (and counter (zero? counter))
+   (loop [counter (if retries (unchecked-int (if (pos-int? retries) retries 1)))]
+     (if-not (and counter (zero? counter))
        (let [p1 (ask-fn prompt)]
          (if (and (nil? p1) empty-quits?)
-           (when-not empty-quits-nil? "")
+           (if-not empty-quits-nil? "")
            (let [p2      (if confirmation? (ask-fn confirm-prompt) p1)
-                 counter (when counter (unchecked-dec-int counter))]
+                 counter (if counter (unchecked-dec-int counter))]
              (if (and (nil? p2) empty-quits?)
-               (when-not empty-quits-nil? "")
+               (if-not empty-quits-nil? "")
                (if (= p1 p2)
-                 (or p1 (if allow-empty? (when-not empty-nil? "") (do (println empty-msg) (recur counter))))
+                 (or p1 (if allow-empty? (if-not empty-nil? "") (do (println empty-msg) (recur counter))))
                  (do (println not-match-msg) (recur counter)))))))))))

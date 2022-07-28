@@ -30,7 +30,7 @@
   (if (valuable? v)
     (if (qualified-ident? v)
       (symbol (str (namespace v) "." (name v)))
-      (when-some [v (some-str v)] (symbol v)))
+      (if-some [v (some-str v)] (symbol v)))
     (symbol (str (namespace id) "." (name id)))))
 
 (defn instance-config
@@ -55,7 +55,7 @@
   ([cfg]
    (parse-config cfg nil))
   ([cfg instance-id]
-   (when-some [id (clojure.core/get cfg :bot)]
+   (if-some [id (clojure.core/get cfg :bot)]
      (let [id (ensure-ns id current-ns-str)]
        (-> cfg
            (assoc  :bot  id)
@@ -73,12 +73,12 @@
   ([config-parser id]
    (load id nil))
   ([config-parser id instance-id]
-   (when-some [cfg (parse-config (load-config id) instance-id)]
+   (if-some [cfg (parse-config (load-config id) instance-id)]
      (let [[bid cid nsc] (map cfg [:bot :id :ns])]
-       (when nsc (try-require nsc))
-       (when (qualified-ident?  id) (try-require (namespace  id)))
-       (when (qualified-ident? bid) (try-require (namespace bid)))
-       (when (qualified-ident? cid) (try-require (namespace cid)))
+       (if nsc (try-require nsc))
+       (if (qualified-ident?  id) (try-require (namespace  id)))
+       (if (qualified-ident? bid) (try-require (namespace bid)))
+       (if (qualified-ident? cid) (try-require (namespace cid)))
        cfg))))
 
 (declare command)
@@ -106,12 +106,12 @@
            (when-not bot-session
              (throw (ex-info (str "Session is not initialized for the bot " nam) cfg)))
            (let [sid (:sid bot-session)
-                 sid (when sid (str " in session " (some-str sid)))
+                 sid (if sid (str " in session " (some-str sid)))
                  fnc (:fn cfg)
                  fnc (if (fn? fnc) fnc
                          (if (qualified-ident? fnc)
                            (resolve (symbol fnc))
-                           (when-some [n (:ns cfg)] (ns-resolve n (symbol (or fnc 'run!))))))
+                           (if-some [n (:ns cfg)] (ns-resolve n (symbol (or fnc 'run!))))))
                  cfg (assoc cfg :fn fnc :name nam :multiple mlt)]
              (log/info (str "Starting bot " nam sid))
              (when-some [wrk (bus/start-worker bid cfg fnc bot-session)]
@@ -202,23 +202,23 @@
 
 (defn command
   [wrk command & args]
-  (when (valuable? command)
+  (if (valuable? command)
     (:body (apply bus/request->response wrk (ensure-keyword command) args))))
 
 (defn get-data
   [wrk k & args]
-  (when (valuable? k)
+  (if (valuable? k)
     (:body (apply bus/request->response wrk ::data (ensure-keyword k) args))))
 
 (defn get-data!
   [wrk k & args]
-  (when (valuable? k)
+  (if (valuable? k)
     (:body (apply bus/request->response wrk ::data! (ensure-keyword k) args))))
 
 (defn update-local-config!
   [wid]
   (let [wid (if (bus/worker? wid) (:id wid) wid)]
-    (when wid
+    (if wid
       (let [res (bus/request->response wid ::config)]
         (when (bus/response? res)
           (log/debug (str "Updating supervised config of " (symbol wid)))

@@ -91,10 +91,10 @@
      (if (nil? rng)
        (clojure.core/shuffle coll)
        (shuffle coll ^Random rng))
-     (when (pos-int? num)
+     (if (pos-int? num)
        (let [coll (vec coll)
              cnt  (unchecked-long (count coll))]
-         (when (pos? cnt)
+         (if (pos? cnt)
            (if (= cnt 1)
              coll
              (let [num (if (> num cnt) cnt (unchecked-long num))]
@@ -122,5 +122,5 @@
    (when-valuable coll
      (if (skip-if coll) coll
          (let [coll (if (coll? coll) coll (cons coll nil))
-               coll (when (some? (seq coll)) (mapv (comp str some-str) coll))]
+               coll (if (some? (seq coll)) (mapv (comp str some-str) coll))]
            (valuable coll))))))

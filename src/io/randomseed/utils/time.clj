@@ -17,7 +17,7 @@
 
 (defn- parse-ts-core
   [s multiply?]
-  (when (valuable? s)
+  (if (valuable? s)
     (if (t/instant? s) s
         (if (inst? s)
           (t/instant s)
@@ -48,7 +48,7 @@
 
 (defn- parse-dt-core
   [s multiply?]
-  (when (valuable? s)
+  (if (valuable? s)
     (if (inst? s)
       (t/instant s)
       (if (number? s)
@@ -83,7 +83,7 @@
 (defn timestamp
   ([] (.toEpochMilli (t/now)))
   ([t]
-   (when (valuable? t)
+   (if (valuable? t)
      (let [t (parse-dt t)]
        (if (instant? t)
          (.toEpochMilli ^Instant t)
@@ -91,7 +91,7 @@
 
 (defn timestamp-secs
   ([]  (long (/ (timestamp)   1000)))
-  ([t] (when-some [t (timestamp t)] (long (/ t 1000)))))
+  ([t] (if-some [t (timestamp t)] (long (/ t 1000)))))
 
 (defn zero-duration?
   ^Boolean [^Duration d]
@@ -108,7 +108,7 @@
 
 (defn parse-dur-min
   [v]
-  (when-some [v (some-long v)]
+  (if-some [v (some-long v)]
     (t/new-duration v :minutes)))
 
 (def ^:const duration-map
@@ -162,7 +162,7 @@
   ([d]
    (parse-duration d :minutes))
   ([d default-unit]
-   (when d
+   (if d
      (if (t/duration? d)
        d
        (if (map? d)
@@ -206,12 +206,12 @@
    (time-unit v default-unit
               (get unit-to-efn (get duration-map default-unit default-unit))))
   ([v default-unit extraction-fn]
-   (when v
+   (if v
      (if (t/duration? v)
        (extraction-fn v)
        (if (number? v)
          (safe-parse-long v)
-         (when-some [dur (parse-duration v (or default-unit :minutes))]
+         (if-some [dur (parse-duration v (or default-unit :minutes))]
            (extraction-fn dur)))))))
 
 (defn millis
@@ -274,7 +274,7 @@
   ([v]
    (duration-or-time v nil))
   ([v t]
-   (when v
+   (if v
      (if (t/duration? v)
        [v (duration->time v (or t (t/now)))]
        [(time->duration v (or t (t/now))) v]))))

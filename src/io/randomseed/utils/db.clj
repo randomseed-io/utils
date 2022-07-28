@@ -132,13 +132,13 @@
   Clojure programs. If v is a number or a keyword, it is returned as is. Otherwise it
   is converted to a keyword."
   [v]
-  (when v (if (or (number? v) (keyword? v)) v (keyword v))))
+  (if v (if (or (number? v) (keyword? v)) v (keyword v))))
 
 (defn id-to-db
   "Converts the given ID to a value suitable to be stored in a database. If v is a
   number, it is passed as is. Otherwise it is converted to a string."
   [v]
-  (when v (if (number? v) v (some-str v))))
+  (if v (if (number? v) v (some-str v))))
 
 (defn make-getter-coll
   "Creates a database getter suitable for use with get-cached-coll- functions. The
@@ -162,13 +162,13 @@
          ([db ids]
           (db-getter-coll db nil ids))
          ([db _ ids]
-          (when-some [ids (seq ids)]
+          (if-some [ids (seq ids)]
             (let [ids   (map id-to-db ids)
                   query (str q (join-? ids) ")")]
               (->> (sql/query db (cons query ids) opts-simple-map)
                    (reduce #(assoc %1 (id-from-db (get %2 id-col)) %2) {}))))))
        (fn [db table ids]
-         (when-some [ids (seq ids)]
+         (if-some [ids (seq ids)]
            (let [ids   (map id-to-db ids)
                  table (to-snake-simple table)
                  query (str q (join-? ids) ")")]
@@ -246,7 +246,7 @@
   "Gets a map of ID-to-properties from a database for the given IDs and a
   table. Assumes each result will be related to a single, unique ID."
   [db table ids]
-  (when (seq ids)
+  (if (seq ids)
     (let [ids (map id-to-db ids)]
       (->> (sql/find-by-keys db table (cons (str "id IN " (braced-join-? ids)) ids)
                              opts-simple-map)
@@ -270,9 +270,9 @@
   ([ttl queue-size]
    (cache-prepare ttl queue-size nil))
   ([ttl queue-size initial-map]
-   (let [ttl         (when ttl (time/millis ttl))
-         ttl         (when (pos-int? ttl) ttl)
-         qsize       (when (pos-int? queue-size) queue-size)
+   (let [ttl         (if ttl (time/millis ttl))
+         ttl         (if (pos-int? ttl) ttl)
+         qsize       (if (pos-int? queue-size) queue-size)
          initial-map (or initial-map {})
          c           initial-map
          c           (if qsize (cache/fifo-cache-factory c :threshold qsize) c)
@@ -302,7 +302,7 @@
   "Looks for a collection of entries identified by the given ID in a cache which should
   be a cache object encapsulated in an atom."
   [cache ids]
-  (when (seq ids)
+  (if (seq ids)
     (let [ids (map id-from-db ids)]
       (reduce (fn [m id]
                 (let [props (cwr/lookup cache id false)]
@@ -340,12 +340,12 @@
   the config under the `:memoizer` key. Uses `io.randomseed.utils.db/memoize` to
   initialize caches."
   ([config]
-   (when-some [f (var/deref-symbol (:memoizer config))]
+   (if-some [f (var/deref-symbol (:memoizer config))]
      (memoizer f config)))
   ([f config]
    (let [cache-size (:cache-size config)
          cache-ttl  (:cache-ttl  config)
-         cache-ttl  (when cache-ttl (time/millis cache-ttl))]
+         cache-ttl  (if cache-ttl (time/millis cache-ttl))]
      (if (or (pos-int? cache-size) (pos-int? cache-ttl))
        (memoize f cache-size cache-ttl)
        f))))
@@ -492,8 +492,7 @@
     (into [(str "REPLACE INTO " (entity-fn (name table))
                 " (" params ")"
                 " VALUES (" places ")"
-                (when-let [suffix (:suffix opts)]
-                  (str " " suffix)))]
+                (if-let [suffix (:suffix opts)] (str " " suffix)))]
           (vals key-map))))
 
 (defn for-insert-or
@@ -511,8 +510,7 @@
     (into [(str "INSERT " alt-clause " INTO " (entity-fn (name table))
                 " (" params ")"
                 " VALUES (" places ")"
-                (when-let [suffix (:suffix opts)]
-                  (str " " suffix)))]
+                (if-let [suffix (:suffix opts)] (str " " suffix)))]
           (vals key-map))))
 
 (defn for-replace-multi
@@ -534,8 +532,7 @@
                 " (" params ")"
                 " VALUES "
                 (str/join ", " (repeat (count rows) (str "(" places ")")))
-                (when-let [suffix (:suffix opts)]
-                  (str " " suffix)))]
+                (if-let [suffix (:suffix opts)] (str " " suffix)))]
           cat
           rows)))
 
@@ -560,8 +557,7 @@
                 " (" params ")"
                 " VALUES "
                 (str/join ", " (repeat (count rows) (str "(" places ")")))
-                (when-let [suffix (:suffix opts)]
-                  (str " " suffix)))]
+                (if-let [suffix (:suffix opts)] (str " " suffix)))]
           cat
           rows)))
 
@@ -658,12 +654,12 @@
 
 (defn- prep-pairs
   [coll]
-  (when (coll? coll)
+  (if (coll? coll)
     (seq (if (map? coll) (mapcat seq coll) coll))))
 
 (defn- prep-names
   [coll]
-  (when (coll? coll)
+  (if (coll? coll)
     (seq (if (map? coll) (keys coll) coll))))
 
 (defn get-failed?
@@ -683,11 +679,11 @@
         getter-query  (str-spc "SELECT value FROM" table
                                "WHERE" entity-column "= ? AND id = ?")]
     (fn [db entity-id setting-id]
-      (when-some [entity-id (id-to-db entity-id)]
-        (when-some [setting-id (some-str setting-id)]
+      (if-some [entity-id (id-to-db entity-id)]
+        (if-some [setting-id (some-str setting-id)]
           (if db
-            (when-some [r (ret-value-key
-                           (jdbc/execute-one! db [getter-query entity-id setting-id]))]
+            (if-some [r (ret-value-key
+                         (jdbc/execute-one! db [getter-query entity-id setting-id]))]
               (try
                 (nippy/thaw r)
                 (catch Throwable e
@@ -706,8 +702,8 @@
         entity-column (some-keyword-simple entity-column)]
     (fn put-setting
       ([db entity-id setting-id value]
-       (when-some [entity-id (id-to-db entity-id)]
-         (when-some [setting-id (some-str setting-id)]
+       (if-some [entity-id (id-to-db entity-id)]
+         (if-some [setting-id (some-str setting-id)]
            (if-not db
              (log/err "Cannot store setting" setting-id "in" table "for" entity-id
                       "because database connection is not set")
@@ -722,8 +718,8 @@
                           "into a database table" table))))))
       ([db entity-id setting-id value & pairs]
        (if-let [pairs (prep-pairs pairs)]
-         (when-some [entity-id (id-to-db entity-id)]
-           (when-some [setting-id (some-str setting-id)]
+         (if-some [entity-id (id-to-db entity-id)]
+           (if-some [setting-id (some-str setting-id)]
              (if-not db
                (log/err "Cannot store setting" setting-id "in" table "for" entity-id
                         "because database connection is not set")
@@ -755,14 +751,14 @@
         db-opts-ret       (assoc opts-simple-vec :return-keys false :suffix ret-subquery)]
     (fn del-setting
       ([db entity-id]
-       (when-some [entity-id (id-to-db entity-id)]
+       (if-some [entity-id (id-to-db entity-id)]
          (if-not db
            (log/err "Cannot delete settings in" table "for" entity-id
                     "because database connection is not set")
            (sql/delete! db table {entity-column entity-id} db-opts-ret))))
       ([db entity-id setting-id]
-       (when-some [entity-id (id-to-db entity-id)]
-         (when-some [setting-id (some-str setting-id)]
+       (if-some [entity-id (id-to-db entity-id)]
+         (if-some [setting-id (some-str setting-id)]
            (if-not db
              (log/err "Cannot delete setting" setting-id "in" table "for" entity-id
                       "because database connection is not set")
@@ -771,8 +767,8 @@
                  pos-int?)))))
       ([db entity-id setting-id & setting-ids]
        (if-let [setting-ids (prep-names setting-ids)]
-         (when-some [entity-id (id-to-db entity-id)]
-           (when-some [setting-id (some-str setting-id)]
+         (if-some [entity-id (id-to-db entity-id)]
+           (if-some [setting-id (some-str setting-id)]
              (if-not db
                (log/err "Cannot delete settings in" table "for" entity-id
                         "because database connection is not set")
@@ -813,7 +809,7 @@
   "Deletes the cached result of calling the given setting deleter. Purges cache entry
   after operation succeeded."
   ([cache deleter db entity-id]
-   (when-some [r (deleter db entity-id)]
+   (if-some [r (deleter db entity-id)]
      (let [seed-vec (vector (id-from-db entity-id))]
        (apply cache-evict! cache (map #(conj seed-vec (keyword %)) r)) true)))
   ([cache deleter db entity-id setting-id]
@@ -854,8 +850,7 @@
   [config]
   (log/msg "Purging abstract in-memory caches")
   (doseq [c (vals config)]
-    (when (atom? c)
-      (reset! c nil)))
+    (if (atom? c) (reset! c nil)))
   nil)
 
 (defn print-caches

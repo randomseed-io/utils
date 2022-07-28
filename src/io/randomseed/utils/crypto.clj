@@ -38,7 +38,7 @@
   "Encrypts private key using random IV and the given password. Returns base64-encoded
   map of two keys."
   [k password]
-  (when (and k password)
+  (if (and k password)
     (let [p (pwd->bin password)
           n (nonce/random-bytes 16)]
       {:salt (codecs/bytes->str (codecs/bytes->b64u n))
@@ -48,7 +48,7 @@
 
 (defn decrypt-key-core
   [encrypted k iv]
-  (when (and encrypted k iv)
+  (if (and encrypted k iv)
     (try
       (codecs/bytes->str
        (crypto/decrypt encrypted k iv {:alg :aes128-cbc-hmac-sha256}))
@@ -69,14 +69,14 @@
   ([]
    (read-pwd "Enter password: "))
   ([prompt]
-   (when-some [c ^java.io.Console (System/console)]
+   (if-some [c ^java.io.Console (System/console)]
      (some-str (String/copyValueOf (.readPassword ^java.io.Console c prompt nil))))))
 
 (defn read-key
   ([]
    (read-key "Enter key: "))
   ([prompt]
-   (when-some [c ^java.io.Console (System/console)]
+   (if-some [c ^java.io.Console (System/console)]
      (some-str (.readLine ^java.io.Console c prompt nil)))))
 
 (defn ask-pass

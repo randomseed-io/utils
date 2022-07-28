@@ -193,7 +193,7 @@
 ;;   (Thread/setDefaultUncaughtExceptionHandler
 ;;    (reify Thread$UncaughtExceptionHandler
 ;;      (uncaughtException [_ thread ex]
-;;        (when-not *already-logged*
+;;        (if-not *already-logged*
 ;;          (log/error {:thread (.getName thread)} (pr-str ex)))
 ;;        (prn ex)))))
 ;; (set-exception-handler!)
@@ -217,7 +217,7 @@
 
 (defn initialize-context-transformer!
   [transform-map]
-  (when (seq transform-map)
+  (if (seq transform-map)
     (alter-var-root
      #'cambium.core/transform-context
      (fn [_]

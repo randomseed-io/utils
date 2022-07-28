@@ -74,7 +74,7 @@
 (defn resource-file
   "Returns a java.io.File object for the existing resource of the given name."
   ^File [resource]
-  (when resource
+  (if resource
     (io/as-file ^URL (io/resource resource))))
 
 (defn resource-exists?
@@ -83,24 +83,24 @@
 
 (defn file
   ^File [fname]
-  (when fname
+  (if fname
     (io/as-file fname)))
 
 (defn basename
   ^String [f]
-  (when f
+  (if f
     (.getName ^File (io/as-file f))))
 
 (defn extension
   ^String [f]
-  (when-some [^String n (basename f)]
+  (if-some [^String n (basename f)]
     (let [^"long" idx (str/last-index-of n \.)]
-      (when (and idx (< idx (unchecked-dec (count n))))
+      (if (and idx (< idx (unchecked-dec (count n))))
         (subs ^String n (inc ^"long" idx))))))
 
 (defn abs-pathname
   [path]
-  (when (some? path)
+  (if (some? path)
     (if (relative-path? path)
       (home-dir-pathname path)
       path)))
@@ -116,7 +116,7 @@
      (if-not (ident? k)
        k
        (let [n (namespace k)]
-         (when (some? n) (try (require (symbol n)) (catch java.io.FileNotFoundException _)))
+         (if (some? n) (try (require (symbol n)) (catch java.io.FileNotFoundException _)))
          (apply op k more)))))
   ([k]
    (with-ns-loading identity k)))
@@ -125,15 +125,15 @@
   "Reads the given preferences file. If the path is relative it will be relative to
   user's home directory."
   ([^String filename]
-   (when-some [abs-filename (abs-pathname filename)]
+   (if-some [abs-filename (abs-pathname filename)]
      (edn/read-string (slurp abs-filename)))))
 
 (defn write-preferences
   "Writes the given preference file. If the path is relative it will be relative to
   user's home directory."
   [^String filename data]
-  (when (some? filename)
-    (when-some [abs-filename (abs-pathname filename)]
+  (if (some? filename)
+    (if-some [abs-filename (abs-pathname filename)]
       (spit abs-filename (puget/pprint-str data)))))
 
 (defn read-lines
@@ -142,8 +142,8 @@
   ([filename]
    (read-lines 1 filename))
   ([n filename]
-   (when (some? filename)
-     (when-some [abs-filename (abs-pathname filename)]
+   (if (some? filename)
+     (if-some [abs-filename (abs-pathname filename)]
        (with-open [rdr (io/reader filename)]
          (doall (take n (line-seq rdr))))))))
 
@@ -154,7 +154,7 @@
 
 (defn get-java-property
   [s]
-  (when (some? s)
+  (if (some? s)
     (System/getProperty (str s))))
 
 (def ^:const prop-regex (re-pattern "\\$\\{[\\_\\-\\.a-zA-Z0-9]+\\}"))
@@ -163,7 +163,7 @@
   [s]
   (let [c (count s)]
     (if (< c 4) s
-        (str (when (some? s) (System/getProperty (subs s 2 (dec (count s)))))))))
+        (str (if (some? s) (System/getProperty (subs s 2 (dec (count s)))))))))
 
 (defn parse-java-properties
   [s]

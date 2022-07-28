@@ -95,7 +95,7 @@
 (defn- first-bad-parameter
   [m vmap default-pass?]
   (loop [items (seq m)]
-    (when items
+    (if items
       (let [[k v] (first items)
             rest  (next items)]
         (if (contains? vmap k)
@@ -105,7 +105,7 @@
 (defn validate-parameters
   [m vmap default-pass?]
   (lazy-seq
-   (when-some [f (first-bad-parameter m vmap default-pass?)]
+   (if-some [f (first-bad-parameter m vmap default-pass?)]
      (let [[reason k rest] f]
        (cons [reason k] (validate-parameters rest vmap default-pass?))))))
 

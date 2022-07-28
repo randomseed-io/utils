@@ -473,14 +473,14 @@
 
 (defn nil-keys
   [m keys]
-  (when (some? m)
+  (if (some? m)
     (if-some [keys (seq keys)]
       (apply assoc m (interleave keys (repeat nil)))
       m)))
 
 (defn nil-existing-keys
   [m keys]
-  (when (some? m)
+  (if (some? m)
     (if-some [keys (seq (filter (partial contains? m) keys))]
       (apply assoc m (interleave keys (repeat nil)))
       m)))
@@ -536,4 +536,4 @@
                     #(if (contains? %1 (key %2)) %1 (conj %1 %2)))
                   (lazy-map/->?LazyMap m2) m1))
         (lazy-map/->?LazyMap m1))
-      (when m2 (lazy-map/->?LazyMap m2)))))
+      (if m2 (lazy-map/->?LazyMap m2)))))
