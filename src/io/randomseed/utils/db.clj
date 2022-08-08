@@ -119,6 +119,17 @@
   [coll]
   (str "(" (str/join "," (map (constantly "?") coll)) ")"))
 
+(defn- mk-keyword
+  ([n]
+   (mk-keyword n nil))
+  ([ns n]
+   (if (nil? n)
+     (if (keyword? ns) ns (keyword (if (string? ns) ns (str ns))))
+     (if ns
+       (keyword
+        (if (string? ns) ns (if (ident? ns) (name ns) (str ns)))
+        (if (string?  n)  n (if (ident?  n) (name  n) (str  n))))))))
+
 ;; Type checks
 
 (defn data-source?
@@ -129,20 +140,27 @@
 
 (defn id-from-db
   "Converts the given ID retrieved from a database to a value suitable to be used in
-  Clojure programs. If v is a number or a keyword, it is returned as is. Otherwise it
-  is converted to a keyword."
+  Clojure programs. If `v` is a number or a keyword, it is returned as is. Otherwise
+  it is converted to a keyword."
   [v]
   (if v (if (or (number? v) (keyword? v)) v (keyword v))))
 
 (defn id-to-db
-  "Converts the given ID to a value suitable to be stored in a database. If v is a
+  "Converts the given ID to a value suitable to be stored in a database. If `v` is a
   number, it is passed as is. Otherwise it is converted to a string."
   [v]
   (if v (if (number? v) v (some-str v))))
 
+(defn id-as-str
+  "Tries to convert the given argument to a string identifier."
+  [v]
+  (if v
+    (if (string? v) v (str (if (ident? v) (symbol v) v)))))
+
 (defn make-getter-coll
-  "Creates a database getter suitable for use with get-cached-coll- functions. The
-  returned function should accept an argument containing multiple identifiers."
+  "Creates a database getter suitable for use with `get-cached-coll-` family of
+  functions. The returned function should accept an argument containing multiple
+  identifiers."
   ([id-col]
    (make-getter-coll nil id-col nil))
   ([id-col cols]
@@ -300,7 +318,9 @@
 
 (defn cache-lookup-coll
   "Looks for a collection of entries identified by the given ID in a cache which should
-  be a cache object encapsulated in an atom."
+  be a cache object encapsulated in an atom. Returns a map with identifiers as keys
+  and values for all found entries. Entries which are missing in the cache are
+  grouped under the `false` key as a list."
   [cache ids]
   (if (seq ids)
     (let [ids (map id-from-db ids)]
@@ -313,7 +333,7 @@
 
 (defn cache-lookup
   "Looks for the entry of the given ID in a cache which should be a cache object
-  encapsulated in an atom. For multiple IDs, calls cache-lookup-coll."
+  encapsulated in an atom. For multiple IDs, calls `cache-lookup-coll`."
   ([cache id]
    (cwr/lookup cache (id-from-db id) false))
   ([cache id & ids]
@@ -673,25 +693,53 @@
   a Clojure data structure. Table name and entity column name must be quoted if
   needed before passing to this function."
   [table entity-column]
-  (let [table         (to-snake-simple table)
-        entity-column (to-snake-simple entity-column)
-        ret-value-key (keyword (name table) "value")
-        getter-query  (str-spc "SELECT value FROM" table
-                               "WHERE" entity-column "= ? AND id = ?")]
-    (fn [db entity-id setting-id]
-      (if-some [entity-id (id-to-db entity-id)]
-        (if-some [setting-id (some-str setting-id)]
-          (if db
-            (if-some [r (ret-value-key
-                         (jdbc/execute-one! db [getter-query entity-id setting-id]))]
-              (try
-                (nippy/thaw r)
-                (catch Throwable e
-                  (log/err "Error de-serializing setting" setting-id "for" entity-id "in" table)
-                  (log/dbg e)
-                  ::get-failed)))
-            (log/err "Cannot get setting" setting-id "in" table "for" entity-id
-                     "because database connection is not set")))))))
+  (let [table           (to-snake-simple table)
+        entity-column   (to-snake-simple entity-column)
+        ret-value-key   (keyword (name table) "value")
+        getter-query    (str-spc "SELECT value FROM" table
+                                 "WHERE" entity-column "= ? AND id = ?")
+        getter-subquery (str-spc "SELECT id, value FROM" table
+                                 "WHERE" entity-column "= ? AND id IN")]
+    (fn get-setting
+      ([db setting-fq]
+       (get-setting db (namespace setting-fq) (name setting-fq)))
+      ([db entity-id setting-id]
+       (if-some [entity-id (id-to-db entity-id)]
+         (if-some [setting-id (some-str setting-id)]
+           (if db
+             (if-some [r (ret-value-key
+                          (jdbc/execute-one! db [getter-query entity-id setting-id]))]
+               (try
+                 (nippy/thaw r)
+                 (catch Throwable e
+                   (log/err "Error de-serializing setting" setting-id "for" entity-id "in" table)
+                   (log/dbg e)
+                   ::get-failed)))
+             (log/err "Cannot get setting" setting-id "from" table "for" entity-id
+                      "because database connection is not set")))))
+      ([db entity-id setting-id & setting-ids]
+       (if-let [setting-ids (prep-names setting-ids)]
+         (if-some [entity-id (id-to-db entity-id)]
+           (if-some [setting-id (some-str setting-id)]
+             (if-not db
+               (log/err "Cannot get settings from" table "for" entity-id
+                        "because database connection is not set")
+               (let [setting-ids (cons setting-id (map id-to-db setting-ids))
+                     query       (cons (str-spc getter-subquery (braced-join-? setting-ids))
+                                       (cons entity-id setting-ids))
+                     results     (next (jdbc/execute! db query opts-simple-vec))]
+                 (if results
+                   (try
+                     (reduce (fn [m [id v]]
+                               (try
+                                 (assoc m (keyword id) (nippy/thaw v))
+                                 (catch Throwable e
+                                   (log/err "Error de-serializing setting" id "for" entity-id "in" table)
+                                   (throw e)))) {} results)
+                     (catch Throwable e
+                       (log/dbg e)
+                       ::get-failed)))))))
+         (get-setting db entity-id setting-id))))))
 
 (defn make-setting-setter
   "Returns a function which stores one or more settings for a given entity in a
@@ -785,24 +833,36 @@
 (defn cached-setting-get
   "Gets the cached result of calling the given setting getter. Updates cache when
   necessary."
-  [cache getter db entity-id setting-id]
-  (let [k [(id-from-db entity-id) (keyword setting-id)]]
-    (cwr/lookup-or-miss cache k #(apply getter db %))))
+  ([cache getter db entity-id setting-id]
+   (cwr/lookup-or-miss cache (mk-keyword entity-id setting-id) #(getter db %)))
+  ([cache getter db entity-id setting-id & setting-ids]
+   (if-let [setting-ids (prep-names setting-ids)]
+     (let [entity-id    (id-as-str entity-id)
+           setting-ids  (map id-as-str (cons setting-id setting-ids))
+           lookup-ids   (map #(keyword entity-id %) setting-ids)
+           looked-up-fq (cache-lookup-coll cache lookup-ids)
+           found        (map/map-keys (comp keyword name) (dissoc looked-up-fq false))
+           not-found    (map (comp keyword name) (get looked-up-fq false))]
+       (if-not (seq not-found)
+         found
+         (let [from-db (apply getter db entity-id not-found)]
+           (reduce #(assoc %1 %2
+                           (cwr/lookup-or-miss cache (mk-keyword entity-id %2)
+                                               (comp from-db keyword name)))
+                   (or found {}) not-found))))
+     (cached-setting-get cache getter db entity-id setting-id))))
 
 (defn cached-setting-set
   "Sets the cached result of calling the given setting setter. Purges cache entry after
   operation succeeded."
   ([cache setter db entity-id setting-id value]
    (let [r (setter db entity-id setting-id value)]
-     (cache-evict! cache [(id-from-db entity-id) (keyword setting-id)]) r))
+     (cache-evict! cache (mk-keyword entity-id setting-id)) r))
   ([cache setter db entity-id setting-id value & pairs]
    (let [r         (apply setter db entity-id setting-id value pairs)
-         entity-id (id-from-db entity-id)
-         seed-vec  (vector entity-id)]
-     (apply cache-evict! cache
-            [entity-id (id-from-db setting-id)]
-            (map #(conj seed-vec (keyword %))
-                 (take-nth 2 pairs)))
+         entity-id (id-as-str entity-id)]
+     (apply cache-evict! cache (mk-keyword entity-id setting-id)
+            (map #(mk-keyword entity-id %) (take-nth 2 pairs)))
      r)))
 
 (defn cached-setting-del
@@ -810,19 +870,17 @@
   after operation succeeded."
   ([cache deleter db entity-id]
    (if-some [r (deleter db entity-id)]
-     (let [seed-vec (vector (id-from-db entity-id))]
-       (apply cache-evict! cache (map #(conj seed-vec (keyword %)) r)) true)))
+     (let [entity-id (id-as-str entity-id)]
+       (apply cache-evict! cache (map #(mk-keyword entity-id %) r)) true)))
   ([cache deleter db entity-id setting-id]
    (let [r (deleter db entity-id setting-id)]
-     (cache-evict! cache [(id-from-db entity-id) (keyword setting-id)]) r))
+     (cache-evict! cache (mk-keyword entity-id setting-id)) r))
   ([cache deleter db entity-id setting-id & pairs]
    (let [r         (apply deleter db entity-id setting-id pairs)
-         entity-id (id-from-db entity-id)
-         seed-vec  (vector entity-id)]
+         entity-id (id-as-str entity-id)]
      (apply cache-evict! cache
-            [entity-id (id-from-db setting-id)]
-            (map #(conj seed-vec (keyword %))
-                 (take-nth 2 pairs)))
+            (mk-keyword entity-id setting-id)
+            (map #(mk-keyword entity-id %) (take-nth 2 pairs)))
      r)))
 
 (defn init-cache
