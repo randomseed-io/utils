@@ -1,5 +1,11 @@
 # History of random:utils releases
 
+## 1.2.10 (2022-08-08)
+
+- Added multary variant of settings getter produced by `db/make-setting-getter`.
+- Added multary variant of `db/cached-setting-get`.
+- Keying improved in cached settings (was vector-based, now it's keyword-based).
+
 ## 1.2.9 (2022-07-28)
 
 - Improved `validators/explain` and `validators/validate`.
