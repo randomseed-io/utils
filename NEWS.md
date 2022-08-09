@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.11 (2022-08-09)
+
+- Added `db.types/add-setter-phone-number`.
+
 ## 1.2.10 (2022-08-08)
 
 - Added multary variant of settings getter produced by `db/make-setting-getter`.
