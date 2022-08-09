@@ -6,10 +6,11 @@
 
     io.randomseed.utils.db.types
 
-  (:require [potemkin.namespaces  :as    p]
-            [next.jdbc.result-set :as   rs]
-            [next.jdbc.prepare    :as   jp]
-            [clj-uuid             :as uuid])
+  (:require [potemkin.namespaces  :as     p]
+            [next.jdbc.result-set :as    rs]
+            [next.jdbc.prepare    :as    jp]
+            [clj-uuid             :as  uuid]
+            [phone-number.core    :as phone])
 
   (:import  [java.sql Blob Connection PreparedStatement Timestamp]
             [javax.sql DataSource]
@@ -17,7 +18,8 @@
             [java.util UUID Calendar GregorianCalendar TimeZone]
             [java.io Closeable]
             [inet.ipaddr.ipv4 IPv4Address]
-            [inet.ipaddr.ipv6 IPv6Address]))
+            [inet.ipaddr.ipv6 IPv6Address]
+            [com.google.i18n.phonenumbers Phonenumber$PhoneNumber]))
 
 (set! *warn-on-reflection* true)
 
@@ -158,11 +160,26 @@
       (set-parameter [^UUID v ^PreparedStatement ps ^long i]
         (.setBytes ^PreparedStatement ps i ^bytes (uuid/to-byte-array ^UUID v))))))
 
+(defonce
+  ^{:arglists '([])
+    :doc      "Extends `next.jdbc.prepare/SettableParameter` protocol to support phone number
+  conversions so `com.google.i18n.phonenumbers/Phonenumber$PhoneNumber` data are converted to
+  strings (in E.164 format) and then saved."}
+  add-setter-phone-number
+  (fn []
+    (extend-protocol jp/SettableParameter
+
+      Phonenumber$PhoneNumber
+
+      (set-parameter [^Phonenumber$PhoneNumber v ^PreparedStatement ps ^long i]
+        (.setString ^PreparedStatement ps i ^String (phone/format v nil :phone-number.format/e164))))))
+
 (defn add-all-setters
   "Adds all opinionated setters by calling `add-setter-date` and `add-setter-ip-address`."
   []
   (add-setter-date)
   (add-setter-ip-address)
+  (add-setter-phone-number)
   (add-setter-uuid))
 
 (defn add-all-accessors
