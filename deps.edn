@@ -19,7 +19,7 @@
            org.clojure/core.async              {:mvn/version "1.5.648"}    ;; asynchronous operations
            fipp/fipp                           {:mvn/version "0.6.23"}     ;; pretty printing
            mvxcvi/puget                        {:mvn/version "1.3.1"}      ;; pretty printing
-           io.randomseed/phone-number          {:mvn/version "8.12.28-1"}  ;; phone number validation
+           io.randomseed/phone-number          {:mvn/version "8.12.52-0"}  ;; phone number validation
            metosin/reitit-core                 {:mvn/version "0.5.17"}     ;; Reitit Core
            metosin/reitit-ring                 {:mvn/version "0.5.17"}     ;; HTTP Ring router
            metosin/ring-http-response          {:mvn/version "0.9.3"}      ;; HTTP responses (replaces ring.util.response)
