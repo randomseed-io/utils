@@ -17,43 +17,58 @@
             [inet.ipaddr.ipv6 IPv6Address IPv6AddressTrie]))
 
 (defn inet-address?
-  "Returns `true` if the given value is a type of `java.net.InetAddress`."
+  "Returns `true` if the given value is of a type `java.net.InetAddress`."
   [v]
   (instance? InetAddress v))
 
+(defn ubyte
+  "Converts to an unchecked byte used to express unsigned values. Throws an
+  `IllegalArgumentException` exception if the given value is not a byte but exceeds
+  the range of 0-255."
+  ^Byte [v]
+  (if (instance? Byte v) v
+      (if (<= 0 v 255)
+        (unchecked-byte v)
+        (throw (IllegalArgumentException.
+                (str "Value out of range for unsigned byte: " v))))))
+
 (defn bytes-to-ipv4
   "Creates new IPv4 address using an array of bytes. When 4 arguments are given, they
-  will be used to create a byte array."
+  will be used to create a byte array. Will throw an exception if a number given for
+  a byte is lesser than 0 or greater than 255."
   ([b]
    (IPv4Address. ^"[B" (bytes b)))
   ([a b c d]
    (->> (list a b c d)
-        (map #(if (instance? Byte %) % (unchecked-byte %)))
+        (map ubyte)
         byte-array
         bytes-to-ipv4)))
 
 (defn bytes-to-ipv6
   "Creates new IPv6 address using an array of bytes. When 16 arguments are given, they
-  will be used to create a byte array."
+  will be used to create a byte array. Will throw an exception if a number given for
+  a byte is lesser than 0 or greater than 255."
   ([b]
    (IPv6Address. ^"[B" (bytes b)))
   ([a b c d e f g h i j k l m n o p]
    (->> (list a b c d e f g h i j k l m n o p)
-        (map #(if (instance? Byte %) % (unchecked-byte %)))
+        (map ubyte)
         byte-array
         bytes-to-ipv6)))
 
 (defn bytes-to-address
   "Coverts a byte array to an IP address. If there are 4 bytes are less, an IPv4
   address will be created, otherwise IPv6. When more than one argument is given, it
-  will create a byte array, converting each argument's value to an unchecked byte."
+  will create a byte array, converting each argument's value to an unchecked
+  byte. Will throw an exception if a number given for a byte is lesser than 0 or
+  greater than 255."
   ([b]
    (if (< (count b) 5)
      (IPv4Address. ^"[B" (bytes b))
      (IPv6Address. ^"[B" (bytes b))))
   ([b & bytes]
    (->> (cons b bytes)
-        (map #(if (instance? Byte %) % (unchecked-byte %)))
+        (map ubyte)
         byte-array
         bytes-to-address)))
 
@@ -130,50 +145,24 @@
   "Converts IP address to a string. Returns `nil` if it is not possible."
   to-str)
 
-(defn ipv6?
-  "Returns `true` if the given value (a string or an IP address object) represents a
-  valid IPv6 address."
+(defn is-ip?
+  "Returns `true` if the given value is of type `inet.ipaddr.IPAddress`."
   [v]
-  (boolean
-   (or (instance? IPv6Address v)
-       (and (some? v)
-            (let [^IPAddressString ipa (IPAddressString. ^String (str v))]
-              (.isIPv6 ^IPAddressString ipa))))))
-
-(defn ipv4?
-  "Returns `true` if the given value (a string or an IP address object) represents a
-  valid IPv4 address."
-  [v]
-  (boolean
-   (or (instance? IPv4Address v)
-       (and (some? v)
-            (let [^IPAddressString ipa (IPAddressString. ^String (str v))]
-              (.isIPv4 ^IPAddressString ipa))))))
-
-(defn ipv4-mapped?
-  "Returns `true` if the given value (a string or an IP address object) represents a
-  valid IPv4 address and it is IPv4-mapped IPv6 address."
-  [v]
-  (boolean
-   (or (and (instance? IPv6Address v) (.isIPv4Mapped ^IPv6Address v))
-       (and (some? v)
-            (let [^IPAddressString ipa (IPAddressString. ^String (str v))]
-              (and (.isIPv6 ^IPAddressString ipa)
-                   (.isIPv4Mapped ^IPv6Address (.getAddress ^IPAddressString ipa))))))))
+  (instance? IPAddress v))
 
 (defn is-ipv4?
-  "Returns `true` if the given value is a type of IPv4Address."
+  "Returns `true` if the given value is of type `inet.ipaddr.ipv4.IPv4Address`."
   [v]
   (instance? IPv4Address v))
 
 (defn is-ipv6?
-  "Returns `true` if the given value is a type of IPv6Address."
+  "Returns `true` if the given value is of type `inet.ipaddr.ipv6.IPv6Address`."
   [v]
   (instance? IPv6Address v))
 
 (defn is-ipv4-mapped?
-  "Returns `true` if the given value is a type of IPv6Address and it is IPv4-mapped
-  address."
+  "Returns `true` if the given value is of type `inet.ipaddr.ipv6.IPv6Address` and
+  it is IPv4-mapped address."
   [v]
   (and (instance? IPv6Address v) (.isIPv4Mapped ^IPv6Address v)))
 
@@ -186,6 +175,51 @@
   "Converts the given IP address to IPv6. Returns `nil` if this is not possible."
   [^IPAddress v]
   (if v (.toIPv6 ^IPAddress v)))
+
+(defn ipv6?
+  "Returns `true` if the given value (a string, a number, a sequence of bytes, or an IP
+  address object) represents a valid IPv6 address."
+  [v]
+  (boolean
+   (if v
+     (or (instance? IPv6Address v)
+         (and (string? v) (let [^IPAddressString ipa (IPAddressString. ^String v)]
+                            (.isIPv6 ^IPAddressString ipa)))
+         (instance? IPv6Address (try (to-address v) (catch Exception _ nil)))))))
+
+(defn ipv4?
+  "Returns `true` if the given value (a string, a number, a sequence of bytes, or an IP
+  address object) represents a valid IPv4 address."
+  [v]
+  (boolean
+   (if v
+     (or (instance? IPv4Address v)
+         (and (string? v) (let [^IPAddressString ipa (IPAddressString. ^String v)]
+                            (.isIPv4 ^IPAddressString ipa)))
+         (instance? IPv4Address (try (to-address v) (catch Exception _ nil)))))))
+
+(defn ipv4-mapped?
+  "Returns `true` if the given value (a string, a number, a sequence of bytes, or an IP
+  address object) represents a valid IPv4 address and it is a IPv4-mapped IPv6 address."
+  [v]
+  (boolean
+   (if v
+     (or (and (instance? IPAddress v) (.isIPv4Mapped ^IPv6Address v))
+         (and (string? v) (let [^IPAddressString ipa (IPAddressString. ^String v)]
+                            (and (.isIPv6 ^IPAddressString ipa)
+                                 (.isIPv4Mapped ^IPv6Address (.getAddress ^IPAddressString ipa)))))
+         (if-some [v (try (to-address v) (catch Exception _ nil))]
+           (and (instance? IPv6Address v) (.isIPv4Mapped ^IPv6Address v)))))))
+
+(defn ip?
+  "Returns `true` if the given value (a string, a number, a sequence of bytes, or an IP
+  address object) represents a valid IP address."
+  [v]
+  (boolean
+   (if v
+     (or (instance? IPAddress v)
+         (and (string? v) (.isValid ^IPAddressString (IPAddressString. ^String v)))
+         (instance? IPAddress (try (to-address v) (catch Exception _ nil)))))))
 
 (defn in6t?
   "Returns `true` if an IPv6 address is contained within the given tree."
