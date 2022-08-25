@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.12 (2022-08-25)
+
+- Multiple improvements in IP address conversion functions.
+
 ## 1.2.11 (2022-08-09)
 
 - Added `db.types/add-setter-phone-number`.
