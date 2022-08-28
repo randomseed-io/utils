@@ -150,11 +150,25 @@
     (str s)
     (apply str (interpose " " (cons s more)))))
 
+(defn str-squeeze-spc
+  [s & more]
+  (str/replace (if-not more
+                 (str s)
+                 (apply str (interpose " " (cons s more))))
+               #"\s+" " "))
+
 (defn some-str-spc
   [s & more]
   (if-not more
     (str (some-str s))
     (apply str (interpose " " (filter some? (map some-str (cons s more)))))))
+
+(defn some-str-squeeze-spc
+  [s & more]
+  (str/replace (if-not more
+                 (str (some-str s))
+                 (apply str (interpose " " (filter some? (map some-str (cons s more))))))
+               #"\s+" " "))
 
 (defn some-string
   ^String [^String s]
