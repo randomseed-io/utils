@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.14 (2022-08-28)
+
+- Added `str-squeeze-spc`, `some-str-squeeze-spc`.
+
 ## 1.2.13 (2022-08-25)
 
 - IP predicates improved, safer unsigned bytes support.
