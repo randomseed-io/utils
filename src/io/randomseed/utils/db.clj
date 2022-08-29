@@ -464,7 +464,7 @@
      (get (get-cached cache db-getter-or-table db-or-getter prop-or-db id2-or-id) (id-from-db id-or-prop))))
   ([cache db-getter-or-table db-or-getter prop-or-db id-or-prop id2-or-id & more]
    (if (data-source? db-or-getter)
-     (get-cached-coll-prop cache db-getter-or-table db-or-getter prop-or-db (list id-or-prop id2-or-id more))
+     (get-cached-coll-prop cache db-getter-or-table db-or-getter prop-or-db (list* id-or-prop id2-or-id more))
      (get-cached-coll-prop cache db-getter-or-table db-or-getter prop-or-db id-or-prop (cons id2-or-id more)))))
 
 (defn get-cached-prop-or-default
