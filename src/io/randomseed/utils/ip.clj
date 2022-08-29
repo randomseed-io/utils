@@ -39,7 +39,7 @@
   ([b]
    (IPv4Address. ^"[B" (bytes b)))
   ([a b c d]
-   (->> (list a b c d)
+   (->> [a b c d]
         (map ubyte)
         byte-array
         bytes-to-ipv4)))
@@ -51,7 +51,7 @@
   ([b]
    (IPv6Address. ^"[B" (bytes b)))
   ([a b c d e f g h i j k l m n o p]
-   (->> (list a b c d e f g h i j k l m n o p)
+   (->> [a b c d e f g h i j k l m n o p]
         (map ubyte)
         byte-array
         bytes-to-ipv6)))
