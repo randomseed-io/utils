@@ -1,5 +1,10 @@
 # History of random:utils releases
 
+## 1.2.15 (2022-08-30)
+
+- Optimizations in `ip/bytes-to-ipv4` and `ip/bytes-to-ipv6`.
+- Bug fixed in `db/get-cached-prop` (`list` -> `list*`).
+
 ## 1.2.14 (2022-08-28)
 
 - Added `str-squeeze-spc`, `some-str-squeeze-spc`.
