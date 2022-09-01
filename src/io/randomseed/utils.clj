@@ -54,11 +54,11 @@
 
 (defn empty-string?
   ^Boolean [^String s]
-  (zero? (.length ^String s)))
+  (.isEmpty ^String s))
 
 (defn not-empty-string?
   ^Boolean [^String s]
-  (pos? (.length ^String s)))
+  (not (.isEmpty ^String s)))
 
 (defn empty-ident?
   [v]
@@ -114,35 +114,38 @@
 
 (defn some-str
   [v]
-  (if (valuable? v)
-    (valuable (str (if (ident? v) (symbol v) v)))))
+  (if (string? v)
+    (if (empty-string? v) nil v)
+    (if (nil? v)
+      nil
+      (if (ident? v)
+        (let [s (str (symbol v))] (if (empty-string? s) nil s))
+        (if-some [s (str v)] (if (empty-string? s) nil s))))))
 
 (defn some-str-up
   [v]
-  (if (valuable? v)
-    (valuable
-     (str/upper-case
-      (str (if (ident? v) (symbol v) v))))))
+  (if-some [s (some-str v)]
+    (str/upper-case s)))
+
+(defn some-str-down
+  [v]
+  (if-some [s (some-str v)]
+    (str/lower-case s)))
 
 (defn some-str-simple
   [v]
-  (if (valuable? v)
-    (valuable
-     (if (ident? v) (name v) (str v)))))
+  (some-str
+   (if (ident? v) (name v) v)))
 
 (defn some-str-simple-up
   [v]
-  (if (valuable? v)
-    (valuable
-     (str/upper-case
-      (if (ident? v) (name v) (str v))))))
+  (some-str-up
+   (if (ident? v) (name v) v)))
 
 (defn some-str-simple-down
   [v]
-  (if (valuable? v)
-    (valuable
-     (str/lower-case
-      (if (ident? v) (name v) (str v))))))
+  (some-str-down
+   (if (ident? v) (name v) v)))
 
 (defn str-spc
   [s & more]
@@ -172,7 +175,7 @@
 
 (defn some-string
   ^String [^String s]
-  (if (or (not (string? s)) (empty? s)) nil s))
+  (if (or (nil? s) (empty-string? s)) nil s))
 
 (defn replace-first
   "Replaces first encounter of a character c in the given string s with a character r."
