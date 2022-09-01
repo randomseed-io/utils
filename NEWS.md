@@ -1,5 +1,15 @@
 # History of random:utils releases
 
+## 1.2.16 (2022-09-01)
+
+- Added `some-str-down`.
+
+- Performance improvements in:
+  `empty-string?`, `not-empty-string?`,
+  `some-str`, `some-str-up`, `some-str-simple`,
+  `some-str-simple-up`, `some-str-simple-down`,
+  `some-string`.
+
 ## 1.2.15 (2022-08-30)
 
 - Optimizations in `ip/bytes-to-ipv4` and `ip/bytes-to-ipv6`.
