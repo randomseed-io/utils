@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.17 (2022-09-09)
+
+- `map/assoc-if` and `map/assoc-if-not` can now handle multiple pairs.
+
 ## 1.2.16 (2022-09-01)
 
 - Added `some-str-down`.

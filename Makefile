@@ -1,5 +1,5 @@
 APPNAME = "utils"
-VERSION = "1.2.16"
+VERSION = "1.2.17"
 
 .PHONY: 		watch default docs deploy test test-clj sig jar pom clean tag
 
