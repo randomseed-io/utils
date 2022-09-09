@@ -101,11 +101,15 @@
 
 (defmacro assoc-if
   ([coll pred k val]
-   `(let [kol# ~coll] (if ~pred (assoc kol# ~k ~val) kol#))))
+   `(let [kol# ~coll] (if ~pred (assoc kol# ~k ~val) kol#)))
+  ([coll pred k val & pairs]
+   `(let [kol# ~coll] (if ~pred (assoc kol# ~k ~val ~@pairs) kol#))))
 
 (defmacro assoc-if-not
   ([coll pred k val]
-   `(let [kol# ~coll] (if ~pred kol# (assoc kol# ~k ~val)))))
+   `(let [kol# ~coll] (if ~pred kol# (assoc kol# ~k ~val))))
+  ([coll pred k val & pairs]
+   `(let [kol# ~coll] (if ~pred kol# (assoc kol# ~k ~val ~@pairs)))))
 
 (defmacro assoc-if-key
   ([coll k pred val]
@@ -118,7 +122,6 @@
      (if (~pred (get kol# key#)) kol# (assoc kol# key# ~val))))
 
 (defn dissoc-if
-  ^clojure.lang.IPersistentMap
   [^clojure.lang.IPersistentMap m k
    ^clojure.lang.IFn pred]
   (if (pred (get m k)) (dissoc m k) m))
