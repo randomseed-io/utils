@@ -2,7 +2,8 @@
 
 ## 1.2.18 (2022-09-18)
 
-- `map/update-missing` now takes only unary functions.
+- `map/update-missing` now takes only unary functions by default,
+  without shifting the arguments.
 
 ## 1.2.17 (2022-09-09)
 
