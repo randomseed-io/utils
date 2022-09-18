@@ -10,7 +10,6 @@
 
   (:require [reitit.core              :as        r]
             [reitit.ring              :as     ring]
-            [ring.util.http-response  :as     resp]
             [io.randomseed.utils      :refer  :all])
 
   (:import  [reitit.core Match Router]))
