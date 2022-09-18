@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.18 (2022-09-18)
+
+- `map/update-missing` now takes only unary functions.
+
 ## 1.2.17 (2022-09-09)
 
 - `map/assoc-if` and `map/assoc-if-not` can now handle multiple pairs.
