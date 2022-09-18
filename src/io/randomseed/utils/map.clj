@@ -43,9 +43,11 @@
              coll (partition 2 (cons k (cons val more)))))))
 
 (defn update-existing
-  "Updates the key k of the given collection coll by calling a function fun and passing
-  optional arguments specified as additional arguments. Will not perform any update
-  if the given key does not exist within the collection. Returns a collection."
+  "Updates the given key `k` of `coll` by calling a function `fun` and passing optional
+  arguments specified as additional arguments. Will not perform any update if the
+  given key does not exist within the collection. Returns updated collection.
+
+  If `fun` is not a function it will be made one by using `constantly`."
   ([^clojure.lang.IPersistentMap coll k fun]
    (if (contains? coll k)
      (let [fun (if (fn? fun) fun (constantly fun))]
@@ -58,14 +60,20 @@
      coll)))
 
 (defn update-missing
+  "Updates the given key `k` of `coll` by calling a function `fun` and passing optional
+  arguments specified as additional arguments. Will not perform any update if the
+  given key exists within the collection, therefore the function will always receive
+  `nil` as its argument. Returns updated collection.
+
+  If `fun` is not a function it will be made one by using `constantly`."
   ([coll k fun]
    (if-not (contains? coll k)
-     (let [fun (if (fn? fun) (fn [& args] (apply fun (next args))) (constantly fun))]
+     (let [fun (if (fn? fun) fun (constantly fun))]
        (update coll k fun))
      coll))
   ([coll k fun & more]
    (if-not (contains? coll k)
-     (let [fun (if (fn? fun) (fn [& args] (apply fun (next args))) (constantly fun))]
+     (let [fun (if (fn? fun) fun (constantly fun))]
        (apply update coll k fun more))
      coll)))
 
