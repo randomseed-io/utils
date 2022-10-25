@@ -8,22 +8,23 @@
 
   (:refer-clojure :exclude [memoize parse-long uuid random-uuid])
 
-  (:require [clojure.string                :as          str]
-            [clojure.core.memoize          :as          mem]
-            [clojure.core.cache            :as        cache]
-            [clojure.core.cache.wrapped    :as          cwr]
-            [camel-snake-kebab.core        :as          csk]
-            [next.jdbc                     :as         jdbc]
-            [next.jdbc.sql                 :as          sql]
-            [next.jdbc.result-set          :as           rs]
-            [next.jdbc.sql.builder         :as      builder]
-            [taoensso.nippy                :as        nippy]
-            [io.randomseed.utils           :refer      :all]
-            [io.randomseed.utils.log       :as          log]
-            [io.randomseed.utils.var       :as          var]
-            [io.randomseed.utils.map       :as          map]
-            [io.randomseed.utils.time      :as         time]
-            [io.randomseed.utils.nop-cache :as    nop-cache])
+  (:require [clojure.string                :as            str]
+            [clojure.core.memoize          :as            mem]
+            [clojure.core.cache            :as          cache]
+            [clojure.core.cache.wrapped    :as            cwr]
+            [camel-snake-kebab.core        :as            csk]
+            [next.jdbc                     :as           jdbc]
+            [next.jdbc.sql                 :as            sql]
+            [next.jdbc.result-set          :as             rs]
+            [next.jdbc.sql.builder         :as        builder]
+            [taoensso.nippy                :as          nippy]
+            [io.randomseed.utils           :refer        :all]
+            [io.randomseed.utils.log       :as            log]
+            [io.randomseed.utils.var       :as            var]
+            [io.randomseed.utils.map       :as            map]
+            [io.randomseed.utils.time      :as           time]
+            [io.randomseed.utils.nop-cache :as      nop-cache]
+            [reitit.impl                   :refer [fast-assoc]])
 
   (:import (javax.sql DataSource)))
 
@@ -184,14 +185,14 @@
             (let [ids   (map id-to-db ids)
                   query (str q (join-? ids) ")")]
               (->> (sql/query db (cons query ids) opts-simple-map)
-                   (reduce #(assoc %1 (id-from-db (get %2 id-col)) %2) {}))))))
+                   (reduce #(fast-assoc %1 (id-from-db (get %2 id-col)) %2) {}))))))
        (fn [db table ids]
          (if-some [ids (seq ids)]
            (let [ids   (map id-to-db ids)
                  table (to-snake-simple table)
                  query (str q (join-? ids) ")")]
              (->> (sql/query db (cons query (cons table ids)) opts-simple-map)
-                  (reduce #(assoc %1 (id-from-db (get %2 id-col)) %2) {})))))))))
+                  (reduce #(fast-assoc %1 (id-from-db (get %2 id-col)) %2) {})))))))))
 
 (defn make-getter
   ([id-col cols]
@@ -266,9 +267,9 @@
   [db table ids]
   (if (seq ids)
     (let [ids (map id-to-db ids)]
-      (->> (sql/find-by-keys db table (cons (str "id IN " (braced-join-? ids)) ids)
-                             opts-simple-map)
-           (reduce #(assoc %1 (id-from-db (:id %2)) %2) {})))))
+      (->> opts-simple-map
+           (sql/find-by-keys db table (cons (str "id IN " (braced-join-? ids)) ids))
+           (reduce #(fast-assoc %1 (id-from-db (:id %2)) %2) {})))))
 
 (defn get-id
   "Gets properties of the given ID from a database table. For multiple IDs, calls
@@ -327,8 +328,8 @@
       (reduce (fn [m id]
                 (let [props (cwr/lookup cache id false)]
                   (if (false? props)
-                    (update m false conj id)
-                    (assoc m id props))))
+                    (fast-assoc m false (conj (get m false) id))
+                    (fast-assoc m id props))))
               {} ids))))
 
 (defn cache-lookup
@@ -403,7 +404,7 @@
      (if-not not-found
        looked-up
        (let [from-db (db-getter db table not-found)]
-         (reduce #(assoc %1 %2 (cwr/lookup-or-miss cache %2 from-db))
+         (reduce #(fast-assoc %1 %2 (cwr/lookup-or-miss cache %2 from-db))
                  (or (dissoc looked-up false) {})
                  not-found))))))
 
@@ -440,12 +441,12 @@
                [cache table     db-getter db property ids])}
   ([cache db-getter-or-table db prop ids]
    (let [prop (keyword prop)
-         ids  (get-cached-coll cache db-getter-or-table db ids)]
-     (reduce-kv #(if (nil? %3) (dissoc %1 %2) (assoc %1 %2 (get %3 prop))) ids ids)))
+         ids  (or (get-cached-coll cache db-getter-or-table db ids) {})]
+     (reduce-kv #(if (nil? %3) (dissoc %1 %2) (fast-assoc %1 %2 (get %3 prop))) ids ids)))
   ([cache table db-getter db prop ids]
    (let [prop (keyword prop)
-         ids  (get-cached-coll cache table db-getter db ids)]
-     (reduce-kv #(if (nil? %3) (dissoc %1 %2) (assoc %1 %2 (get %3 prop))) ids ids))))
+         ids  (or (get-cached-coll cache table db-getter db ids) {})]
+     (reduce-kv #(if (nil? %3) (dissoc %1 %2) (fast-assoc %1 %2 (get %3 prop))) ids ids))))
 
 (defn get-cached-prop
   "Same as get-cached but retrieves a single property from the result by using the get
@@ -484,7 +485,7 @@
    (if (data-source? db-or-getter)
      (let [ids (map id-from-db [id-or-default id2-or-id])
            m   (get-cached-coll-prop cache db-getter-or-table db-or-getter prop-or-db ids)]
-       (reduce #(if (contains? %1 %2) %1 (assoc %1 %2 default-or-prop)) m ids))
+       (reduce #(if (contains? %1 %2) %1 (fast-assoc %1 %2 default-or-prop)) (or m {}) ids))
      (if-some [props (get-cached cache db-getter-or-table db-or-getter prop-or-db id2-or-id)]
        (get props (id-from-db default-or-prop))
        id-or-default)))
@@ -492,10 +493,10 @@
    (if (data-source? db-or-getter)
      (let [ids (cons id-or-default (cons id2-or-id more))
            m   (get-cached-coll-prop cache db-getter-or-table db-or-getter prop-or-db ids)]
-       (reduce #(if (contains? %1 %2) %1 (assoc %1 %2 default-or-prop)) m ids))
+       (reduce #(if (contains? %1 %2) %1 (fast-assoc %1 %2 default-or-prop)) (or m {}) ids))
      (let [ids (cons id2-or-id more)
            m   (get-cached-coll-prop cache db-getter-or-table db-or-getter prop-or-db default-or-prop ids)]
-       (reduce #(if (contains? %1 %2) %1 (assoc %1 %2 id-or-default)) m ids)))))
+       (reduce #(if (contains? %1 %2) %1 (fast-assoc %1 %2 id-or-default)) (or m {}) ids)))))
 
 ;; SQL helpers
 
@@ -614,7 +615,7 @@
   ([connectable table cols rows]
    (insert-multi-or! connectable table cols rows {:alt-clause "REPLACE"}))
   ([connectable table cols rows opts]
-   (insert-multi-or! connectable table cols rows (assoc opts :alt-clause "REPLACE"))))
+   (insert-multi-or! connectable table cols rows (fast-assoc (or opts {}) :alt-clause "REPLACE"))))
 
 (defn insert-or-ignore-multi!
   "Syntactic sugar over `execute!` to make inserting columns/rows easier.
@@ -622,7 +623,7 @@
   ([connectable table cols rows]
    (insert-multi-or! connectable table cols rows {:alt-clause "IGNORE"}))
   ([connectable table cols rows opts]
-   (insert-multi-or! connectable table cols rows (assoc opts :alt-clause "IGNORE"))))
+   (insert-multi-or! connectable table cols rows (fast-assoc (or opts {}) :alt-clause "IGNORE"))))
 
 (defn insert-or-replace!
   "Syntactic sugar over `execute-one!` to make inserting hash maps easier.
@@ -631,7 +632,7 @@
   ([connectable table key-map]
    (insert-or! connectable table key-map {:alt-clause "REPLACE"}))
   ([connectable table key-map opts]
-   (insert-or! connectable table key-map (assoc opts :alt-clause "REPLACE"))))
+   (insert-or! connectable table key-map (fast-assoc (or opts {}) :alt-clause "REPLACE"))))
 
 (defn insert-or-ignore!
   "Syntactic sugar over `execute-one!` to make inserting hash maps easier.
@@ -640,7 +641,7 @@
   ([connectable table key-map]
    (insert-or! connectable table key-map {:alt-clause "IGNORE"}))
   ([connectable table key-map opts]
-   (insert-or! connectable table key-map (assoc opts :alt-clause "IGNORE"))))
+   (insert-or! connectable table key-map (fast-assoc (or opts {}) :alt-clause "IGNORE"))))
 
 (defn replace!
   "Syntactic sugar over `execute-one!` to make inserting hash maps easier.
@@ -732,7 +733,7 @@
                    (try
                      (reduce (fn [m [id v]]
                                (try
-                                 (assoc m (keyword id) (nippy/thaw v))
+                                 (fast-assoc m (keyword id) (nippy/thaw v))
                                  (catch Throwable e
                                    (log/err "Error de-serializing setting" id "for" entity-id "in" table)
                                    (throw e)))) {} results)
@@ -795,8 +796,10 @@
         ret-subquery      "RETURNING id"
         deleter-subquery  (str-spc "DELETE FROM" table-str
                                    "WHERE" entity-column-str "= ? AND id IN ")
-        db-opts           (assoc opts-simple-map :return-keys false)
-        db-opts-ret       (assoc opts-simple-vec :return-keys false :suffix ret-subquery)]
+        db-opts           (fast-assoc opts-simple-map :return-keys false)
+        db-opts-ret       (-> opts-simple-vec
+                              (fast-assoc :return-keys false)
+                              (fast-assoc :suffix ret-subquery))]
     (fn del-setting
       ([db entity-id]
        (if-some [entity-id (id-to-db entity-id)]
@@ -846,9 +849,8 @@
        (if-not (seq not-found)
          found
          (let [from-db (apply getter db entity-id not-found)]
-           (reduce #(assoc %1 %2
-                           (cwr/lookup-or-miss cache (mk-keyword entity-id %2)
-                                               (comp from-db keyword name)))
+           (reduce #(fast-assoc %1 %2 (cwr/lookup-or-miss cache (mk-keyword entity-id %2)
+                                                          (comp from-db keyword name)))
                    (or found {}) not-found))))
      (cached-setting-get cache getter db entity-id setting-id))))
 
@@ -900,7 +902,7 @@
            cache-atom (if (atom? cache-atom) cache-atom (var/make id (atom nil)))
            cfg        (if (map? cfg) cfg {})]
        (reset! cache-atom (init-cache cfg))
-       (assoc acc (symbol id) cache-atom)))
+       (fast-assoc acc (symbol id) cache-atom)))
    {} config))
 
 (defn purge-caches
