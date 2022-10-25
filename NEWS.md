@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.19 (2022-10-25)
+
+- Multiple database accessing funtions optimized for speed.
+
 ## 1.2.18 (2022-09-18)
 
 - `map/update-missing` now takes only unary functions by default,
