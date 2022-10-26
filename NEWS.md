@@ -1,8 +1,12 @@
 # History of random:utils releases
 
+## 1.2.20 (2022-10-26)
+
+- Multiple map transforming functions optimized for speed.
+
 ## 1.2.19 (2022-10-25)
 
-- Multiple database accessing funtions optimized for speed.
+- Multiple database accessing functions optimized for speed.
 
 ## 1.2.18 (2022-09-18)
 
