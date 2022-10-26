@@ -8,8 +8,9 @@
 
   (:refer-clojure :exclude [parse-long uuid random-uuid])
 
-  (:require [io.randomseed.utils :refer    :all]
-            [lazy-map.core       :as   lazy-map])
+  (:require [io.randomseed.utils :refer         :all]
+            [reitit.impl         :refer [fast-assoc]]
+            [lazy-map.core       :as        lazy-map])
 
   (:import  [lazy_map.core LazyMapEntry LazyMap]))
 
@@ -20,26 +21,34 @@
   `(let [m# ~m, k# ~k]
      (if (and (associative? m#) (contains? m# k#)) (get m# k#) ~exp)))
 
+(defn fast-assoc-multi
+  "Fast version of `assoc` with most of the checks disabled."
+  [m k v & pairs]
+  (let [r (fast-assoc m k v)]
+    (if pairs
+      (recur r (first pairs) (second pairs) (nnext pairs))
+      r)))
+
 (defn assoc-missing
   "Associates keys and values only if the keys do not yet exist in a map."
   ([]            nil)
   ([coll]       coll)
-  ([coll k val] (if (contains? coll k) coll (assoc coll k val)))
+  ([coll k val] (if (contains? coll k) coll (fast-assoc (or coll {}) k val)))
   ([coll k val & more]
    (if-not more
-     (if (contains? coll k) coll (assoc coll k val))
-     (reduce (fn [acc [k v]] (if (contains? acc k) acc (assoc acc k v)))
-             coll (partition 2 (cons k (cons val more)))))))
+     (if (contains? coll k) coll (fast-assoc (or coll {}) k val))
+     (reduce (fn [acc [k v]] (if (contains? acc k) acc (fast-assoc acc k v)))
+             (if (nil? coll) {} coll) (partition 2 (cons k (cons val more)))))))
 
 (defn assoc-existing
   "Associates keys and values only if the keys exist in a map."
   ([]           nil)
   ([coll]       coll)
-  ([coll k val] (if (contains? coll k) (assoc coll k val) coll))
+  ([coll k val] (if (contains? coll k) (fast-assoc coll k val) coll))
   ([coll k val & more]
    (if-not more
-     (if (contains? coll k) (assoc coll k val) coll)
-     (reduce (fn [acc [k v]] (if (contains? acc k) (assoc acc k v) acc))
+     (if (contains? coll k) (fast-assoc coll k val) coll)
+     (reduce (fn [acc [k v]] (if (contains? acc k) (fast-assoc acc k v) acc))
              coll (partition 2 (cons k (cons val more)))))))
 
 (defn update-existing
@@ -50,13 +59,11 @@
   If `fun` is not a function it will be made one by using `constantly`."
   ([^clojure.lang.IPersistentMap coll k fun]
    (if (contains? coll k)
-     (let [fun (if (fn? fun) fun (constantly fun))]
-       (update coll k fun))
+     (fast-assoc coll k (if (ifn? fun) (fun (get coll k)) fun))
      coll))
   ([^clojure.lang.IPersistentMap coll k fun & more]
    (if (contains? coll k)
-     (let [fun (if (fn? fun) fun (constantly fun))]
-       (apply update coll k fun more))
+     (fast-assoc coll k (if (ifn? fun) (apply fun (get coll k) more) fun))
      coll)))
 
 (defn update-missing
@@ -67,33 +74,45 @@
 
   If `fun` is not a function it will be made one by using `constantly`."
   ([coll k fun]
-   (if-not (contains? coll k)
-     (let [fun (if (fn? fun) fun (constantly fun))]
-       (update coll k fun))
-     coll))
+   (if (contains? coll k)
+     coll
+     (fast-assoc (or coll {}) k (if (ifn? fun) (fun (get coll k)) fun))))
   ([coll k fun & more]
-   (if-not (contains? coll k)
-     (let [fun (if (fn? fun) fun (constantly fun))]
-       (apply update coll k fun more))
-     coll)))
+   (if (contains? coll k)
+     coll
+     (fast-assoc (or coll {}) k (if (ifn? fun) (apply fun (get coll k) more) fun)))))
 
 (defn update-if
-  [coll k pred fun & more]
-  (if (contains? coll k)
-    (let [v (get coll k)]
-      (if (pred v)
-        (apply update coll k fun more)
-        coll))
-    coll))
+  ([coll k pred fun]
+   (if (contains? coll k)
+     (let [v (get coll k)]
+       (if (pred v)
+         (fast-assoc coll k (fun v))
+         coll))
+     coll))
+  ([coll k pred fun & more]
+   (if (contains? coll k)
+     (let [v (get coll k)]
+       (if (pred v)
+         (fast-assoc coll k (apply fun v more))
+         coll))
+     coll)))
 
 (defn update-if-not
-  [coll k pred fun & more]
-  (if (contains? coll k)
-    (let [v (get coll k)]
-      (if (pred v)
-        coll
-        (apply update coll k fun more)))
-    coll))
+  ([coll k pred fun]
+   (if (contains? coll k)
+     (let [v (get coll k)]
+       (if (pred v)
+         coll
+         (fast-assoc coll k (fun v))))
+     coll))
+  ([coll k pred fun & more]
+   (if (contains? coll k)
+     (let [v (get coll k)]
+       (if (pred v)
+         coll
+         (fast-assoc coll k (apply fun v more))))
+     coll)))
 
 (defn update-to-bytes
   ([coll k]
@@ -109,25 +128,43 @@
 
 (defmacro assoc-if
   ([coll pred k val]
-   `(let [kol# ~coll] (if ~pred (assoc kol# ~k ~val) kol#)))
+   `(let [kol# ~coll]
+      (if ~pred
+        (fast-assoc (if (nil? kol#) {} kol#) ~k ~val)
+        kol#)))
   ([coll pred k val & pairs]
-   `(let [kol# ~coll] (if ~pred (assoc kol# ~k ~val ~@pairs) kol#))))
+   `(let [kol# ~coll]
+      (if ~pred
+        (fast-assoc-multi (if (nil? kol#) {} kol#) ~k ~val ~@pairs)
+        kol#))))
 
 (defmacro assoc-if-not
   ([coll pred k val]
-   `(let [kol# ~coll] (if ~pred kol# (assoc kol# ~k ~val))))
+   `(let [kol# ~coll]
+      (if ~pred
+        kol#
+        (fast-assoc (if (nil? kol#) {} kol#) ~k ~val))))
   ([coll pred k val & pairs]
-   `(let [kol# ~coll] (if ~pred kol# (assoc kol# ~k ~val ~@pairs)))))
+   `(let [kol# ~coll]
+      (if ~pred
+        kol#
+        (fast-assoc-multi (if (nil? kol#) {} kol#) ~k ~val ~@pairs)))))
 
 (defmacro assoc-if-key
   ([coll k pred val]
-   `(let [kol# ~coll key# ~k]
-      (if (~pred (get kol# key#)) (assoc kol# key# ~val) kol#))))
+   `(let [kol# ~coll
+          key# ~k]
+      (if (~pred (get kol# key#))
+        (fast-assoc (or kol# {}) key# ~val)
+        kol#))))
 
 (defmacro assoc-if-not-key
   [coll k pred val]
-  `(let [kol# ~coll key# ~k]
-     (if (~pred (get kol# key#)) kol# (assoc kol# key# ~val))))
+  `(let [kol# ~coll
+         key# ~k]
+     (if (~pred (get kol# key#))
+       kol#
+       (fast-assoc (or kol# {}) key# ~val))))
 
 (defn dissoc-if
   [^clojure.lang.IPersistentMap m k
@@ -181,9 +218,11 @@
   ([^clojure.lang.IFn f
     ^clojure.lang.IPersistentMap m
     ^clojure.lang.IPersistentMap dst]
-   (reduce-kv
-    (fn [^clojure.lang.IPersistentMap mp k v] (assoc mp k (f k)))
-    dst m)))
+   (if (nil? m)
+     dst
+     (reduce-kv
+      (fn [^clojure.lang.IPersistentMap mp k v] (fast-assoc mp k (f k)))
+      (if (nil? dst) {} dst) m))))
 
 (defn map-vals-by-kv
   "For each key and value of the given map m calls a function passed as the first
@@ -199,9 +238,11 @@
   ([^clojure.lang.IFn f
     ^clojure.lang.IPersistentMap m
     ^clojure.lang.IPersistentMap dst]
-   (reduce-kv
-    (fn [^clojure.lang.IPersistentMap mp k v] (assoc mp k (f k v)))
-    dst m)))
+   (if (nil? m)
+     dst
+     (reduce-kv
+      (fn [^clojure.lang.IPersistentMap mp k v] (fast-assoc mp k (f k v)))
+      (if (nil? dst) {} dst) m))))
 
 (defn map-vals
   "For each key and value of the given map m calls a function passed as the first
@@ -217,9 +258,11 @@
   ([^clojure.lang.IFn f
     ^clojure.lang.IPersistentMap m
     ^clojure.lang.IPersistentMap dst]
-   (reduce-kv
-    (fn [^clojure.lang.IPersistentMap mp k v] (assoc mp k (f v)))
-    dst m)))
+   (if (nil? m)
+     dst
+     (reduce-kv
+      (fn [^clojure.lang.IPersistentMap mp k v] (fast-assoc mp k (f v)))
+      (if (nil? dst) {} dst) m))))
 
 (defn map-keys-by-v
   "For each key and value of the given map m calls a function passed as the first
@@ -234,9 +277,11 @@
   ([^clojure.lang.IFn f
     ^clojure.lang.IPersistentMap m
     ^clojure.lang.IPersistentMap dst]
-   (reduce-kv
-    (fn [^clojure.lang.IPersistentMap mp k v] (assoc mp (f v) v))
-    dst m)))
+   (if (nil? m)
+     dst
+     (reduce-kv
+      (fn [^clojure.lang.IPersistentMap mp k v] (fast-assoc mp (f v) v))
+      (if (nil? dst) {} dst) m))))
 
 (defn map-keys
   "For each key and value of the given map m calls a function passed as the first
@@ -251,9 +296,11 @@
   ([^clojure.lang.IFn f
     ^clojure.lang.IPersistentMap m
     ^clojure.lang.IPersistentMap dst]
-   (reduce-kv
-    (fn [^clojure.lang.IPersistentMap mp k v] (assoc mp (f k) v))
-    dst m)))
+   (if (nil? m)
+     dst
+     (reduce-kv
+      (fn [^clojure.lang.IPersistentMap mp k v] (fast-assoc mp (f k) v))
+      (if (nil? dst) {} dst) m))))
 
 (defn map-keys-and-vals
   "For each key and value of the given map m calls a function passed as the first
@@ -271,20 +318,24 @@
   ([^clojure.lang.IFn f
     ^clojure.lang.IPersistentMap m
     ^clojure.lang.IPersistentMap dst]
-   (reduce-kv
-    (fn [^clojure.lang.IPersistentMap mp k v]
-      (let [[new-k new-v] (f k v)] (assoc mp new-k new-v)))
-    dst m)))
+   (if (nil? m)
+     dst
+     (reduce-kv
+      (fn [^clojure.lang.IPersistentMap mp k v]
+        (let [[new-k new-v] (f k v)] (fast-assoc mp new-k new-v)))
+      (if (nil? dst) {} dst) m))))
 
 (defn map-of-sets-invert
   "Like `clojure.set/map-invert` but for map of sets (as values) to preserve all
   possible values (as keys of newly created map)."
   {:added "1.0.0" :tag clojure.lang.IPersistentMap}
   [^clojure.lang.IPersistentMap m]
-  (reduce (fn [^clojure.lang.IPersistentMap am [k v]]
-            (assoc am k (conj (am k (hash-set)) v)))
-          (hash-map)
-          (for [[k st] m v st] [v k])))
+  (if (nil? m)
+    nil
+    (reduce (fn [^clojure.lang.IPersistentMap am [k v]]
+              (fast-assoc am k (conj (am k (hash-set)) v)))
+            {}
+            (for [[k st] m v st] [v k]))))
 
 (defn invert-in-sets
   "Like `clojure.set/map-invert` but preserves all possible values in sets."
@@ -311,20 +362,22 @@
   "Recursively transforms values of a map coll using function f. The function should
   take a value and return new value."
   [^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll]
-  (reduce-kv (fn [^clojure.lang.IPersistentMap m, k, v]
-               (assoc m k (if (map? v) (map-values f v) (f v))))
-             (empty coll) coll))
+  (if (some? coll)
+    (reduce-kv (fn [^clojure.lang.IPersistentMap m, k, v]
+                 (fast-assoc m k (if (map? v) (map-values f v) (f v))))
+               (empty coll) coll)))
 
 (defn- map-values-with-path-core
   "Recursively transforms values of a map coll using function f. The function should
   take a value and a sequence of visited keys in reverse order, and return a new
   value. Third argument should be an initial key-path."
   ([^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll, kpath]
-   (reduce-kv (fn [m k v]
-                (assoc m k (if (map? v)
-                             (map-values-with-path-core f v (conj kpath k))
-                             (f v (conj kpath k)))))
-              (empty coll) coll)))
+   (if (some? coll)
+     (reduce-kv (fn [m k v]
+                  (fast-assoc m k (if (map? v)
+                                    (map-values-with-path-core f v (conj kpath k))
+                                    (f v (conj kpath k)))))
+                (empty coll) coll))))
 
 (defn map-values-with-rpath
   "Recursively transforms values of a map coll using function f. The function should
@@ -350,38 +403,40 @@
   ([^clojure.lang.IPersistentMap map
     ^clojure.lang.IPersistentMap vmap
     ^Boolean create-keys?]
-   (if create-keys?
-     (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v]
-        (update mp k (if (fn? v) v (constantly v))))
-      map vmap)
-     (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v]
-        (if (contains? mp k)
-          (update mp k (if (fn? v) v (constantly v)))
-          mp))
-      map vmap)))
+   (if (some? map)
+     (if create-keys?
+       (reduce-kv
+        (fn [^clojure.lang.IPersistentMap mp k v]
+          (fast-assoc mp k (if (fn? v) (v (get mp k)) v)))
+        map vmap)
+       (reduce-kv
+        (fn [^clojure.lang.IPersistentMap mp k v]
+          (if (contains? mp k)
+            (fast-assoc mp k (if (fn? v) (v (get mp k)) v))
+            mp))
+        map vmap))))
   ([^clojure.lang.IPersistentMap map
     ^clojure.lang.IPersistentMap vmap
     ^Boolean create-keys?
     ^clojure.lang.Keyword remove-key-mark]
-   (if create-keys?
-     (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v]
-        (let [r (if (fn? v) (v (get mp k)) v)]
-          (if (= r remove-key-mark)
-            (dissoc mp k)
-            (assoc  mp k r))))
-      map vmap)
-     (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v]
-        (if (contains? mp k)
+   (if (some? map)
+     (if create-keys?
+       (reduce-kv
+        (fn [^clojure.lang.IPersistentMap mp k v]
           (let [r (if (fn? v) (v (get mp k)) v)]
             (if (= r remove-key-mark)
               (dissoc mp k)
-              (assoc  mp k r)))
-          mp))
-      map vmap))))
+              (fast-assoc mp k r))))
+        map vmap)
+       (reduce-kv
+        (fn [^clojure.lang.IPersistentMap mp k v]
+          (if (contains? mp k)
+            (let [r (if (fn? v) (v (get mp k)) v)]
+              (if (= r remove-key-mark)
+                (dissoc mp k)
+                (fast-assoc mp k r)))
+            mp))
+        map vmap)))))
 
 (defn update-values-recur
   "Returns the map with its values identified with keys from vmap recursively updated
@@ -394,30 +449,31 @@
   ([^clojure.lang.IPersistentMap map
     ^clojure.lang.IPersistentMap vmap
     ^Boolean create-keys?]
-   (reduce-kv
-    (fn [^clojure.lang.IPersistentMap mp k v]
-      (if (or (map? v) (vector? v))
-        (assoc mp k (update-values-recur v vmap create-keys?))
-        mp))
-    (if (vector? map) map
-        (update-values map vmap create-keys?)) map)))
+   (if (some? map)
+     (reduce-kv
+      (fn [^clojure.lang.IPersistentMap mp k v]
+        (if (or (map? v) (vector? v))
+          (fast-assoc mp k (update-values-recur v vmap create-keys?))
+          mp))
+      (if (vector? map)
+        map
+        (update-values map vmap create-keys?)) map))))
 
 (defn- update-values-redux
   [^clojure.lang.IPersistentMap mp k v]
-  (if-not (contains? mp k)
-    mp
+  (if (contains? mp k)
     (let [funik (if (fn? v) v (constantly v))]
-      (update mp k
-              (fn [val]
-                (if (vector? val)
-                  (vec (clojure.core/map funik val))
-                  (if (sequential? val)
-                    (clojure.core/map funik val)
-                    (funik val))))))))
+      (fast-assoc mp k (let [val (get mp k)]
+                         (if (vector? val)
+                           (vec (clojure.core/map funik val))
+                           (if (sequential? val)
+                             (clojure.core/map funik val)
+                             (funik val))))))
+    mp))
 
 (defn update-values-or-seqs
-  "Returns the map with its values identified with keys from vmap updated with the
-  associated functions from vmap."
+  "Returns the map with its values identified with keys from `vmap` updated with the
+  associated functions from `vmap`."
   {:added "1.0.0" :tag clojure.lang.IPersistentMap}
   ([^clojure.lang.IPersistentMap map
     ^clojure.lang.IPersistentMap vmap]
@@ -425,19 +481,21 @@
   ([^clojure.lang.IPersistentMap map
     ^clojure.lang.IPersistentMap vmap
     ^Boolean create-keys?]
-   (if create-keys?
-     (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v]
-        (update mp k (if (fn? v) v (constantly v))))
-      map vmap)
-     (reduce-kv
-      update-values-redux
-      map vmap))))
+   (if (some? map)
+     (if create-keys?
+       (reduce-kv
+        (fn [^clojure.lang.IPersistentMap mp k v]
+          (fast-assoc mp k (if (fn? v) (v (get mp k)) v)))
+        map vmap)
+       (reduce-kv
+        update-values-redux
+        map vmap)))))
 
 (defn update-values-or-seqs-recur
-  "Returns the map with its values identified with keys from vmap recursively updated
-  with the associated functions from vmap. Shape is not reflected, second map (vmap)
-  should be flat, searching for keys is recursive, including nested vectors."
+  "Returns the map with its values identified with keys from `vmap` recursively updated
+  with the associated functions from `vmap`. Shape is not reflected, second
+  map (`vmap`) should be flat, searching for keys is recursive, including nested
+  vectors."
   {:added "1.0.0" :tag clojure.lang.IPersistentMap}
   ([^clojure.lang.IPersistentMap map
     ^clojure.lang.IPersistentMap vmap]
@@ -445,55 +503,58 @@
   ([^clojure.lang.IPersistentMap map
     ^clojure.lang.IPersistentMap vmap
     ^Boolean create-keys?]
-   (reduce-kv
-    (fn [^clojure.lang.IPersistentMap mp k v]
-      (if (or (map? v) (vector? v))
-        (if (and (contains? mp k) (contains? vmap k))
-          (let [mp (update-values-redux mp k (get vmap k))
-                v  (get mp k)]
-            (if (or (map? v) (vector? v))
-              (assoc mp k (update-values-or-seqs-recur v vmap create-keys?))
-              mp))
-          (assoc mp k (update-values-or-seqs-recur v vmap create-keys?)))
-        mp))
-    (if (vector? map)
-      map
-      (update-values-or-seqs map vmap create-keys?))
-    map)))
+   (if (some? map)
+     (reduce-kv
+      (fn [^clojure.lang.IPersistentMap mp k v]
+        (if (or (map? v) (vector? v))
+          (if (and (contains? mp k) (contains? vmap k))
+            (let [mp (update-values-redux mp k (get vmap k))
+                  v  (get mp k)]
+              (if (or (map? v) (vector? v))
+                (fast-assoc mp k (update-values-or-seqs-recur v vmap create-keys?))
+                mp))
+            (fast-assoc mp k (update-values-or-seqs-recur v vmap create-keys?)))
+          mp))
+      (if (vector? map)
+        map
+        (update-values-or-seqs map vmap create-keys?))
+      map))))
 
 (defn dissoc-in
-  "Like assoc-in but removes entries. Leaves empty maps."
+  "Like `clojure.core/assoc-in` but removes entries. Leaves empty maps."
   {:added "1.0.0" :tag clojure.lang.IPersistentMap}
   [^clojure.lang.IPersistentMap m [k & ks :as keys]]
   (if ks
     (if-some [nmap (get m k)]
-      (assoc m k (dissoc-in nmap ks))
+      (fast-assoc (if (nil? m) {} m) k (dissoc-in nmap ks))
       m)
     (dissoc m k)))
 
 (defn duplicate-keys
-  "Returns the map with the keys in kmap duplicated under new names according to the
-  vals in kmap."
+  "Returns a map `map` with the keys present in `kmap` duplicated under new names
+  according to the values in `kmap`."
   [map kmap]
-  (reduce
-   (fn [m [old new]]
-     (if (contains? map old)
-       (assoc m new (get map old))
-       m))
-   kmap kmap))
+  (if (nil? kmap)
+    map
+    (reduce
+     (fn [m [old new]]
+       (if (contains? map old)
+         (fast-assoc m new (get map old))
+         m))
+     map kmap)))
 
 (defn nil-keys
   [m keys]
   (if (some? m)
     (if-some [keys (seq keys)]
-      (apply assoc m (interleave keys (repeat nil)))
+      (apply fast-assoc-multi m (interleave keys (repeat nil)))
       m)))
 
 (defn nil-existing-keys
   [m keys]
   (if (some? m)
     (if-some [keys (seq (filter (partial contains? m) keys))]
-      (apply assoc m (interleave keys (repeat nil)))
+      (apply fast-assoc-multi m (interleave keys (repeat nil)))
       m)))
 
 (defmacro lazy
@@ -524,7 +585,7 @@
       (let [entry (find m (first keys))]
         (recur
          (if entry
-           (assoc ret (.key_ ^LazyMapEntry entry) (.val_ ^LazyMapEntry entry))
+           (fast-assoc ret (.key_ ^LazyMapEntry entry) (.val_ ^LazyMapEntry entry))
            ret)
          (next keys)))
       ret)))
@@ -538,12 +599,12 @@
       (if (pos? c2)
         (if (> c1 c2)
           (reduce (if (lazy? m2)
-                    #(assoc %1 (.key_ ^LazyMapEntry %2) (.val_ ^LazyMapEntry %2))
+                    #(fast-assoc %1 (.key_ ^LazyMapEntry %2) (.val_ ^LazyMapEntry %2))
                     conj)
                   (lazy-map/->?LazyMap m1) m2)
           (reduce (if (lazy? m1)
                     #(let [k (.key_ ^LazyMapEntry %2)]
-                       (if (contains? %1 k) %1 (assoc %1 k (.val_ ^LazyMapEntry %2))))
+                       (if (contains? %1 k) %1 (fast-assoc %1 k (.val_ ^LazyMapEntry %2))))
                     #(if (contains? %1 (key %2)) %1 (conj %1 %2)))
                   (lazy-map/->?LazyMap m2) m1))
         (lazy-map/->?LazyMap m1))
