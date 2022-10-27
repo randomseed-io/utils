@@ -8,9 +8,8 @@
 
   (:refer-clojure :exclude [parse-long uuid random-uuid])
 
-  (:require [io.randomseed.utils :refer         :all]
-            [reitit.impl         :refer [fast-assoc]]
-            [lazy-map.core       :as        lazy-map])
+  (:require [io.randomseed.utils :refer  :all]
+            [lazy-map.core       :as lazy-map])
 
   (:import  [lazy_map.core LazyMapEntry LazyMap]))
 
@@ -21,34 +20,90 @@
   `(let [m# ~m, k# ~k]
      (if (and (associative? m#) (contains? m# k#)) (get m# k#) ~exp)))
 
-(defn fast-assoc-multi
-  "Fast version of `assoc` with most of the checks disabled."
-  [m k v & pairs]
-  (let [r (fast-assoc m k v)]
-    (if pairs
-      (recur r (first pairs) (second pairs) (nnext pairs))
-      r)))
+(defn or-map
+  "Returns an empty map if the argument is `nil`. Otherwise returns its argument."
+  [m]
+  (if (nil? m) {} m))
+
+(defn- jassoc
+  ^clojure.lang.Associative [^clojure.lang.Associative m k v]
+  (.assoc m k v))
+
+(defn qassoc
+  "Faster version of `assoc` with some of the checks and conversions disabled."
+  (^clojure.lang.Associative [^clojure.lang.Associative m k v]
+   (if (nil? m) {k v} (.assoc m k v)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b]
+   (-> (if (nil? m) {k v} (.assoc m k v))
+       (jassoc a b)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d]
+   (-> (if (nil? m) {k v} (.assoc m k v))
+       (jassoc a b)
+       (jassoc c d)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f]
+   (-> (if (nil? m) {k v} (.assoc m k v))
+       (jassoc a b)
+       (jassoc c d)
+       (jassoc e f)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f g h]
+   (-> (if (nil? m) {k v} (.assoc m k v))
+       (jassoc a b)
+       (jassoc c d)
+       (jassoc e f)
+       (jassoc g h)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f g h i j]
+   (-> (if (nil? m) {k v} (.assoc m k v))
+       (jassoc a b)
+       (jassoc c d)
+       (jassoc e f)
+       (jassoc g h)
+       (jassoc i j)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f g h i j x y]
+   (-> (if (nil? m) {k v} (.assoc m k v))
+       (jassoc a b)
+       (jassoc c d)
+       (jassoc e f)
+       (jassoc g h)
+       (jassoc i j)
+       (jassoc x y)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f g h i j x y q w]
+   (-> (if (nil? m) {k v} (.assoc m k v))
+       (jassoc a b)
+       (jassoc c d)
+       (jassoc e f)
+       (jassoc g h)
+       (jassoc i j)
+       (jassoc x y)
+       (jassoc q w)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f g h i j x y q w & pairs]
+   (loop [r     (qassoc m k v a b c d e f g h i j x y q w)
+          pairs pairs]
+     (if pairs
+       (if (next pairs)
+         (recur (jassoc r (first pairs) (second pairs)) (nnext pairs))
+         (throw (IllegalArgumentException. "qassoc expects even number of arguments, found odd number")))
+       r))))
 
 (defn assoc-missing
   "Associates keys and values only if the keys do not yet exist in a map."
   ([]            nil)
   ([coll]       coll)
-  ([coll k val] (if (contains? coll k) coll (fast-assoc (or coll {}) k val)))
+  ([coll k val] (if (contains? coll k) coll (qassoc coll k val)))
   ([coll k val & more]
    (if-not more
-     (if (contains? coll k) coll (fast-assoc (or coll {}) k val))
-     (reduce (fn [acc [k v]] (if (contains? acc k) acc (fast-assoc acc k v)))
+     (if (contains? coll k) coll (qassoc coll k val))
+     (reduce (fn [acc [k v]] (if (contains? acc k) acc (qassoc acc k v)))
              (if (nil? coll) {} coll) (partition 2 (cons k (cons val more)))))))
 
 (defn assoc-existing
   "Associates keys and values only if the keys exist in a map."
   ([]           nil)
   ([coll]       coll)
-  ([coll k val] (if (contains? coll k) (fast-assoc coll k val) coll))
+  ([coll k val] (if (contains? coll k) (qassoc coll k val) coll))
   ([coll k val & more]
    (if-not more
-     (if (contains? coll k) (fast-assoc coll k val) coll)
-     (reduce (fn [acc [k v]] (if (contains? acc k) (fast-assoc acc k v) acc))
+     (if (contains? coll k) (qassoc coll k val) coll)
+     (reduce (fn [acc [k v]] (if (contains? acc k) (qassoc acc k v) acc))
              coll (partition 2 (cons k (cons val more)))))))
 
 (defn update-existing
@@ -59,11 +114,11 @@
   If `fun` is not a function it will be made one by using `constantly`."
   ([^clojure.lang.IPersistentMap coll k fun]
    (if (contains? coll k)
-     (fast-assoc coll k (if (ifn? fun) (fun (get coll k)) fun))
+     (qassoc coll k (if (ifn? fun) (fun (get coll k)) fun))
      coll))
   ([^clojure.lang.IPersistentMap coll k fun & more]
    (if (contains? coll k)
-     (fast-assoc coll k (if (ifn? fun) (apply fun (get coll k) more) fun))
+     (qassoc coll k (if (ifn? fun) (apply fun (get coll k) more) fun))
      coll)))
 
 (defn update-missing
@@ -76,25 +131,25 @@
   ([coll k fun]
    (if (contains? coll k)
      coll
-     (fast-assoc (or coll {}) k (if (ifn? fun) (fun (get coll k)) fun))))
+     (qassoc coll k (if (ifn? fun) (fun (get coll k)) fun))))
   ([coll k fun & more]
    (if (contains? coll k)
      coll
-     (fast-assoc (or coll {}) k (if (ifn? fun) (apply fun (get coll k) more) fun)))))
+     (qassoc coll k (if (ifn? fun) (apply fun (get coll k) more) fun)))))
 
 (defn update-if
   ([coll k pred fun]
    (if (contains? coll k)
      (let [v (get coll k)]
        (if (pred v)
-         (fast-assoc coll k (fun v))
+         (qassoc coll k (fun v))
          coll))
      coll))
   ([coll k pred fun & more]
    (if (contains? coll k)
      (let [v (get coll k)]
        (if (pred v)
-         (fast-assoc coll k (apply fun v more))
+         (qassoc coll k (apply fun v more))
          coll))
      coll)))
 
@@ -104,14 +159,14 @@
      (let [v (get coll k)]
        (if (pred v)
          coll
-         (fast-assoc coll k (fun v))))
+         (qassoc coll k (fun v))))
      coll))
   ([coll k pred fun & more]
    (if (contains? coll k)
      (let [v (get coll k)]
        (if (pred v)
          coll
-         (fast-assoc coll k (apply fun v more))))
+         (qassoc coll k (apply fun v more))))
      coll)))
 
 (defn update-to-bytes
@@ -130,12 +185,12 @@
   ([coll pred k val]
    `(let [kol# ~coll]
       (if ~pred
-        (fast-assoc (if (nil? kol#) {} kol#) ~k ~val)
+        (qassoc kol# ~k ~val)
         kol#)))
   ([coll pred k val & pairs]
    `(let [kol# ~coll]
       (if ~pred
-        (fast-assoc-multi (if (nil? kol#) {} kol#) ~k ~val ~@pairs)
+        (apply qassoc kol# ~k ~val ~@pairs)
         kol#))))
 
 (defmacro assoc-if-not
@@ -143,19 +198,19 @@
    `(let [kol# ~coll]
       (if ~pred
         kol#
-        (fast-assoc (if (nil? kol#) {} kol#) ~k ~val))))
+        (qassoc kol# ~k ~val))))
   ([coll pred k val & pairs]
    `(let [kol# ~coll]
       (if ~pred
         kol#
-        (fast-assoc-multi (if (nil? kol#) {} kol#) ~k ~val ~@pairs)))))
+        (apply qassoc kol# ~k ~val ~@pairs)))))
 
 (defmacro assoc-if-key
   ([coll k pred val]
    `(let [kol# ~coll
           key# ~k]
       (if (~pred (get kol# key#))
-        (fast-assoc (or kol# {}) key# ~val)
+        (qassoc kol# key# ~val)
         kol#))))
 
 (defmacro assoc-if-not-key
@@ -164,7 +219,7 @@
          key# ~k]
      (if (~pred (get kol# key#))
        kol#
-       (fast-assoc (or kol# {}) key# ~val))))
+       (qassoc kol# key# ~val))))
 
 (defn dissoc-if
   [^clojure.lang.IPersistentMap m k
@@ -221,8 +276,8 @@
    (if (nil? m)
      dst
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v] (fast-assoc mp k (f k)))
-      (if (nil? dst) {} dst) m))))
+      (fn [^clojure.lang.IPersistentMap mp k v] (qassoc mp k (f k)))
+      dst m))))
 
 (defn map-vals-by-kv
   "For each key and value of the given map m calls a function passed as the first
@@ -241,8 +296,8 @@
    (if (nil? m)
      dst
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v] (fast-assoc mp k (f k v)))
-      (if (nil? dst) {} dst) m))))
+      (fn [^clojure.lang.IPersistentMap mp k v] (qassoc mp k (f k v)))
+      dst m))))
 
 (defn map-vals
   "For each key and value of the given map m calls a function passed as the first
@@ -261,8 +316,8 @@
    (if (nil? m)
      dst
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v] (fast-assoc mp k (f v)))
-      (if (nil? dst) {} dst) m))))
+      (fn [^clojure.lang.IPersistentMap mp k v] (qassoc mp k (f v)))
+      dst m))))
 
 (defn map-keys-by-v
   "For each key and value of the given map m calls a function passed as the first
@@ -280,8 +335,8 @@
    (if (nil? m)
      dst
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v] (fast-assoc mp (f v) v))
-      (if (nil? dst) {} dst) m))))
+      (fn [^clojure.lang.IPersistentMap mp k v] (qassoc mp (f v) v))
+      dst m))))
 
 (defn map-keys
   "For each key and value of the given map m calls a function passed as the first
@@ -299,8 +354,8 @@
    (if (nil? m)
      dst
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v] (fast-assoc mp (f k) v))
-      (if (nil? dst) {} dst) m))))
+      (fn [^clojure.lang.IPersistentMap mp k v] (qassoc mp (f k) v))
+      dst m))))
 
 (defn map-keys-and-vals
   "For each key and value of the given map m calls a function passed as the first
@@ -322,8 +377,8 @@
      dst
      (reduce-kv
       (fn [^clojure.lang.IPersistentMap mp k v]
-        (let [[new-k new-v] (f k v)] (fast-assoc mp new-k new-v)))
-      (if (nil? dst) {} dst) m))))
+        (let [[new-k new-v] (f k v)] (qassoc mp new-k new-v)))
+      dst m))))
 
 (defn map-of-sets-invert
   "Like `clojure.set/map-invert` but for map of sets (as values) to preserve all
@@ -333,7 +388,7 @@
   (if (nil? m)
     nil
     (reduce (fn [^clojure.lang.IPersistentMap am [k v]]
-              (fast-assoc am k (conj (am k (hash-set)) v)))
+              (qassoc am k (conj (am k (hash-set)) v)))
             {}
             (for [[k st] m v st] [v k]))))
 
@@ -364,7 +419,7 @@
   [^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll]
   (if (some? coll)
     (reduce-kv (fn [^clojure.lang.IPersistentMap m, k, v]
-                 (fast-assoc m k (if (map? v) (map-values f v) (f v))))
+                 (qassoc m k (if (map? v) (map-values f v) (f v))))
                (empty coll) coll)))
 
 (defn- map-values-with-path-core
@@ -374,7 +429,7 @@
   ([^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll, kpath]
    (if (some? coll)
      (reduce-kv (fn [m k v]
-                  (fast-assoc m k (if (map? v)
+                  (qassoc m k (if (map? v)
                                     (map-values-with-path-core f v (conj kpath k))
                                     (f v (conj kpath k)))))
                 (empty coll) coll))))
@@ -407,12 +462,12 @@
      (if create-keys?
        (reduce-kv
         (fn [^clojure.lang.IPersistentMap mp k v]
-          (fast-assoc mp k (if (fn? v) (v (get mp k)) v)))
+          (qassoc mp k (if (fn? v) (v (get mp k)) v)))
         map vmap)
        (reduce-kv
         (fn [^clojure.lang.IPersistentMap mp k v]
           (if (contains? mp k)
-            (fast-assoc mp k (if (fn? v) (v (get mp k)) v))
+            (qassoc mp k (if (fn? v) (v (get mp k)) v))
             mp))
         map vmap))))
   ([^clojure.lang.IPersistentMap map
@@ -426,7 +481,7 @@
           (let [r (if (fn? v) (v (get mp k)) v)]
             (if (= r remove-key-mark)
               (dissoc mp k)
-              (fast-assoc mp k r))))
+              (qassoc mp k r))))
         map vmap)
        (reduce-kv
         (fn [^clojure.lang.IPersistentMap mp k v]
@@ -434,7 +489,7 @@
             (let [r (if (fn? v) (v (get mp k)) v)]
               (if (= r remove-key-mark)
                 (dissoc mp k)
-                (fast-assoc mp k r)))
+                (qassoc mp k r)))
             mp))
         map vmap)))))
 
@@ -453,7 +508,7 @@
      (reduce-kv
       (fn [^clojure.lang.IPersistentMap mp k v]
         (if (or (map? v) (vector? v))
-          (fast-assoc mp k (update-values-recur v vmap create-keys?))
+          (qassoc mp k (update-values-recur v vmap create-keys?))
           mp))
       (if (vector? map)
         map
@@ -463,12 +518,12 @@
   [^clojure.lang.IPersistentMap mp k v]
   (if (contains? mp k)
     (let [funik (if (fn? v) v (constantly v))]
-      (fast-assoc mp k (let [val (get mp k)]
-                         (if (vector? val)
-                           (vec (clojure.core/map funik val))
-                           (if (sequential? val)
-                             (clojure.core/map funik val)
-                             (funik val))))))
+      (qassoc mp k (let [val (get mp k)]
+                     (if (vector? val)
+                       (vec (clojure.core/map funik val))
+                       (if (sequential? val)
+                         (clojure.core/map funik val)
+                         (funik val))))))
     mp))
 
 (defn update-values-or-seqs
@@ -485,7 +540,7 @@
      (if create-keys?
        (reduce-kv
         (fn [^clojure.lang.IPersistentMap mp k v]
-          (fast-assoc mp k (if (fn? v) (v (get mp k)) v)))
+          (qassoc mp k (if (fn? v) (v (get mp k)) v)))
         map vmap)
        (reduce-kv
         update-values-redux
@@ -511,9 +566,9 @@
             (let [mp (update-values-redux mp k (get vmap k))
                   v  (get mp k)]
               (if (or (map? v) (vector? v))
-                (fast-assoc mp k (update-values-or-seqs-recur v vmap create-keys?))
+                (qassoc mp k (update-values-or-seqs-recur v vmap create-keys?))
                 mp))
-            (fast-assoc mp k (update-values-or-seqs-recur v vmap create-keys?)))
+            (qassoc mp k (update-values-or-seqs-recur v vmap create-keys?)))
           mp))
       (if (vector? map)
         map
@@ -526,7 +581,7 @@
   [^clojure.lang.IPersistentMap m [k & ks :as keys]]
   (if ks
     (if-some [nmap (get m k)]
-      (fast-assoc (if (nil? m) {} m) k (dissoc-in nmap ks))
+      (qassoc m k (dissoc-in nmap ks))
       m)
     (dissoc m k)))
 
@@ -539,7 +594,7 @@
     (reduce
      (fn [m [old new]]
        (if (contains? map old)
-         (fast-assoc m new (get map old))
+         (qassoc m new (get map old))
          m))
      map kmap)))
 
@@ -547,14 +602,14 @@
   [m keys]
   (if (some? m)
     (if-some [keys (seq keys)]
-      (apply fast-assoc-multi m (interleave keys (repeat nil)))
+      (apply qassoc m (interleave keys (repeat nil)))
       m)))
 
 (defn nil-existing-keys
   [m keys]
   (if (some? m)
     (if-some [keys (seq (filter (partial contains? m) keys))]
-      (apply fast-assoc-multi m (interleave keys (repeat nil)))
+      (apply qassoc m (interleave keys (repeat nil)))
       m)))
 
 (defmacro lazy
@@ -585,7 +640,7 @@
       (let [entry (find m (first keys))]
         (recur
          (if entry
-           (fast-assoc ret (.key_ ^LazyMapEntry entry) (.val_ ^LazyMapEntry entry))
+           (qassoc ret (.key_ ^LazyMapEntry entry) (.val_ ^LazyMapEntry entry))
            ret)
          (next keys)))
       ret)))
@@ -599,12 +654,12 @@
       (if (pos? c2)
         (if (> c1 c2)
           (reduce (if (lazy? m2)
-                    #(fast-assoc %1 (.key_ ^LazyMapEntry %2) (.val_ ^LazyMapEntry %2))
+                    #(qassoc %1 (.key_ ^LazyMapEntry %2) (.val_ ^LazyMapEntry %2))
                     conj)
                   (lazy-map/->?LazyMap m1) m2)
           (reduce (if (lazy? m1)
                     #(let [k (.key_ ^LazyMapEntry %2)]
-                       (if (contains? %1 k) %1 (fast-assoc %1 k (.val_ ^LazyMapEntry %2))))
+                       (if (contains? %1 k) %1 (qassoc %1 k (.val_ ^LazyMapEntry %2))))
                     #(if (contains? %1 (key %2)) %1 (conj %1 %2)))
                   (lazy-map/->?LazyMap m2) m1))
         (lazy-map/->?LazyMap m1))
