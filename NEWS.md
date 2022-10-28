@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.21 (2022-10-28)
+
+- Switched to a custom implementation of fast assoc.
+
 ## 1.2.20 (2022-10-26)
 
 - Multiple map transforming functions optimized for speed.
