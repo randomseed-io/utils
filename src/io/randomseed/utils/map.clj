@@ -30,59 +30,115 @@
   (.assoc m k v))
 
 (defn qassoc
-  "Faster version of `assoc` with some of the checks and conversions disabled."
-  (^clojure.lang.Associative [^clojure.lang.Associative m k v]
-   (if (nil? m) {k v} (.assoc m k v)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b]
-   (-> (if (nil? m) {k v} (.assoc m k v))
-       (jassoc a b)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d]
-   (-> (if (nil? m) {k v} (.assoc m k v))
-       (jassoc a b)
-       (jassoc c d)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f]
-   (-> (if (nil? m) {k v} (.assoc m k v))
-       (jassoc a b)
-       (jassoc c d)
-       (jassoc e f)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f g h]
-   (-> (if (nil? m) {k v} (.assoc m k v))
-       (jassoc a b)
-       (jassoc c d)
-       (jassoc e f)
-       (jassoc g h)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f g h i j]
-   (-> (if (nil? m) {k v} (.assoc m k v))
-       (jassoc a b)
-       (jassoc c d)
-       (jassoc e f)
-       (jassoc g h)
-       (jassoc i j)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f g h i j x y]
-   (-> (if (nil? m) {k v} (.assoc m k v))
-       (jassoc a b)
-       (jassoc c d)
-       (jassoc e f)
-       (jassoc g h)
-       (jassoc i j)
-       (jassoc x y)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f g h i j x y q w]
-   (-> (if (nil? m) {k v} (.assoc m k v))
-       (jassoc a b)
-       (jassoc c d)
-       (jassoc e f)
-       (jassoc g h)
-       (jassoc i j)
-       (jassoc x y)
-       (jassoc q w)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k v a b c d e f g h i j x y q w & pairs]
-   (loop [r     (qassoc m k v a b c d e f g h i j x y q w)
+  "Faster version of `assoc` with some of the checks and conversions
+  disabled. Associates key `a` with value `b` in `mp`. If `mp` is `nil` it creates a
+  new map."
+  (^clojure.lang.Associative [^clojure.lang.Associative mp a b]
+   (if (nil? mp)
+     {a b}
+     (.assoc mp a b)))
+  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d]
+   (if (nil? mp)
+     {a b c d}
+     (-> (.assoc mp a b)
+         (jassoc c d))))
+  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f]
+   (if (nil? mp)
+     {a b c d e f}
+     (-> (.assoc mp a b)
+         (jassoc c d)
+         (jassoc e f))))
+  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h]
+   (if (nil? mp)
+     {a b c d e f g h}
+     (-> (.assoc mp a b)
+         (jassoc c d)
+         (jassoc e f)
+         (jassoc g h))))
+  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j]
+   (if (nil? mp)
+     {a b c d e f g h i j}
+     (-> (.assoc mp a b)
+         (jassoc c d)
+         (jassoc e f)
+         (jassoc g h)
+         (jassoc i j))))
+  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j k l]
+   (if (nil? mp)
+     {a b c d e f g h i j k l}
+     (-> (.assoc mp a b)
+         (jassoc c d)
+         (jassoc e f)
+         (jassoc g h)
+         (jassoc i j)
+         (jassoc k l))))
+  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j k l m n]
+   (if (nil? mp)
+     {a b c d e f g h i j k l m n}
+     (-> (.assoc mp a b)
+         (jassoc c d)
+         (jassoc e f)
+         (jassoc g h)
+         (jassoc i j)
+         (jassoc k l)
+         (jassoc m n))))
+  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j k l m n o p]
+   (if (nil? mp)
+     {a b c d e f g h i j k l m n o p}
+     (-> (.assoc mp a b)
+         (jassoc c d)
+         (jassoc e f)
+         (jassoc g h)
+         (jassoc i j)
+         (jassoc k l)
+         (jassoc m n)
+         (jassoc o p))))
+  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j k l m n o p q r]
+   (if (nil? mp)
+     {a b c d e f g h i j k l m n o p q r}
+     (-> (.assoc mp a b)
+         (jassoc c d)
+         (jassoc e f)
+         (jassoc g h)
+         (jassoc i j)
+         (jassoc k l)
+         (jassoc m n)
+         (jassoc o p)
+         (jassoc q r))))
+  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j k l m n o p q r & pairs]
+   (loop [r     (qassoc mp a b c d e f g h i j k l m n o p q r)
           pairs pairs]
      (if pairs
        (if (next pairs)
          (recur (jassoc r (first pairs) (second pairs)) (nnext pairs))
          (throw (IllegalArgumentException. "qassoc expects even number of arguments, found odd number")))
        r))))
+
+(defn qupdate
+  "Similar to `clojure.core/update`, updates a value in an associative structure,
+  where `k` is a key and `f` is a function which will take the old value and any
+  supplied args and return the new value, and returns a new structure. Uses `qassoc`
+  instead of `clojure.core/assoc` internally.
+
+  If the key does not exist, `nil` is passed as the old value."
+  (^clojure.lang.Associative [^clojure.lang.Associative m k f]
+   (qassoc m k (f (get m k))))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k f x]
+   (qassoc m k (f (get m k) x)))
+  (^clojure.lang.Associative[^clojure.lang.Associative m k f x y]
+   (qassoc m k (f (get m k) x y)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z]
+   (qassoc m k (f (get m k) x y z)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z c]
+   (qassoc m k (f (get m k) x y z c)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z c v]
+   (qassoc m k (f (get m k) x y z c v)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z c v a]
+   (qassoc m k (f (get m k) x y z c v a)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z c v a b]
+   (qassoc m k (f (get m k) x y z c v a b)))
+  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z c v a b & more]
+   (qassoc m k (apply f (get m k) x y z c v a b more))))
 
 (defn assoc-missing
   "Associates keys and values only if the keys do not yet exist in a map."
