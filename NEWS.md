@@ -1,5 +1,10 @@
 # History of random:utils releases
 
+## 1.2.22 (2022-10-30)
+
+- Added `map/qupdate`.
+- Optimized `map/qassoc` for `nil` values as source maps.
+
 ## 1.2.21 (2022-10-28)
 
 - Switched to a custom implementation of fast assoc.
