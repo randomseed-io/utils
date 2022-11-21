@@ -84,12 +84,44 @@
 ;; Custom appenders
 ;;
 
+(defmethod unilog/build-appender :console-error
+  [config]
+  (assoc config :appender (doto (ConsoleAppender.)
+                            (.setWithJansi true)
+                            (.addFilter (doto (ThresholdFilter.)
+                                          (.setLevel "ERROR")
+                                          (.start))))))
+
+(defmethod unilog/build-appender :console-warn
+  [config]
+  (assoc config :appender (doto (ConsoleAppender.)
+                            (.setWithJansi true)
+                            (.addFilter (doto (ThresholdFilter.)
+                                          (.setLevel "WARN")
+                                          (.start))))))
+
 (defmethod unilog/build-appender :console-info
   [config]
   (assoc config :appender (doto (ConsoleAppender.)
                             (.setWithJansi true)
                             (.addFilter (doto (ThresholdFilter.)
                                           (.setLevel "INFO")
+                                          (.start))))))
+
+(defmethod unilog/build-appender :console-debug
+  [config]
+  (assoc config :appender (doto (ConsoleAppender.)
+                            (.setWithJansi true)
+                            (.addFilter (doto (ThresholdFilter.)
+                                          (.setLevel "DEBUG")
+                                          (.start))))))
+
+(defmethod unilog/build-appender :console-trace
+  [config]
+  (assoc config :appender (doto (ConsoleAppender.)
+                            (.setWithJansi true)
+                            (.addFilter (doto (ThresholdFilter.)
+                                          (.setLevel "TRACE")
                                           (.start))))))
 
 ;;
