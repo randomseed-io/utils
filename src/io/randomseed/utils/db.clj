@@ -379,7 +379,7 @@
 
 (defn invalidator
   [f]
-  (if f
+  (if (and f (memoized? f))
     (fn [& key-params] (invalidate! f key-params))
     (constantly nil)))
 
