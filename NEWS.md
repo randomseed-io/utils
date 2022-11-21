@@ -1,6 +1,6 @@
 # History of random:utils releases
 
-## 1.2.22 (2022-11-21)
+## 1.2.23 (2022-11-21)
 
 - Improved `db/invalidator`.
 - Added console appenders.
