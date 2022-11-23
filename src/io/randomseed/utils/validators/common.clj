@@ -43,29 +43,29 @@
   (^Boolean [value]
    (boolean
     (if-some [value (some-str value)]
-      (.isValid ^DateValidator (.getInstance DateValidator) ^String value))))
+      (.isValid ^DateValidator (DateValidator/getInstance) ^String value))))
   (^Boolean [value pattern]
    (boolean
     (if-some [value (some-str value)]
       (if-some [pattern (some-str pattern)]
-        (.isValid ^DateValidator (.getInstance DateValidator)
+        (.isValid ^DateValidator (DateValidator/getInstance)
                   ^String value ^String pattern)
-        (.isValid ^DateValidator (.getInstance DateValidator)
+        (.isValid ^DateValidator (DateValidator/getInstance)
                   ^String value)))))
   (^Boolean [value pattern locale]
    (boolean
     (if-some [value (some-str value)]
       (if-some [pattern (some-str pattern)]
         (if locale
-          (.isValid ^DateValidator (.getInstance DateValidator)
+          (.isValid ^DateValidator (DateValidator/getInstance)
                     ^String value ^String pattern ^Locale (l/locale locale))
-          (.isValid ^DateValidator (.getInstance DateValidator)
+          (.isValid ^DateValidator (DateValidator/getInstance)
                     ^String value ^String pattern))
         (if locale
-          (.isValid ^DateValidator (.getInstance DateValidator)
+          (.isValid ^DateValidator (DateValidator/getInstance)
                     ^String value
                     ^Locale (l/locale locale))
-          (.isValid ^DateValidator (.getInstance DateValidator)
+          (.isValid ^DateValidator (DateValidator/getInstance)
                     ^String value)))))))
 
 ;;
