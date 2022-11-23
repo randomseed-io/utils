@@ -35,30 +35,6 @@
                                                             ^Boolean (boolean allow-tld))
                 ^String e)))))
 
-(defn valid-email-domain?
-  (^Boolean [e]
-   (valid-email-domain? e false true))
-  (^Boolean [e allow-local]
-   (valid-email-domain? e allow-local true))
-  (^Boolean [e allow-local allow-tld]
-   (boolean
-    (if-some [e (some-str e)]
-      (.isValidDomain ^EmailValidator (EmailValidator/getInstance ^Boolean (boolean allow-local)
-                                                                  ^Boolean (boolean allow-tld))
-                      ^String e)))))
-
-(defn valid-email-local-part?
-  (^Boolean [e]
-   (valid-email-local-part? e false true))
-  (^Boolean [e allow-local]
-   (valid-email-local-part? e allow-local true))
-  (^Boolean [e allow-local allow-tld]
-   (boolean
-    (if-some [e (some-str e)]
-      (.isValidUser ^EmailValidator (EmailValidator/getInstance ^Boolean (boolean allow-local)
-                                                                ^Boolean (boolean allow-tld))
-                    ^String e)))))
-
 ;;
 ;; date
 ;;

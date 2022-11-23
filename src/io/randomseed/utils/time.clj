@@ -81,8 +81,8 @@
        (catch Throwable e nil)))
 
 (defn timestamp
-  ([] (.toEpochMilli (t/now)))
-  ([t]
+  (^Long [] (.toEpochMilli ^Instant (t/now)))
+  (^Long [t]
    (if (valuable? t)
      (let [t (parse-dt t)]
        (if (instant? t)
@@ -90,8 +90,8 @@
          (.toEpochMilli ^Instant (t/instant t)))))))
 
 (defn timestamp-secs
-  ([]  (long (/ (timestamp)   1000)))
-  ([t] (if-some [t (timestamp t)] (long (/ t 1000)))))
+  (^Long []  (long (/ (timestamp)   1000)))
+  (^Long [t] (if-some [t (timestamp t)] (long (/ t 1000)))))
 
 (defn zero-duration?
   ^Boolean [^Duration d]
@@ -107,7 +107,7 @@
   (.isNegative ^Duration d))
 
 (defn parse-dur-min
-  [v]
+  ^Duration [v]
   (if-some [v (some-long v)]
     (t/new-duration v :minutes)))
 
@@ -297,12 +297,12 @@
      (.clear)
      (.set 1970 Calendar/JANUARY 1 0 0 0))))
 
-(defn local-utc
-  [t]
+(defn date-to-local-utc
+  ^Instant [^Date t]
   (t/instant (.getTime t)))
 
-(defn utc-local
-  [t]
+(defn utc-to-local-date
+  ^Date [t]
   (t/inst (timestamp t)))
 
 (defn utc-instant
@@ -311,7 +311,7 @@
    (if (t/instant? v)
      v
      (if (inst? v)
-       (local-utc v)
+       (date-to-local-utc v)
        (parse-dt v)))))
 
 (defn try-times*

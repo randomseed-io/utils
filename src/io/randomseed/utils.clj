@@ -11,6 +11,7 @@
   (:import [java.security SecureRandom]
            [java.time     Instant Duration ZoneRegion]
            [java.util     UUID Random Locale Date Calendar Collection Collections ArrayList]
+           [java.nio      ByteBuffer]
            [java.io       Console])
 
   (:require    [clojure.string               :as      str]
@@ -269,41 +270,42 @@
 ;; Bytes
 
 (defn b64-to-bytes
-  [s]
+  ^"[B" [s]
   (codecs/b64->bytes (codecs/str->bytes (str s))))
 
 (defn to-bytes
-  [obj]
-  (if (bytes? obj) obj (.getBytes (str obj) "UTF-8")))
+  ^"[B" [obj]
+  (if (bytes? obj) obj (.getBytes ^String (str obj) "UTF-8")))
 
-(def bzero
+(def ^"[B" bzero
   (to-bytes nil))
 
 (defn bytes-to-string
   "Converts bytes into a string"
-  ^String [b]
+  ^String [^"[B" b]
   (s/assert ::bytes b)
   (apply str (map #(char (bit-and % 255)) b)))
 
 (defn bytes-concat
   ([]
    nil)
-  ([bary]
+  (^"[B" [^"[B" bary]
    (not-empty bary))
-  ([bary & byte-arys]
+  (^"[B" [^"[B" bary & byte-arys]
    (let [byte-arys (remove empty? (cons bary byte-arys))]
      (if (seq byte-arys)
-       (let [sum-size (apply + (map count byte-arys))
-             buff     (byte-array sum-size)
-             bbuff    (java.nio.ByteBuffer/wrap buff)]
-         (doseq [a byte-arys] (.put bbuff a)) buff)))))
+       (let [sum-size          (apply + (map count byte-arys))
+             ^"[B"       buff  (byte-array sum-size)
+             ^ByteBuffer bbuff (ByteBuffer/wrap buff)]
+         (doseq [^"[B" a byte-arys] (.put bbuff a))
+         buff)))))
 
 (defn text-to-bytes
-  [t]
+  ^"[B" [t]
   (if (bytes? t) t (if (nil? t) bzero (to-bytes t))))
 
 (defn normalize-to-bytes
-  [t]
+  ^"[B" [t]
   (to-bytes (normalize-name t)))
 
 ;; Identifiers handling
@@ -317,9 +319,9 @@
     ((if (keyword? id) keyword symbol) ns (name id))))
 
 (defn ensure-str
-  ([v]
+  (^String [v]
    (or (if (valuable? v) (str (if (ident? v) (symbol v) v))) ""))
-  ([v & more]
+  (^String [v & more]
    (apply str (map some-str (cons v more)))))
 
 (defn ensure-ns

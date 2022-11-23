@@ -61,9 +61,9 @@
 ;;
 
 (defn worker
-  ([v]
+  (^Worker [v]
    (worker @workers v))
-  ([workers v]
+  (^Worker [^Workers workers v]
    (if v
      (if (worker? v) v (get (.db workers) v)))))
 
@@ -420,15 +420,15 @@
 ;;
 
 (defn new-worker-with-wid
-  ([w id config f multi?]
+  ([^Workers w id config f multi?]
    (let [id  (ensure-ident-keyword id)
          num (if multi? (inc (get (.ids w) id -1)))
          nst (if multi? (str "-" num))
          wid (keyword (namespace id) (str (name id) nst))]
-     [(if-not (contains? (.db ^Workers w) wid)
+     [(if-not (contains? (.db w) wid)
         (let [wrk (Worker. wid f (new-control-channel) (new-data-channel) nil config)]
-          (Workers. (assoc (.ids ^Workers w)  id num)
-                    (assoc (.db  ^Workers w) wid wrk))))
+          (Workers. (assoc (.ids w)  id num)
+                    (assoc (.db  w) wid wrk))))
       wid])))
 
 (defn new-worker
@@ -503,9 +503,9 @@
            f args)))
 
 (defn remove-worker
-  [workers wrk]
+  [^Workers workers wrk]
   (Workers. (.ids workers)
-            (dissoc (.db ^Workers workers) (worker-id wrk))))
+            (dissoc (.db workers) (worker-id wrk))))
 
 (defn remove-worker!
   ([wrk]
