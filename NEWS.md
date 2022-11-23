@@ -1,5 +1,10 @@
 # History of random:utils releases
 
+## 1.2.24 (2022-11-22)
+
+- Removed reflection warnings.
+- Fixed common validators.
+
 ## 1.2.23 (2022-11-21)
 
 - Improved `db/invalidator`.
