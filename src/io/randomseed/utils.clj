@@ -801,3 +801,9 @@
                (if (= p1 p2)
                  (or p1 (if allow-empty? (if-not empty-nil? "") (do (println empty-msg) (recur counter))))
                  (do (println not-match-msg) (recur counter)))))))))))
+
+;; Documentation strings
+
+(defmacro defdoc! [v docstr]
+  "Replaces documentation string of a Var."
+  `(alter-meta! (var ~v) #(update-in % [:doc] (constantly (str ~docstr)))))
