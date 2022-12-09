@@ -127,7 +127,7 @@
                        :main-opts   ["-m" "io.randomseed.utils.rebel.main"]}}
  :codox   {:name        "random:utils"
            :description "Random Utilities"
-           :license     "Copyright"
+           :license     "GNU LGPL"
            :package     io.randomseed/utils
            :output-path "docs"
            :source-uri  "https://github.com/randomseed-io/utils/tree/{version}/{filepath}#L{line}"
