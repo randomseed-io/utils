@@ -905,12 +905,13 @@
        (qassoc acc (symbol id) cache-atom)))
    {} config))
 
-(defn purge-caches
-  "Removes everything from caches."
+(defn remove-caches
+  "Removes cache structures."
   [config]
-  (log/msg "Purging abstract in-memory caches")
+  (log/msg "Removing abstract in-memory caches")
   (doseq [c (vals config)]
-    (if (atom? c) (reset! c nil)))
+    (if (atom? c)
+      (reset! c nil)))
   nil)
 
 (defn print-caches
