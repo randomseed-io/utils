@@ -317,26 +317,40 @@
   ([cache-atom entry & more]
    (swap! cache-atom (partial reduce cache/evict) (cons entry more))))
 
+(def not-found ::not-found)
+
+(defn cwr-lookup
+  "Performs a cache lookup of `id` on `cache` and returns the hit. If there is no
+  element found, returns the keyword `:io.randomseed.utils.db/not-found`."
+  [cache id]
+  (cwr/lookup cache id ::not-found))
+
+(defn not-found?
+  "Returns `true` when the given value equals to `:io.randomseed.utils.db/not-found`."
+  [e]
+  (= ::not-found e))
+
 (defn cache-lookup-coll
   "Looks for a collection of entries identified by the given ID in a cache which should
   be a cache object encapsulated in an atom. Returns a map with identifiers as keys
   and values for all found entries. Entries which are missing in the cache are
-  grouped under the `false` key as a list."
+  grouped under the `:io.randomseed.utils.db/not-found` key as a list."
   [cache ids]
   (if (seq ids)
     (let [ids (map id-from-db ids)]
       (reduce (fn [m id]
-                (let [props (cwr/lookup cache id false)]
-                  (if (false? props)
-                    (qassoc m false (conj (get m false) id))
+                (let [props (cwr-lookup cache id)]
+                  (if (not-found? props)
+                    (qassoc m ::not-found (conj (get m ::not-found) id))
                     (qassoc m id props))))
               {} ids))))
 
 (defn cache-lookup
   "Looks for the entry of the given ID in a cache which should be a cache object
-  encapsulated in an atom. For multiple IDs, calls `cache-lookup-coll`."
+  encapsulated in an atom. For multiple IDs, calls `cache-lookup-coll`. If the entry
+  was not found, returns `:io.randomseed.utils.db/not-found`."
   ([cache id]
-   (cwr/lookup cache (id-from-db id) false))
+   (cwr-lookup cache (id-from-db id)))
   ([cache id & ids]
    (cache-lookup-coll cache (cons id ids))))
 
@@ -400,12 +414,12 @@
      (get-cached-coll cache db-getter-or-table get-ids db ids)))
   ([cache table db-getter db ids]
    (let [looked-up (cache-lookup-coll cache ids)
-         not-found (seq (get looked-up false))]
+         not-found (seq (get looked-up ::not-found))]
      (if-not not-found
        looked-up
        (let [from-db (db-getter db table not-found)]
          (reduce #(qassoc %1 %2 (cwr/lookup-or-miss cache %2 from-db))
-                 (dissoc looked-up false)
+                 (dissoc looked-up ::not-found)
                  not-found))))))
 
 (defn get-cached
@@ -844,8 +858,8 @@
            setting-ids  (map id-as-str (cons setting-id setting-ids))
            lookup-ids   (map #(keyword entity-id %) setting-ids)
            looked-up-fq (cache-lookup-coll cache lookup-ids)
-           found        (map/map-keys (comp keyword name) (dissoc looked-up-fq false))
-           not-found    (map (comp keyword name) (get looked-up-fq false))]
+           found        (map/map-keys (comp keyword name) (dissoc looked-up-fq ::not-found))
+           not-found    (map (comp keyword name) (get looked-up-fq ::not-found))]
        (if-not (seq not-found)
          found
          (let [from-db (apply getter db entity-id not-found)]
