@@ -1,5 +1,10 @@
 # History of random:utils releases
 
+## 1.2.26 (2023-02-14)
+
+- Database caching functions are now using a special keyword instead of false
+  to mark and group cache misses.
+
 ## 1.2.25 (2022-12-09)
 
 - Added `defdoc!` macro.
