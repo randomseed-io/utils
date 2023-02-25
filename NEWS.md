@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.27 (2023-02-25)
+
+- Speed optimizations (referential equality checks, optimistic conversions, type hints).
+
 ## 1.2.26 (2023-02-14)
 
 - Database caching functions are now using a special keyword instead of false
