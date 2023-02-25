@@ -18,14 +18,14 @@ To use random:utils in your project, add the following to dependencies section o
 `project.clj` or `build.boot`:
 
 ```clojure
-[io.randomseed/utils "1.2.26"]
+[io.randomseed/utils "1.2.27"]
 ```
 
 For `deps.edn` add the following as an element of a map under `:deps` or
 `:extra-deps` key:
 
 ```clojure
-io.randomseed/utils {:mvn/version "1.2.26"}
+io.randomseed/utils {:mvn/version "1.2.27"}
 ```
 
 Additionally, if you want to utilize specs and generators provided by the random:utils
