@@ -321,12 +321,12 @@
       (if-some [r (f wrk req handler-args)]
         (do
           (if (reply? r)
-            (if (= ::no-response (.body ^Reply r))
+            (if (identical? ::no-response (.body ^Reply r))
               (do (log/trace "Handler requested to not send the response, omitting")
                   (new-outcome req nil (.data ^Reply r)))
               (do (log/trace "Sending response")
                   (new-outcome req (new-response wrk (.body ^Reply r) req) (.data ^Reply r))))
-            (if (= ::no-response r)
+            (if (identical? ::no-response r)
               (do (log/trace "Handler requested to not send the response, omitting")
                   (new-outcome req))
               (do (log/trace "Sending response")
@@ -353,12 +353,12 @@
   [wrk req f args]
   (if-some [r (apply f wrk req args)]
     (if (reply? r)
-      (if (= ::no-response (.body ^Reply r))
+      (if (identical? ::no-response (.body ^Reply r))
         (do (log/trace "Handler requested to not send the response, omitting")
             (new-outcome req nil (.data ^Reply r)))
         (do (log/trace "Sending response")
             (new-outcome req (send-response wrk (.body ^Reply r) req)) (.data ^Reply r)))
-      (if (= ::no-response r)
+      (if (identical? ::no-response r)
         (do (log/trace "Handler requested to not send the response, omitting")
             (new-outcome req))
         (do (log/trace "Sending response")

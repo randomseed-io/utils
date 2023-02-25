@@ -29,7 +29,7 @@
   (valid? [validator v] (contains? validator v))
 
   clojure.lang.Keyword
-  (valid? [validator v] (= validator (keyword v)))
+  (valid? [validator v] (identical? validator (keyword v)))
 
   Spec
   (valid? [validator v] (s/valid? validator v))

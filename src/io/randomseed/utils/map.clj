@@ -535,7 +535,7 @@
        (reduce-kv
         (fn [^clojure.lang.IPersistentMap mp k v]
           (let [r (if (fn? v) (v (get mp k)) v)]
-            (if (= r remove-key-mark)
+            (if (identical? r remove-key-mark)
               (dissoc mp k)
               (qassoc mp k r))))
         map vmap)
@@ -543,7 +543,7 @@
         (fn [^clojure.lang.IPersistentMap mp k v]
           (if (contains? mp k)
             (let [r (if (fn? v) (v (get mp k)) v)]
-              (if (= r remove-key-mark)
+              (if (identical? r remove-key-mark)
                 (dissoc mp k)
                 (qassoc mp k r)))
             mp))

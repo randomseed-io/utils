@@ -162,13 +162,13 @@
   [data bot-session]
   (case data
 
-    :PAUSE (if (= :PAUSED (:previous-stage bot-session))
+    :PAUSE (if (identical? :PAUSED (:previous-stage bot-session))
              bot-session
              (assoc bot-session
                     :previous-stage (:stage bot-session)
                     :stage :PAUSED))
 
-    :RUN (if-not (= :PAUSED (:stage bot-session))
+    :RUN (if-not (identical? :PAUSED (:stage bot-session))
            bot-session
            (assoc bot-session :stage (:previous-stage bot-session)))
 

@@ -328,7 +328,7 @@
 (defn not-found?
   "Returns `true` when the given value equals to `:io.randomseed.utils.db/not-found`."
   [e]
-  (= ::not-found e))
+  (identical? ::not-found e))
 
 (defn cache-lookup-coll
   "Looks for a collection of entries identified by the given ID in a cache which should
@@ -701,7 +701,7 @@
   "Returns true if getting from a database failed in post-processing
   phase (e.g. de-serialization) and the data were broken."
   [v]
-  (= ::get-failed v))
+  (identical? ::get-failed v))
 
 (defn make-setting-getter
   "Returns a function which gets a setting for the given entity and de-serializes it to
