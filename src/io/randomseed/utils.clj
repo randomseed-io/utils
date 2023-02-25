@@ -664,8 +664,8 @@
 
 (defn some-keyword
   [v]
-  (if (valuable? v)
-    (if (keyword? v) v
+  (if (keyword? v) v
+      (if (valuable? v)
         (keyword (if (symbol? v) v (str v))))))
 
 (defn some-keyword-up
@@ -687,8 +687,8 @@
 
 (defn some-symbol
   [v]
-  (if (valuable? v)
-    (if (symbol? v) v
+  (if (symbol? v) v
+      (if (valuable? v)
         (symbol (if (ident? v) v (str v))))))
 
 (defn some-symbol-up
