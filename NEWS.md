@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.28 (2023-03-02)
+
+- Version bump for core.cache.
+
 ## 1.2.27 (2023-02-25)
 
 - Speed optimizations (referential equality checks, optimistic conversions, type hints).

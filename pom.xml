@@ -4,7 +4,7 @@
   <groupId>io.randomseed</groupId>
   <artifactId>utils</artifactId>
   <packaging>jar</packaging>
-  <version>1.2.27</version>
+  <version>1.2.28</version>
   <name>utils</name>
   <description>Random Utilities</description>
   <url>https://randomseed.io/software/utils/</url>
@@ -17,7 +17,7 @@
   <scm>
     <connection>scm:git:git://github.org/randomseed-io/utils.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/randomseed-io/utils.git</developerConnection>
-    <tag>1.2.27</tag>
+    <tag>1.2.28</tag>
     <url>https://github.com/randomseed-io/utils/</url>
   </scm>
   <dependencies>
@@ -164,7 +164,7 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>core.cache</artifactId>
-      <version>1.0.217</version>
+      <version>1.0.225</version>
     </dependency>
     <dependency>
       <groupId>cambium</groupId>
