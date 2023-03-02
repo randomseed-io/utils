@@ -15,7 +15,7 @@
            org.clojure/java.classpath          {:mvn/version "1.0.0"}      ;; Java classpath tools
            org.clojure/java.data               {:mvn/version "1.0.92"}     ;; Java data structures and conversions
            org.clojure/core.memoize            {:mvn/version "1.0.250"}    ;; memoization
-           org.clojure/core.cache              {:mvn/version "1.0.217"}    ;; caching
+           org.clojure/core.cache              {:mvn/version "1.0.225"}    ;; caching
            org.clojure/core.async              {:mvn/version "1.5.648"}    ;; asynchronous operations
            fipp/fipp                           {:mvn/version "0.6.23"}     ;; pretty printing
            mvxcvi/puget                        {:mvn/version "1.3.1"}      ;; pretty printing
