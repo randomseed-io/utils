@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.29 (2023-03-05)
+
+- Added `strs` macro and `strb` function.
+
 ## 1.2.28 (2023-03-02)
 
 - Version bump for core.cache.
