@@ -245,7 +245,8 @@
                  (mapcat #(if (string? (first %)) (cons (apply strb %) nil) %))))))
 
 (defn replace-first
-  "Replaces first encounter of a character c in the given string s with a character r."
+  "Replaces the first appearance of a character `c` in the given string `s` with a
+  character `r`."
   [s c r]
   (if (string? s)
     (if-some [idx (str/index-of s c)]
