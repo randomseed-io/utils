@@ -249,6 +249,47 @@
                     (partition-by string?)
                     (mapcat #(if (string? (first %)) (cons (apply strb %) nil) %))))))
 
+(defmacro strspc
+  "Converts all arguments to strings and joins them with spaces. Neighbouring literal
+  strings or string-convertable values (literal keywords, numbers, booleans and nil
+  values) will be concatenated at compile time."
+  ([]
+   "")
+  ([a]
+   (if (string? a) `~a `(str ~a)))
+  ([a & more]
+   `(simpstr ~@(->> (cons a more)
+                    (partition-by str-convertable?)
+                    (mapcat #(if (str-convertable? (first %))
+                               (cons (apply strb (interpose " " (map some-str %))) nil)
+                               %))
+                    (interpose " ")
+                    (partition-by string?)
+                    (mapcat #(if (string? (first %)) (cons (apply strb %) nil) %))))))
+
+(defmacro strspc-squeezed
+  "Converts all arguments to strings and joins them with spaces. Squeezes repeating
+  spaces and trims the string. Neighbouring literal strings or string-convertable
+  values (literal keywords, numbers, booleans and nil values) will be concatenated,
+  squeezed and trimmed at compile time
+
+  If, instead of literal string-convertable value, some other expression will appear,
+  squeezing and trimming will NOT be performed on it, nor on its resulting value."
+  ([]
+   "")
+  ([a]
+   (if (string? a) `~(sq-spc a) `(str ~a)))
+  ([a & more]
+   `(simpstr
+     ~@(->> (cons a more)
+            (partition-by str-convertable?)
+            (mapcat #(if (str-convertable? (first %))
+                       (cons (sq-spc (apply strb (interpose " " (map some-str %)))) nil)
+                       %))
+            (interpose " ")
+            (partition-by string?)
+            (mapcat #(if (string? (first %)) (cons (apply strb %) nil) %))))))
+
 (defn replace-first
   "Replaces the first appearance of a character `c` in the given string `s` with a
   character `r`."
