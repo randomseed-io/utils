@@ -239,7 +239,7 @@
   ([]
    "")
   ([a]
-   (if (string? a) `~a `(str ~a)))
+   (if (str-convertable? a) `~(or (some-str a) "") `(str (some-str ~a) "")))
   ([a & more]
    `(simpstr ~@(->> (cons a more)
                     (partition-by str-convertable?)
@@ -256,7 +256,7 @@
   ([]
    "")
   ([a]
-   (if (string? a) `~a `(str ~a)))
+   (if (str-convertable? a) `~(or (some-str a) "") `(str (some-str ~a))))
   ([a & more]
    `(simpstr ~@(->> (cons a more)
                     (partition-by str-convertable?)
@@ -278,7 +278,7 @@
   ([]
    "")
   ([a]
-   (if (string? a) `~(sq-spc a) `(str ~a)))
+   (if (str-convertable? a) `~(sq-spc (or (some-str a) "")) `(str (some-str ~a) "")))
   ([a & more]
    `(simpstr
      ~@(->> (cons a more)
