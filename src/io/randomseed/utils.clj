@@ -212,6 +212,26 @@
                      (.append (or e ""))
                      (.append (apply strb more))))))
 
+(defmacro simpstr
+  "Helper macro to assemble results of string-joining macros."
+  {:no-doc true}
+  ([] "")
+  ([a]   (if (string? a) a `(str ~a)))
+  ([a b] (if (and (or (nil? a) (string? a)) (or (nil? b) (string? b))) `(strb ~a ~b) `(str ~a ~b)))
+  ([a b & more] `(str ~a ~b ~@more)))
+
+(defn ^:no-doc sq-spc
+  ^String [^String s]
+  (str/trim (str/replace s #"\s+" " ")))
+
+(defn ^:no-doc str-convertable?
+  ^Boolean [v]
+  (or (string?  v)
+      (number?  v)
+      (keyword? v)
+      (nil?     v)
+      (boolean? v)))
+
 (defmacro strs
   "Converts all arguments to strings and concatenates them. Neighbouring literal
   strings will be concatenated at compile time."
