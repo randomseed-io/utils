@@ -233,16 +233,21 @@
       (boolean? v)))
 
 (defmacro strs
-  "Converts all arguments to strings and concatenates them. Neighbouring literal
-  strings will be concatenated at compile time."
+  "Converts all arguments to strings and joins them. Neighbouring literal strings or
+  string-convertable values (literal keywords, numbers, booleans and nil values) will
+  be concatenated at compile time."
   ([]
    "")
   ([a]
-   (if (string? a) `~a `(strb ~a)))
+   (if (string? a) `~a `(str ~a)))
   ([a & more]
-   `(strb ~@(->> (cons a more)
-                 (partition-by string?)
-                 (mapcat #(if (string? (first %)) (cons (apply strb %) nil) %))))))
+   `(simpstr ~@(->> (cons a more)
+                    (partition-by str-convertable?)
+                    (mapcat #(if (str-convertable? (first %))
+                               (cons (apply strb (map some-str %)) nil)
+                               %))
+                    (partition-by string?)
+                    (mapcat #(if (string? (first %)) (cons (apply strb %) nil) %))))))
 
 (defn replace-first
   "Replaces the first appearance of a character `c` in the given string `s` with a
