@@ -40,7 +40,7 @@ You can also download JAR from [Clojars](https://clojars.org/io.randomseed/utils
 
 ## Sneak peeks
 
-TBW
+[TBW]
 
 And more…
 
