@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.32 (2023-03-20)
+
+- Added `memoize+` fast memoization function.
+
 ## 1.2.31 (2023-03-05)
 
 - Fixed binary variants of `strs`, `strspc` and `strspc-squeezed`.
