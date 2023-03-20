@@ -31,14 +31,290 @@
 (def ^:const underscore (re-pattern "_"))
 (def ^:const dash       (re-pattern "-"))
 
+;; Common identifier conversions
+
+(defn id-from-db
+  "Converts the given ID retrieved from a database to a value suitable to be used in
+  Clojure programs. If `v` is a number or a keyword, it is returned as is. Otherwise
+  it is converted to a keyword."
+  [v]
+  (if v (if (or (number? v) (keyword? v)) v (keyword v))))
+
+(defn id-to-db
+  "Converts the given ID to a value suitable to be stored in a database. If `v` is a
+  number, it is passed as is. Otherwise it is converted to a string."
+  [v]
+  (if v (if (number? v) v (some-str v))))
+
+(defn id-as-str
+  "Tries to convert the given argument to a string identifier."
+  [v]
+  (if v
+    (if (string? v) v (str (if (ident? v) (symbol v) v)))))
+
+;; Caching (more precise and granulate control over caching than memoization)
+
+(defn cache-prepare
+  "Prepares a cache object of the given TTL and/or queue size. Optionally it can get an
+  initial map of entries. Returns a cache object."
+  ([ttl]
+   (cache-prepare ttl nil nil))
+  ([ttl queue-size]
+   (cache-prepare ttl queue-size nil))
+  ([ttl queue-size initial-map]
+   (let [ttl         (if ttl (time/millis ttl))
+         ttl         (if (pos-int? ttl) ttl)
+         qsize       (if (pos-int? queue-size) queue-size)
+         initial-map (or initial-map {})
+         c           initial-map
+         c           (if qsize (cache/fifo-cache-factory c :threshold qsize) c)
+         c           (if ttl   (cache/ttl-cache-factory  c :ttl ttl) c)]
+     (if (identical? c initial-map)
+       (nop-cache/factory)
+       c))))
+
+(defn cache-create
+  "Creates a cache object of the given TTL and/or queue size. Optionally it can get an
+  initial map of entries. Returns cache object encapsulated in an atom."
+  ([ttl]
+   (atom (cache-prepare ttl nil nil)))
+  ([ttl queue-size]
+   (atom (cache-prepare ttl queue-size nil)))
+  ([ttl queue-size initial-map]
+   (atom (cache-prepare ttl queue-size initial-map))))
+
+(defn cache-evict!
+  "Removes entry or entries from the cache. Returns the updated cache from the atom."
+  ([cache-atom entry]
+   (cwr/evict cache-atom entry))
+  ([cache-atom entry & more]
+   (swap! cache-atom (partial reduce cache/evict) (cons entry more))))
+
+(def not-found ::not-found)
+
+(defn cwr-lookup
+  "Performs a cache lookup of `id` on `cache` and returns the hit. If there is no
+  element found, returns the keyword `:io.randomseed.utils.db/not-found`."
+  [cache id]
+  (cwr/lookup cache id ::not-found))
+
+(defn not-found?
+  "Returns `true` when the given value equals to `:io.randomseed.utils.db/not-found`."
+  [e]
+  (identical? ::not-found e))
+
+(defn cache-lookup-coll
+  "Looks for a collection of entries identified by the given ID in a cache which should
+  be a cache object encapsulated in an atom. Returns a map with identifiers as keys
+  and values for all found entries. Entries which are missing in the cache are
+  grouped under the `:io.randomseed.utils.db/not-found` key as a list."
+  [cache ids]
+  (if (seq ids)
+    (let [ids (map id-from-db ids)]
+      (reduce (fn [m id]
+                (let [props (cwr-lookup cache id)]
+                  (if (not-found? props)
+                    (qassoc m ::not-found (conj (get m ::not-found) id))
+                    (qassoc m id props))))
+              {} ids))))
+
+(defn cache-lookup
+  "Looks for the entry of the given ID in a cache which should be a cache object
+  encapsulated in an atom. For multiple IDs, calls `cache-lookup-coll`. If the entry
+  was not found, returns `:io.randomseed.utils.db/not-found`."
+  ([cache id]
+   (cwr-lookup cache (id-from-db id)))
+  ([cache id & ids]
+   (cache-lookup-coll cache (cons id ids))))
+
+;; Memoization
+
+(defn memoize
+  "Creates memoized version of a database accessing or other function. With only 1
+  argument defaults to a FIFO cache with length of 256 and TTL cache with expiration
+  of 150 seconds. When 2 arguments are given it only creates FIFO cache of the given
+  length, without TTL. When `queue-size` is `nil` or <= 0, the FIFO cache will not be
+  created. When `ttl` is `nil` or <= 0, the TTL cache will not be created."
+  ([f]
+   (memoize f 256 150000))
+  ([f queue-size]
+   (memoize f queue-size nil))
+  ([f queue-size ttl]
+   (mem/memoizer f (cache-prepare ttl queue-size {}))))
+
+(defn memoizer
+  "Creates a memoized functions with predefined TTL and queue size taken from
+  config. If the function is not given it will try to dereference symbol present in
+  the config under the `:memoizer` key. Uses `io.randomseed.utils.db/memoize` to
+  initialize caches."
+  ([config]
+   (if-some [f (var/deref-symbol (:memoizer config))]
+     (memoizer f config)))
+  ([f config]
+   (let [cache-size (:cache-size config)
+         cache-ttl  (:cache-ttl  config)
+         cache-ttl  (if cache-ttl (time/millis cache-ttl))]
+     (if (or (pos-int? cache-size) (pos-int? cache-ttl))
+       (memoize f cache-size cache-ttl)
+       f))))
+
+(defn invalidate!
+  "Invalidates cache associated with memoized function `f`. If `key-params` are given
+  it should be a cache key sequence or other structure (usually function
+  arguments). If only function is given, it clears the whole cache."
+  ([f]            (mem/memo-clear! f))
+  ([f key-params] (mem/memo-clear! f key-params)))
+
+(defn cache-id+
+  "Returns metadata value associated with `:io.randomseed.utils.db/cache` key for the
+  function `f`."
+  [f]
+  (::cache (meta f)))
+
+(defn invalidate+!
+  "Invalidates cache associated with memoized function `f`. If `key-params` are given
+  it should be a cache key sequence or other structure (usually function arguments),
+  internally transformed to vector. If only function is given, it clears the whole
+  cache. Supports functions memoized with `memoize+`."
+  ([f]
+   (if-some [cache (cache-id+ f)] (reset! cache {}))
+   (invalidate! f))
+  ([f key-params]
+   (if-some [cache (cache-id+ f)]
+     (let [kp (if (vector? key-params) key-params (vec key-params))
+           kp (if (> (count kp) 8) (conj (subvec kp 0 8) (seq (subvec kp 8))) kp)]
+       (if (contains? @cache kp) (swap! cache dissoc kp))))
+   (invalidate! f key-params)))
+
+(defn memoized+?
+  "Returns `true` if the given function `f` is memoized using `memoize+`. If not,
+  returns `false`."
+  [f]
+  (boolean (and f (cache-id+ f))))
+
+(defn invalidator
+  "Generates invalidation function for the given memoized function `f`. The
+  invalidation function takes arguments in the same way as memoized function. If they
+  match a value in the associated cache, the entry is evicted. Supports functions
+  memoized with `memoize` and `memoize+`."
+  [f]
+  (if (and f (mem/memoized? f))
+    (if (memoized+? f)
+      (fn [& key-params] (invalidate+! f key-params))
+      (fn [& key-params] (invalidate!  f key-params)))
+    (constantly nil)))
+
+(defn memoize+
+  "Wrapper around `clojure.core.memoize/fifo` which uses fast, map-based memoization
+  for cache size up to `level1-size` size, and then switches to slower memoization
+  based on FIFO cache of `level2-size` size. The first level of cache is never purged
+  automatically; once an element is there, it stays.
+
+  If only one size is given (`size`), the level-1 cache size will be set to 70% of
+  it, and level-2 cache to 30% of it.
+
+  If no size is given, the level-1 cache will have a size of 89000 elements and
+  level-2 cache will have a size of 39000 elements; both having a size of 128000
+  elements in total.
+
+  Be aware that caching key in level-1 cache is a vector of all arguments unless the
+  argument count is greater than 8. In such case all extra arguments (expressed with
+  native Clojure structure used for variadic function arguments) are grouped as 9th
+  element of this vector.
+
+  To control caches associated with original function, use a metadata of the returned
+  function object."
+  ([f]
+   (memoize+ f 128000))
+  ([f size]
+   (let [level1-size (int (/ (* size 7) 10))
+         level2-size (- size level1-size)]
+     (memoize+ f level1-size level2-size)))
+  ([f level1-size level2-size]
+   (let [level1-size (unchecked-int level1-size)
+         level2-size (long level2-size)
+         L1-cache    (atom {})
+         L2-fn       (mem/fifo f {} :fifo/threshold level2-size)]
+     (-> (fn
+           ([]
+            (if-let [e (find @L1-cache nil)]
+              (val e)
+              (if (< (count @L1-cache) level1-size)
+                (let [r (f)] (swap! L1-cache qassoc nil r) r)
+                (L2-fn))))
+           ([a]
+            (let [^clojure.lang.PersistentVector args [a]]
+              (if-let [e (find @L1-cache args)]
+                (val e)
+                (if (< (count @L1-cache) level1-size)
+                  (let [r (f a)] (swap! L1-cache qassoc args r) r)
+                  (L2-fn a)))))
+           ([a b]
+            (let [^clojure.lang.PersistentVector args [a b]]
+              (if-let [e (find @L1-cache args)]
+                (val e)
+                (if (< (count @L1-cache) level1-size)
+                  (let [r (f a b)] (swap! L1-cache qassoc args r) r)
+                  (L2-fn a b)))))
+           ([a b c]
+            (let [^clojure.lang.PersistentVector args [a b c]]
+              (if-let [e (find @L1-cache args)]
+                (val e)
+                (if (< (count @L1-cache) level1-size)
+                  (let [r (f a b c)] (swap! L1-cache qassoc args r) r)
+                  (L2-fn a b c)))))
+           ([a b c d]
+            (let [^clojure.lang.PersistentVector args [a b c d]]
+              (if-let [e (find @L1-cache args)]
+                (val e)
+                (if (< (count @L1-cache) level1-size)
+                  (let [r (f a b c d)] (swap! L1-cache qassoc args r) r)
+                  (L2-fn a b c d)))))
+           ([a b c d e]
+            (let [^clojure.lang.PersistentVector args [a b c d e]]
+              (if-let [e (find @L1-cache args)]
+                (val e)
+                (if (< (count @L1-cache) level1-size)
+                  (let [r (f a b c d e)] (swap! L1-cache qassoc args r) r)
+                  (L2-fn a b c d e)))))
+           ([a b c d e x]
+            (let [^clojure.lang.PersistentVector args [a b c d e x]]
+              (if-let [e (find @L1-cache args)]
+                (val e)
+                (if (< (count @L1-cache) level1-size)
+                  (let [r (f a b c d e x)] (swap! L1-cache qassoc args r) r)
+                  (L2-fn a b c d e x)))))
+           ([a b c d e x g]
+            (let [^clojure.lang.PersistentVector args [a b c d e x g]]
+              (if-let [e (find @L1-cache args)]
+                (val e)
+                (if (< (count @L1-cache) level1-size)
+                  (let [r (f a b c d e x g)] (swap! L1-cache qassoc args r) r)
+                  (L2-fn a b c d e x g)))))
+           ([a b c d e x g h]
+            (let [^clojure.lang.PersistentVector args [a b c d e x g h]]
+              (if-let [e (find @L1-cache args)]
+                (val e)
+                (if (< (count @L1-cache) level1-size)
+                  (let [r (f a b c d e x g h)] (swap! L1-cache qassoc args r) r)
+                  (L2-fn a b c d e x g h)))))
+           ([a b c d e x g h & more]
+            (let [^clojure.lang.PersistentVector k [a b c d e x g h more]]
+              (if-let [e (find @L1-cache k)]
+                (val e)
+                (if (< (count @L1-cache) level1-size)
+                  (let [r (apply f a b c d e x g h more)] (swap! L1-cache qassoc k r) r)
+                  (apply L2-fn a b c d e x g h more))))))
+         (with-meta (qassoc (or (meta L2-fn) {}) ::cache L1-cache ::original f))))))
+
 ;; Builder and conversion functions
 
-(def to-lisp          (mem/fifo to-lisp-str          {} :fifo/threshold 512))
-(def to-lisp-simple   (mem/fifo to-lisp-simple-str   {} :fifo/threshold 512))
-(def to-lisp-slashed  (mem/fifo to-lisp-slashed-str  {} :fifo/threshold 512))
-(def to-snake         (mem/fifo to-snake-str         {} :fifo/threshold 512))
-(def to-snake-simple  (mem/fifo to-snake-simple-str  {} :fifo/threshold 512))
-(def to-snake-slashed (mem/fifo to-snake-slashed-str {} :fifo/threshold 512))
+(def to-lisp          (memoize+ to-lisp-str         1024 512))
+(def to-lisp-simple   (memoize+ to-lisp-simple-str   512 128))
+(def to-lisp-slashed  (memoize+ to-lisp-slashed-str  512 128))
+(def to-snake         (memoize+ to-snake-str        1024 512))
+(def to-snake-simple  (memoize+ to-snake-simple-str  512 128))
+(def to-snake-slashed (memoize+ to-snake-slashed-str 512 128))
 
 (def opts-map
   {:return-keys  false
@@ -138,25 +414,6 @@
   (instance? DataSource v))
 
 ;; Getter and setter generators
-
-(defn id-from-db
-  "Converts the given ID retrieved from a database to a value suitable to be used in
-  Clojure programs. If `v` is a number or a keyword, it is returned as is. Otherwise
-  it is converted to a keyword."
-  [v]
-  (if v (if (or (number? v) (keyword? v)) v (keyword v))))
-
-(defn id-to-db
-  "Converts the given ID to a value suitable to be stored in a database. If `v` is a
-  number, it is passed as is. Otherwise it is converted to a string."
-  [v]
-  (if v (if (number? v) v (some-str v))))
-
-(defn id-as-str
-  "Tries to convert the given argument to a string identifier."
-  [v]
-  (if v
-    (if (string? v) v (str (if (ident? v) (symbol v) v)))))
 
 (defn make-getter-coll
   "Creates a database getter suitable for use with `get-cached-coll-` family of
@@ -278,124 +535,6 @@
    (sql/get-by-id db table (id-to-db id) opts-simple-map))
   ([db table id & more]
    (apply get-ids db table (cons id more))))
-
-;; Caching (more precise and granulate control over caching than memoization)
-
-(defn cache-prepare
-  "Prepares a cache object of the given TTL and/or queue size. Optionally it can get an
-  initial map of entries. Returns a cache object."
-  ([ttl]
-   (cache-prepare ttl nil nil))
-  ([ttl queue-size]
-   (cache-prepare ttl queue-size nil))
-  ([ttl queue-size initial-map]
-   (let [ttl         (if ttl (time/millis ttl))
-         ttl         (if (pos-int? ttl) ttl)
-         qsize       (if (pos-int? queue-size) queue-size)
-         initial-map (or initial-map {})
-         c           initial-map
-         c           (if qsize (cache/fifo-cache-factory c :threshold qsize) c)
-         c           (if ttl   (cache/ttl-cache-factory  c :ttl ttl) c)]
-     (if (identical? c initial-map)
-       (nop-cache/factory)
-       c))))
-
-(defn cache-create
-  "Creates a cache object of the given TTL and/or queue size. Optionally it can get an
-  initial map of entries. Returns cache object encapsulated in an atom."
-  ([ttl]
-   (atom (cache-prepare ttl nil nil)))
-  ([ttl queue-size]
-   (atom (cache-prepare ttl queue-size nil)))
-  ([ttl queue-size initial-map]
-   (atom (cache-prepare ttl queue-size initial-map))))
-
-(defn cache-evict!
-  "Removes entry or entries from the cache. Returns the updated cache from the atom."
-  ([cache-atom entry]
-   (cwr/evict cache-atom entry))
-  ([cache-atom entry & more]
-   (swap! cache-atom (partial reduce cache/evict) (cons entry more))))
-
-(def not-found ::not-found)
-
-(defn cwr-lookup
-  "Performs a cache lookup of `id` on `cache` and returns the hit. If there is no
-  element found, returns the keyword `:io.randomseed.utils.db/not-found`."
-  [cache id]
-  (cwr/lookup cache id ::not-found))
-
-(defn not-found?
-  "Returns `true` when the given value equals to `:io.randomseed.utils.db/not-found`."
-  [e]
-  (identical? ::not-found e))
-
-(defn cache-lookup-coll
-  "Looks for a collection of entries identified by the given ID in a cache which should
-  be a cache object encapsulated in an atom. Returns a map with identifiers as keys
-  and values for all found entries. Entries which are missing in the cache are
-  grouped under the `:io.randomseed.utils.db/not-found` key as a list."
-  [cache ids]
-  (if (seq ids)
-    (let [ids (map id-from-db ids)]
-      (reduce (fn [m id]
-                (let [props (cwr-lookup cache id)]
-                  (if (not-found? props)
-                    (qassoc m ::not-found (conj (get m ::not-found) id))
-                    (qassoc m id props))))
-              {} ids))))
-
-(defn cache-lookup
-  "Looks for the entry of the given ID in a cache which should be a cache object
-  encapsulated in an atom. For multiple IDs, calls `cache-lookup-coll`. If the entry
-  was not found, returns `:io.randomseed.utils.db/not-found`."
-  ([cache id]
-   (cwr-lookup cache (id-from-db id)))
-  ([cache id & ids]
-   (cache-lookup-coll cache (cons id ids))))
-
-;; Memoization
-
-(defn memoize
-  "Creates memoized version of a database accessing or other function. With only 1
-  argument defaults to a FIFO cache with length of 256 and TTL cache with expiration
-  of 150 seconds. When 2 arguments are given it only creates FIFO cache of the given
-  length, without TTL. When `queue-size` is `nil` or <= 0, the FIFO cache will not be
-  created. When `ttl` is `nil` or <= 0, the TTL cache will not be created."
-  ([f]
-   (memoize f 256 150000))
-  ([f queue-size]
-   (memoize f queue-size nil))
-  ([f queue-size ttl]
-   (mem/memoizer f (cache-prepare ttl queue-size {}))))
-
-(defn memoizer
-  "Creates a memoized functions with predefined TTL and queue size taken from
-  config. If the function is not given it will try to dereference symbol present in
-  the config under the `:memoizer` key. Uses `io.randomseed.utils.db/memoize` to
-  initialize caches."
-  ([config]
-   (if-some [f (var/deref-symbol (:memoizer config))]
-     (memoizer f config)))
-  ([f config]
-   (let [cache-size (:cache-size config)
-         cache-ttl  (:cache-ttl  config)
-         cache-ttl  (if cache-ttl (time/millis cache-ttl))]
-     (if (or (pos-int? cache-size) (pos-int? cache-ttl))
-       (memoize f cache-size cache-ttl)
-       f))))
-
-(defn invalidate!
-  [f key-params]
-  (if (seq key-params)
-    (mem/memo-clear! f key-params)
-    (mem/memo-clear! f)))
-
-(defn invalidator
-  [f]
-  (if (and f (mem/memoized? f))
-    (fn [& key-params] (invalidate! f key-params))
-    (constantly nil)))
 
 ;; Cached getters and setters
 
