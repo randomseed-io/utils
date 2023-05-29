@@ -264,7 +264,9 @@
 
 (defn ^:no-doc sq-spc
   ^String [^String s]
-  (str/trim (str/replace s #"\s+" " ")))
+  (if (and s (not= "" s))
+    (str/replace s #"\s{2,}" " ")
+    s))
 
 (defn ^:no-doc str-convertable?
   ^Boolean [v]
