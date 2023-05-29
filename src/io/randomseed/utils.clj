@@ -521,6 +521,8 @@
   [id ^String ns]
   (ensure-ns (ensure-keyword id) ns))
 
+;; Control flow
+
 (defmacro try-null
   "Evaluates body and if NullPointerException exception is caught it returns
   nil. Otherwise it returns the value of last expression in the body."
@@ -548,12 +550,16 @@
   explicit `do`. Otherwise it returns the value."
   [pred val & body]
   `(let [v# ~val]
-     (if (~pred v#) ~@body v#)))
+     (if (~pred v#) (do ~@body) v#)))
 
 (defmacro is-not
+  "Takes a predicate `pred`, a value `val` and a body. Evaluates `val` and passes to
+  `pred`. If the result is truthy it returns the value. Otherwise it evaluates all
+  expressions from body in an explicit `do`."
   [pred val & body]
   `(let [v# ~val]
-     (if (~pred v#) v# ~@body)))
+     (if (~pred v#) v# (do ~@body))))
+
 (defmacro or-some
   "Same as `or` but returns first value which is strictly not `nil`."
   ([] nil)
