@@ -278,13 +278,6 @@
     (str/replace s #"\s{2,}" " ")
     s))
 
-(defn ^:no-doc str-convertable?
-  ^Boolean [v]
-  (or (string?  v)
-      (number?  v)
-      (keyword? v)
-      (nil?     v)
-      (boolean? v)))
 (defn const-form?
   "Returns `true` when `x` is `nil` or is of one of the following types: string or
   keyword or boolean or number or character. Otherwise returns `false`."
@@ -329,6 +322,69 @@
   will have `:` character removed."
   [v]
   (str/trim (if (keyword? v) (strb (symbol v)) (strb v))))
+
+(defn- const-strings-to-string
+  [x]
+  (if (string? (first x)) (cons (apply strb x) nil) x))
+
+(defn- const-strings-squeeze-spc
+  [x]
+  (if (and (string? x) (not= " " x)) (sq-spc x) x))
+
+(defn- const-strings-to-string-spc
+  [x]
+  (if (string? (first x)) (cons (str/join " " (map strb (remove nil-or-empty-str? x))) nil) x))
+
+(defn- const-forms-to-string
+  [x]
+  (if (const-form? (first x)) (cons (apply str x) nil) x))
+
+(defn- quote-forms-to-string
+  [x]
+  (if (simple-quote-form? (first x)) (cons (apply str (map second x)) nil) x))
+
+(defn- const-forms-named-to-string
+  [x]
+  (if (const-form? (first x))
+    (cons (apply str (map named-to-str x)) nil)
+    x))
+
+(defn- quote-forms-named-to-string
+  [x]
+  (if (simple-quote-form? (first x))
+    (cons (apply str (map named-to-str (map second x))) nil)
+    x))
+
+(defn- const-forms-named-to-string-spc
+  [x]
+  (if (const-form? (first x))
+    (cons (str/join " " (map str (remove nil-or-empty-str? (map named-to-str-trim x)))) nil)
+    x))
+
+(defn- quote-forms-named-to-string-spc
+  [x]
+  (if (simple-quote-form? (first x))
+    (cons (str/join " " (map str (remove nil-or-empty-str? (map named-to-str-trim (map second x))))) nil)
+    x))
+
+(defn- wrap-strb
+  [x]
+  (if-not (string? (first x))
+    (map (fn [v] `(qstrb ~v)) x)
+    x))
+
+(defn- wrap-strb-named
+  [x]
+  (if-not (string? (first x))
+    (map (fn [v] `(named-to-str ~v)) x)
+    x))
+
+(defn- wrap-strb-named-spc
+  [x]
+  (if-not (string? (first x))
+    (map (fn [v] `(named-to-str-trim ~v)) x)
+    x))
+
 (defn add-spc-l
   "Prepends space character to the given string `s` if it is not an empty string."
   [s]
@@ -358,63 +414,153 @@
   [s]
   (contains? #{nil "" " "} s))
 
-(defmacro strs
-  "Converts all arguments to strings and joins them. Neighbouring literal strings or
-  string-convertable values (literal keywords, numbers, booleans and nil values) will
-  be concatenated at compile time."
+(defn- add-space-wrappers
+  [x]
+  (let [result (reduce (fn [[e l :as acc] r]
+                         (cond
+                           (const-form? e)   (cons r acc)
+                           (and (string? l)
+                                (string? r)) (list* r `(add-spc-b ~e) (rest acc))
+                           (string? l)       (list* r `(add-spc-l ~e) (rest acc))
+                           (string? r)       (list* r `(add-spc-r ~e) (rest acc))
+                           :else             (cons r acc)))
+                       () x)
+        [e l]  result]
+    (reverse
+     (if (and (string? l) (not (const-form? e)))
+       (cons `(add-spc-l ~e) (rest result))
+       result))))
+
+(defn- handle-dyn-spaces
+  [x]
+  (if-not (const-form? (first x))
+    (if (< (count x) 2)
+      (cons `(nil-spc-or-empty-str ~(first x)) nil)
+      (cons `(str/join " " (remove nil-spc-or-empty-str? [~@x])) nil))
+    x))
+
+(defmacro strs-simple
+  "Converts all arguments to strings and concatenates them. Neighbouring literal
+  strings and known constant forms will be concatenated at compile time."
   ([]
    "")
   ([a]
-   (if (str-convertable? a) `~(or (some-str a) "") `(str (some-str ~a) "")))
+   (cond (string? a)            `~a
+         (const-form? a)        (str a)
+         (simple-quote-form? a) (str (second a))
+         :else                  `(qstrb ~a)))
   ([a & more]
-   `(simpstr ~@(->> (cons a more)
-                    (partition-by str-convertable?)
-                    (mapcat #(if (str-convertable? (first %))
-                               (cons (apply strb (map some-str %)) nil)
-                               %))
-                    (partition-by string?)
-                    (mapcat #(if (string? (first %)) (cons (apply strb %) nil) %))))))
+   `(qstrb ~@(->> (cons a more)
+                  (partition-by simple-quote-form?)
+                  (mapcat quote-forms-to-string)
+                  (partition-by const-form?)
+                  (mapcat const-forms-to-string)
+                  (partition-by string?)
+                  (mapcat const-strings-to-string)
+                  (partition-by string?)
+                  (mapcat wrap-strb)))))
+
+(defmacro strs
+  "Converts all arguments to strings and concatenates them with keywords being
+  converted to strings without the `:` prefix. Neighbouring literal strings and known
+  constant forms will be concatenated at compile time."
+  ([]
+   "")
+  ([a]
+   (cond (string? a)            `~a
+         (keyword? a)           (str (symbol a))
+         (const-form? a)        (str a)
+         (simple-quote-form? a) (str (let [a (second a)] (if (keyword? a) (symbol a) a)))
+         :else                  `(let [a# ~a] (if (keyword? a#) (strb (symbol a#)) (qstrb a#)))))
+  ([a & more]
+   `(qstrb ~@(->> (cons a more)
+                  (partition-by simple-quote-form?)
+                  (mapcat quote-forms-named-to-string)
+                  (partition-by const-form?)
+                  (mapcat const-forms-named-to-string)
+                  (partition-by string?)
+                  (mapcat const-strings-to-string)
+                  (partition-by string?)
+                  (mapcat wrap-strb-named)))))
 
 (defmacro strspc
-  "Converts all arguments to strings and joins them with spaces. Neighbouring literal
-  strings or string-convertable values (literal keywords, numbers, booleans and nil
-  values) will be concatenated at compile time."
+  "Converts all arguments to strings and concatenates them with keywords being
+  converted to strings without the `:` prefix. Neighbouring literal strings and known
+  constant forms will be trimmed on both ends and concatenated at compile time with
+  space characters.
+
+  For consecutive non-constant forms (like symbols) simple wrappers will be generated
+  to ensure they are properly trimmed and separated with spaces depending on their
+  values (only single space and empty string are detected)."
   ([]
    "")
   ([a]
-   (if (str-convertable? a) `~(or (some-str a) "") `(str (some-str ~a))))
+   (cond (string? a)            `~a
+         (keyword? a)           (str (symbol a))
+         (const-form? a)        (str a)
+         (simple-quote-form? a) (str (let [a (second a)] (if (keyword? a) (symbol a) a)))
+         :else                  `(let [a# ~a] (if (keyword? a#) (strb (symbol a#)) (qstrb a#)))))
   ([a & more]
-   `(simpstr ~@(->> (cons a more)
-                    (partition-by str-convertable?)
-                    (mapcat #(if (str-convertable? (first %))
-                               (cons (apply strb (interpose " " (map some-str %))) nil)
-                               %))
-                    (interpose " ")
-                    (partition-by string?)
-                    (mapcat #(if (string? (first %)) (cons (apply strb %) nil) %))))))
+   `(qstrb ~@(->> (cons a more)
+                  (partition-by simple-quote-form?)
+                  (mapcat quote-forms-named-to-string-spc)
+                  (partition-by const-form?)
+                  (mapcat const-forms-named-to-string-spc)
+                  (partition-by string?)
+                  (mapcat const-strings-to-string-spc)
+                  (partition-by string?)
+                  (mapcat wrap-strb-named-spc)
+                  (remove nil-or-empty-str?)
+                  (partition-by string?)
+                  (mapcat const-strings-to-string)
+                  (remove nil-or-empty-str?)
+                  (partition-by const-form?)
+                  (mapcat handle-dyn-spaces)
+                  (partition-by string?)
+                  (mapcat const-strings-to-string)
+                  (add-space-wrappers)))))
 
 (defmacro strspc-squeezed
-  "Converts all arguments to strings and joins them with spaces. Squeezes repeating
-  spaces and trims the string. Neighbouring literal strings or string-convertable
-  values (literal keywords, numbers, booleans and nil values) will be concatenated,
-  squeezed and trimmed at compile time
+  "Converts all arguments to strings and concatenates them with keywords being
+  converted to strings without the `:` prefix. Neighbouring literal strings and known
+  constant forms will be trimmed on both ends and concatenated at compile time with
+  space characters.
 
-  If, instead of literal string-convertable value, some other expression will appear,
-  squeezing and trimming will NOT be performed on it, nor on its resulting value."
+  For consecutive non-constant forms (like symbols) simple wrappers will be generated
+  to ensure they are properly trimmed and separated with spaces depending on their
+  values (only single space and empty string are detected).
+
+  Moreover, spaces will be squeezed for detected constant forms at compile time. No
+  squeezing will be performed at run-time."
   ([]
    "")
   ([a]
-   (if (str-convertable? a) `~(sq-spc (or (some-str a) "")) `(str (some-str ~a) "")))
+   (cond (string? a)            (sq-spc a)
+         (keyword? a)           (sq-spc (str (symbol a)))
+         (const-form? a)        (sq-spc (str a))
+         (simple-quote-form? a) (sq-spc (str (let [a (second a)] (if (keyword? a) (symbol a) a))))
+         :else                  `(let [a# ~a] (if (keyword? a#) (strb (symbol a#)) (qstrb a#)))))
   ([a & more]
-   `(simpstr
-     ~@(->> (cons a more)
-            (partition-by str-convertable?)
-            (mapcat #(if (str-convertable? (first %))
-                       (cons (sq-spc (apply strb (interpose " " (map some-str %)))) nil)
-                       %))
-            (interpose " ")
-            (partition-by string?)
-            (mapcat #(if (string? (first %)) (cons (apply strb %) nil) %))))))
+   `(qstrb ~@(->> (cons a more)
+                  (partition-by simple-quote-form?)
+                  (mapcat quote-forms-named-to-string-spc)
+                  (partition-by const-form?)
+                  (mapcat const-forms-named-to-string-spc)
+                  (partition-by string?)
+                  (mapcat const-strings-to-string-spc)
+                  (map const-strings-squeeze-spc)
+                  (partition-by string?)
+                  (mapcat wrap-strb-named-spc)
+                  (remove nil-or-empty-str?)
+                  (partition-by string?)
+                  (mapcat const-strings-to-string)
+                  (remove nil-or-empty-str?)
+                  (partition-by const-form?)
+                  (mapcat handle-dyn-spaces)
+                  (partition-by string?)
+                  (mapcat const-strings-to-string)
+                  (map const-strings-squeeze-spc)
+                  (add-space-wrappers)))))
 
 (defn replace-first
   "Replaces the first appearance of a character `c` in the given string `s` with a
