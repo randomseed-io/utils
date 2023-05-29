@@ -275,6 +275,78 @@
       (keyword? v)
       (nil?     v)
       (boolean? v)))
+(defn const-form?
+  "Returns `true` when `x` is `nil` or is of one of the following types: string or
+  keyword or boolean or number or character. Otherwise returns `false`."
+  [x]
+  (or (nil?        x)
+      (string?     x)
+      (keyword?    x)
+      (boolean?    x)
+      (number?     x)
+      (char?       x)))
+
+(defn simple-quote-form?
+  "Returns `true` when `x` is a list or is an instance of `clojure.lang.Cons`, has 2
+  elements or less and its first element is the `quote` symbol, plus its second
+  element is a symbol or `const-form?` returns `true` for it."
+  [x]
+  (and (or (instance? Cons x) (list? x))
+       (= (first x) 'quote)
+       (< (count x) 3)
+       (or (symbol? (second x)) (const-form? (second x)))))
+
+(defmacro qstrb
+  "Calls `strb` but checks if the first and only argument is a string, and if it so,
+  returns its literal form without calling `strb`."
+  ([] "")
+  ([a] (if (string? a) a (if (nil? a) "" `(strb ~a))))
+  ([a & more] `(strb ~a ~@more)))
+
+(defn nil-or-empty-str?
+  "Returns `true` if the given `x` is `nil` or an empty string."
+  [x]
+  (or (nil? x) (= "" x)))
+
+(defn named-to-str
+  "Converts a value `v` to a string. If keyword is given, it will have `:` character
+  removed."
+  [v]
+  (if (keyword? v) (strb (symbol v)) (strb v)))
+
+(defn named-to-str-trim
+  "Converts a value `v` to a string and trims its both sides. If keyword is given, it
+  will have `:` character removed."
+  [v]
+  (str/trim (if (keyword? v) (strb (symbol v)) (strb v))))
+(defn add-spc-l
+  "Prepends space character to the given string `s` if it is not an empty string."
+  [s]
+  (if (= "" s) s (strb " " s)))
+
+(defn add-spc-r
+  "Appends space character to the given string `s` if it is not an empty string or a
+  single space."
+  [s]
+  (if (= "" s) s (strb s " ")))
+
+(defn add-spc-b
+  "Adds space characters to the beginning and end of the given string `s` if it is not
+  an empty string. Otherwise it returns a string with a single space."
+  [s]
+  (if (= "" s) " " (strb " " s " ")))
+
+(defn nil-spc-or-empty-str
+  "Takes a string or `nil` object `s` and returns an empty string if it is `nil`, empty
+  string or a string containing a single space only."
+  [s]
+  (if (contains? #{nil "" " "} s) "" s))
+
+(defn nil-spc-or-empty-str?
+  "Returns `true` if the given value `s` is `nil`, an empty string or a string
+  containing a single space only."
+  [s]
+  (contains? #{nil "" " "} s))
 
 (defmacro strs
   "Converts all arguments to strings and joins them. Neighbouring literal strings or
