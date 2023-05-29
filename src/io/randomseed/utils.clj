@@ -8,27 +8,37 @@
 
   (:refer-clojure :exclude [parse-long uuid random-uuid])
 
-  (:import [java.security SecureRandom]
-           [java.time     Instant Duration ZoneRegion]
-           [java.util     UUID Random Locale Date Calendar Collection Collections ArrayList]
-           [java.nio      ByteBuffer]
-           [java.io       Console])
+  (:import (java.security SecureRandom)
+           (java.time     Instant
+                          Duration
+                          ZoneRegion)
+           (java.util     UUID
+                          Random
+                          Locale
+                          Date
+                          Calendar
+                          Collection
+                          Collections
+                          ArrayList)
+           (java.nio      ByteBuffer)
+           (java.io       Console)
+           (clojure.lang  Cons))
 
-  (:require    [clojure.string               :as      str]
-               [clojure.set                  :as      set]
-               [clojure.java.io              :as       io]
-               [clojure.main                 :as    cmain]
-               [camel-snake-kebab.core       :as      csk]
-               [crypto.equality              :as       eq]
-               [buddy.core.crypto            :as   crypto]
-               [buddy.core.codecs            :as   codecs]
-               [buddy.core.nonce             :as    nonce]
-               [buddy.core.hash              :as     hash]
-               [trptr.java-wrapper.locale    :as        l]
-               [clojure.spec.alpha           :as        s]
-               [tick.core                    :as        t]
-               [tick.protocols               :as       tp]
-               [clj-http.client              :as     http]))
+  (:require    [clojure.string            :as      str]
+               [clojure.set               :as      set]
+               [clojure.java.io           :as       io]
+               [clojure.main              :as    cmain]
+               [camel-snake-kebab.core    :as      csk]
+               [crypto.equality           :as       eq]
+               [buddy.core.crypto         :as   crypto]
+               [buddy.core.codecs         :as   codecs]
+               [buddy.core.nonce          :as    nonce]
+               [buddy.core.hash           :as     hash]
+               [trptr.java-wrapper.locale :as        l]
+               [clojure.spec.alpha        :as        s]
+               [tick.core                 :as        t]
+               [tick.protocols            :as       tp]
+               [clj-http.client           :as     http]))
 
 (s/def ::set set?)
 (s/def ::map map?)
