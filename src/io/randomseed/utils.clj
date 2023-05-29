@@ -54,24 +54,31 @@
 ;; Values handling
 
 (defn empty-string?
+  "Returns `true` if `s` is an empty string. Will throw an exception when `s` is not a
+  string."
   ^Boolean [^String s]
   (.isEmpty ^String s))
 
 (defn not-empty-string?
+  "Returns `true` if `s` is not an empty string. Will throw an exception when `s` is
+  not a string."
   ^Boolean [^String s]
   (not (.isEmpty ^String s)))
 
 (defn empty-ident?
+  "Returns `true` if `v` is an empty identifier."
   [v]
   (and (empty-string? (name v))
        (empty-string? (namespace v))))
 
 (defn not-empty-ident?
+  "Returns `true` if `v` is not an empty identifier."
   [v]
   (or (not-empty-string? (name v))
       (not-empty-string? (namespace v))))
 
 (defn not-valuable?
+  "Returns `true` if `x` not valuable: is `nil` or empty."
   [x]
   (cond (nil? x)     true
         (string?  x) (empty-string? x)
@@ -81,6 +88,7 @@
         true         false))
 
 (defn valuable?
+  "Returns `true` if `x` valuable: is not `nil` nor empty."
   [x]
   (cond (nil?     x) false
         (string?  x) (not-empty-string? x)
@@ -90,11 +98,15 @@
         true         true))
 
 (defmacro when-valuable
+  "Evaluates expressions from `more` in an implicit `do` when `v` is not `nil` nor
+  empty."
   [v & more]
   `(when (valuable? ~v)
      ~@more))
 
 (defmacro when-not-valuable
+  "Evaluates expressions from `more` in an implicit `do` when `v` is `nil` or
+  empty."
   [v & more]
   `(when (not-valuable? ~v)
      ~@more))
@@ -114,6 +126,8 @@
 ;; Text handling
 
 (defn some-str
+  "Converts the given value `v` to a string. Keywords are transformed to strings
+  without the `:` prefix. Empty string or `nil` will result in `nil` being returned."
   [v]
   (if (string? v)
     (if (empty-string? v) nil v)
@@ -124,37 +138,57 @@
         (if-some [s (str v)] (if (empty-string? s) nil s))))))
 
 (defn some-str-up
+  "Converts the given value `v` to an uppercase string. Keywords are transformed to
+  strings without the `:` prefix. Empty string or `nil` will result in `nil` being
+  returned."
   [v]
   (if-some [s (some-str v)]
     (str/upper-case s)))
 
 (defn some-str-down
+  "Converts the given value `v` to a lowercase string. Keywords are transformed to
+  strings without the `:` prefix. Empty string or `nil` will result in `nil` being
+  returned."
   [v]
   (if-some [s (some-str v)]
     (str/lower-case s)))
 
 (defn some-str-simple
+  "Converts the given value `v` to a string. If `v` is an identifier only its name part
+  is used and namespace is ignored. Keywords are transformed to strings without the
+  `:` prefix. Empty string or `nil` will result in `nil` being returned."
   [v]
   (some-str
    (if (ident? v) (name v) v)))
 
 (defn some-str-simple-up
+  "Converts the given value `v` to an uppercase string. If `v` is an identifier only
+  its name part is used and namespace is ignored. Keywords are transformed to strings
+  without the `:` prefix. Empty string or `nil` will result in `nil` being returned."
   [v]
   (some-str-up
    (if (ident? v) (name v) v)))
 
 (defn some-str-simple-down
+  "Converts the given value `v` to a lowercase string. If `v` is an identifier only its
+  name part is used and namespace is ignored. Keywords are transformed to strings
+  without the `:` prefix. Empty string or `nil` will result in `nil` being returned."
   [v]
   (some-str-down
    (if (ident? v) (name v) v)))
 
 (defn str-spc
+  "Takes one or more strings or other objects convertable to strings and concatenates
+  them with spaces."
   [s & more]
   (if-not more
     (str s)
     (apply str (interpose " " (cons s more)))))
 
 (defn str-squeeze-spc
+  "Takes one or more strings or other objects convertable to strings and concatenates
+  them with spaces and squeezes spaces in a resulting string which is
+  returned."
   [s & more]
   (str/replace (if-not more
                  (str s)
@@ -162,12 +196,17 @@
                #"\s+" " "))
 
 (defn some-str-spc
+  "Takes one or more strings or other objects convertable to strings and concatenates
+  them with spaces. Keywords are transformed to strings without the `:` prefix."
   [s & more]
   (if-not more
     (str (some-str s))
     (apply str (interpose " " (filter some? (map some-str (cons s more)))))))
 
 (defn some-str-squeeze-spc
+  "Takes one or more strings or other objects convertable to strings and concatenates
+  them with spaces and squeezes spaces in a resulting string which is
+  returned. Keywords are transformed to strings without the `:` prefix."
   [s & more]
   (str/replace (if-not more
                  (str (some-str s))
@@ -175,6 +214,9 @@
                #"\s+" " "))
 
 (defn some-string
+  "Takes a string `s` and returns it unless its value is `nil` or it is an empty
+  string. A bit more performant but will throw an exception when `s` is not a
+  string nor `nil`."
   ^String [^String s]
   (if (or (nil? s) (empty-string? s)) nil s))
 
@@ -383,14 +425,17 @@
 ;; Bytes
 
 (defn b64-to-bytes
+  "Converts Base64 encoded string to array of bytes."
   ^"[B" [s]
   (codecs/b64->bytes (codecs/str->bytes (str s))))
 
 (defn to-bytes
+  "Converts object to bytes by converting it to a string first with UTF-8 encoding."
   ^"[B" [obj]
   (if (bytes? obj) obj (.getBytes ^String (str obj) "UTF-8")))
 
 (def ^"[B" bzero
+  "Returns zeroed array of bytes."
   (to-bytes nil))
 
 (defn bytes-to-string
@@ -400,6 +445,7 @@
   (apply str (map #(char (bit-and % 255)) b)))
 
 (defn bytes-concat
+  "Concatenates byte arrays."
   ([]
    nil)
   (^"[B" [^"[B" bary]
@@ -438,6 +484,9 @@
    (apply str (map some-str (cons v more)))))
 
 (defn ensure-ns
+  "Takes an identifier `id` and a namespace `ns` (a string), and tries to set a
+  namespace in the identifier. If a namespace already exists in identifier, it is not
+  changed."
   [id ^String ns]
   (s/assert ::not-empty-string ns)
   (s/assert ::identifier id)
@@ -446,6 +495,8 @@
     ((if (keyword? id) keyword symbol) ns (name id))))
 
 (defn ensure-keyword
+  "Takes an identifier `id` and tries to convert it to a keyword. If it is not an
+  identifier, it calls `keyword`."
   [id]
   (if id
     (if (keyword? id)
@@ -490,6 +541,9 @@
   (if (seq obj) obj))
 
 (defmacro is
+  "Takes a predicate `pred`, a value `val` and a body. Evaluates `val` and passes to
+  `pred`. If the result is truthy it evaluates all expressions from body in an
+  explicit `do`. Otherwise it returns the value."
   [pred val & body]
   `(let [v# ~val]
      (if (~pred v#) ~@body v#)))
@@ -606,6 +660,7 @@
 ;; Characters and digits
 
 (defn count-digits
+  "Returns a number of digits in a decimal number `n`."
   {:added "1.0.0" :tag 'long}
   [^long n]
   (if (zero? n) 1
@@ -633,11 +688,15 @@
             (lazy-iterator-seq ^Iterable coll ^java.util.Iterator iter))))))
 
 (defn juxt-seq
+  "Like `clojure.core/juxt` but produces lazy sequence of results instead of a vector."
   ^clojure.lang.LazySeq [& functions]
   (fn [& args]
     (map #(apply %1 %2) functions (repeat args))))
 
 (defn insert-at
+  "Takes an index number `index`, a collection `coll` and an element `element`, and
+  inserts element's value under the given index number. Uses sequential operations:
+  `split-at`, `concat` and `cons`."
   [index coll element]
   (let [[l r] (split-at index coll)]
     (concat l (cons element r))))
@@ -671,6 +730,7 @@
       (fn ^java.util.UUID [] (java.util.UUID/randomUUID))))
 
 (defn to-uuid
+  "Converts the given value to UUID. If it's empty or `nil`, returns `nil`."
   ([]
    (random-uuid))
   ([s]
@@ -710,6 +770,7 @@
       parse-long-java))
 
 (defn pos-val
+  "Returns the given value `x` if it is a positive number. Otherwise it returns `nil`."
   [x]
   (if (and x (number? x) (pos? x)) x))
 
@@ -824,6 +885,8 @@
 ;; Namespaces and global identifiers
 
 (defn try-require
+  "Tries to require namespace `n` and returns the given argument. If the file does not
+  exists, returns `nil`."
   [n]
   (if n
     (if-some [n (if (ident? n) n (some-str n))]
@@ -832,6 +895,8 @@
              (catch java.io.FileNotFoundException _))))))
 
 (defn fn-name
+  "Tries to obtain symbolic function name for the given function `f`. Uses metadata and
+  Java reflection as fallback."
   [f]
   (let [{mna :name mns :ns} (meta f)]
     (if (and mna mns)
