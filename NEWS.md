@@ -1,5 +1,10 @@
 # History of random:utils releases
 
+## 1.2.33 (2023-05-28)
+
+- Added `strs-simple`, `qsome`, `or-some`, `some-fn`, `qstrb`
+  and optimized `strs`, `strspc` and `strspc-squeezed` macros.
+
 ## 1.2.32 (2023-03-20)
 
 - Added `memoize+` fast memoization function.
