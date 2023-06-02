@@ -775,7 +775,7 @@
 (defmacro is
   "Takes a predicate `pred`, a value `val` and a body. Evaluates `val` and passes to
   `pred`. If the result is truthy it evaluates all expressions from body in an
-  explicit `do`. Otherwise it returns the value."
+  implicit `do`. Otherwise it returns the value."
   [pred val & body]
   `(let [v# ~val]
      (if (~pred v#) (do ~@body) v#)))
@@ -783,7 +783,7 @@
 (defmacro is-not
   "Takes a predicate `pred`, a value `val` and a body. Evaluates `val` and passes to
   `pred`. If the result is truthy it returns the value. Otherwise it evaluates all
-  expressions from body in an explicit `do`."
+  expressions from body in an implicit `do`."
   [pred val & body]
   `(let [v# ~val]
      (if (~pred v#) v# (do ~@body))))
