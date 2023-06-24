@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.34 (2023-06-24)
+
+- `qsome` now short-circuits on predicate being `nil` or `false`.
+
 ## 1.2.33 (2023-05-28)
 
 - Added `strs-simple`, `qsome`, `or-some`, `some-fn*`, `qstrb`
