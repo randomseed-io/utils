@@ -799,13 +799,13 @@
 (defmacro qsome
   "Same as `clojure.core/some` but when `coll` is a constant form then a source code
   with `or` expression is generated instead of `some` with recurrent predicate
-  application."
+  application. Short-circuits when `pred` is `nil` or `false`, returning `nil`."
   [pred coll]
   (if (sequential? coll)
     (let [pred-sym (gensym "pred__qsome__")]
-      `(let [~pred-sym ~pred]
+      `(if-let [~pred-sym ~pred]
          (or ~@(map #(list pred-sym %) coll))))
-    `(some ~pred ~coll)))
+    `(if-let [pred# ~pred] (some pred# ~coll))))
 
 (defn some-fn*
   "Same as `clojure.core/some-fn` but multiple arguments are passed to each predicate
