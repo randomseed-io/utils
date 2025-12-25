@@ -29,9 +29,9 @@
   [v id]
   (if (valuable? v)
     (if (qualified-ident? v)
-      (symbol (str (namespace v) "." (name v)))
+      (symbol (if-some [nsp (namespace v)] (str nsp "." (name v)) (str (name v))))
       (if-some [v (some-str v)] (symbol v)))
-    (symbol (str (namespace id) "." (name id)))))
+    (symbol (if-some [nsp (namespace id)] (str nsp "." (name id)) (str (name id))))))
 
 (defn instance-config
   "Creates an instance of a configuration for the given instance (if a bot is

@@ -76,16 +76,20 @@
   (not (.isEmpty ^String s)))
 
 (defn empty-ident?
-  "Returns `true` if `v` is an empty identifier."
+  "Returns `true` if `v` is an empty identifier. Will throw an exception when `s` is
+  not an identifier."
   [v]
   (and (empty-string? (name v))
-       (empty-string? (namespace v))))
+       (if-some [vns (namespace v)]
+         (empty-string? vns)
+         true)))
 
 (defn not-empty-ident?
-  "Returns `true` if `v` is not an empty identifier."
+  "Returns `true` if `v` is not an empty identifier. Will throw an exception when `s`
+  is not an identifier."
   [v]
   (or (not-empty-string? (name v))
-      (not-empty-string? (namespace v))))
+      (boolean (some-> (namespace v) not-empty-string?))))
 
 (defn not-valuable?
   "Returns `true` if `x` not valuable: is `nil` or empty."
