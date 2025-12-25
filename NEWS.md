@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.35 (2025-12-24)
+
+- Fixed regions with false assumption that namespace of an identifier cannot be `nil`.
+
 ## 1.2.34 (2023-06-24)
 
 - `qsome` now short-circuits on predicate being `nil` or `false`.
