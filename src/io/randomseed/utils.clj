@@ -1,43 +1,24 @@
 (ns
 
-    ^{:doc    "Random support functions and macros."
-      :author "Paweł Wilk"
-      :added  "1.0.0"}
+ ^{:doc    "Random support functions and macros."
+   :author "Paweł Wilk"
+   :added  "1.0.0"}
 
-    io.randomseed.utils
+ io.randomseed.utils
 
   (:refer-clojure :exclude [parse-long uuid random-uuid])
 
-  (:import (java.security SecureRandom)
-           (java.time     Instant
-                          Duration
-                          ZoneRegion)
+  (:import (java.time     Instant)
            (java.util     UUID
-                          Random
-                          Locale
-                          Date
-                          Calendar
-                          Collection
-                          Collections
-                          ArrayList)
+                          Random)
            (java.nio      ByteBuffer)
-           (java.io       Console)
            (clojure.lang  Cons))
 
   (:require    [clojure.string            :as      str]
-               [clojure.set               :as      set]
-               [clojure.java.io           :as       io]
                [clojure.main              :as    cmain]
                [camel-snake-kebab.core    :as      csk]
-               [crypto.equality           :as       eq]
-               [buddy.core.crypto         :as   crypto]
                [buddy.core.codecs         :as   codecs]
-               [buddy.core.nonce          :as    nonce]
-               [buddy.core.hash           :as     hash]
-               [trptr.java-wrapper.locale :as        l]
                [clojure.spec.alpha        :as        s]
-               [tick.core                 :as        t]
-               [tick.protocols            :as       tp]
                [clj-http.client           :as     http]))
 
 (s/def ::set set?)
@@ -56,10 +37,10 @@
 
 ;; Types
 
-(defn ^Boolean atom?      [v] (instance? clojure.lang.Atom v))
-(defn ^Boolean instant?   [v] (instance? Instant   v))
-(defn ^Boolean exception? [v] (instance? Exception v))
-(defn ^Boolean throwable? [v] (instance? Throwable v))
+(defn  atom?     ^Boolean [v] (instance? clojure.lang.Atom v))
+(defn instant?   ^Boolean [v] (instance? Instant   v))
+(defn exception? ^Boolean [v] (instance? Exception v))
+(defn throwable? ^Boolean [v] (instance? Throwable v))
 
 ;; Values handling
 
@@ -99,7 +80,7 @@
         (ident?   x) (empty-ident?  x)
         (counted? x) (zero? (count  x))
         (seqable? x) (nil?  (seq    x))
-        true         false))
+        :else        false))
 
 (defn valuable?
   "Returns `true` if `x` valuable: is not `nil` nor empty."
@@ -109,7 +90,7 @@
         (ident?   x) (not-empty-ident?  x)
         (counted? x) (pos?  (count      x))
         (seqable? x) (some? (seq        x))
-        true         true))
+        :else        true))
 
 (defmacro when-valuable
   "Evaluates expressions from `more` in an implicit `do` when `v` is not `nil` nor
@@ -149,14 +130,14 @@
       nil
       (if (ident? v)
         (let [s (str (symbol v))] (if (empty-string? s) nil s))
-        (if-some [s (str v)] (if (empty-string? s) nil s))))))
+        (when-some [s (str v)] (if (empty-string? s) nil s))))))
 
 (defn some-str-up
   "Converts the given value `v` to an uppercase string. Keywords are transformed to
   strings without the `:` prefix. Empty string or `nil` will result in `nil` being
   returned."
   [v]
-  (if-some [s (some-str v)]
+  (when-some [s (some-str v)]
     (str/upper-case s)))
 
 (defn some-str-down
@@ -164,7 +145,7 @@
   strings without the `:` prefix. Empty string or `nil` will result in `nil` being
   returned."
   [v]
-  (if-some [s (some-str v)]
+  (when-some [s (some-str v)]
     (str/lower-case s)))
 
 (defn some-str-simple
@@ -217,6 +198,16 @@
     (str (some-str s))
     (apply str (interpose " " (filter some? (map some-str (cons s more)))))))
 
+(defn some-str-spc-simple
+  "Takes one or more strings or other objects convertable to strings and concatenates
+  them with spaces. Keywords are transformed to strings without the `:` prefix.
+  Namespaces are removed from idents."
+  {:added "1.2.36"}
+  [s & more]
+  (if-not more
+    (str (some-str-simple s))
+    (apply str (interpose " " (filter some? (map some-str-simple (cons s more)))))))
+
 (defn some-str-squeeze-spc
   "Takes one or more strings or other objects convertable to strings and concatenates
   them with spaces and squeezes spaces in a resulting string which is
@@ -225,6 +216,18 @@
   (str/replace (if-not more
                  (str (some-str s))
                  (apply str (interpose " " (filter some? (map some-str (cons s more))))))
+               #"\s+" " "))
+
+(defn some-str-squeeze-spc-simple
+  "Takes one or more strings or other objects convertable to strings and concatenates
+  them with spaces and squeezes spaces in a resulting string which is
+  returned. Keywords are transformed to strings without the `:` prefix.
+  Namespaces are removed from idents."
+  {:added "1.2.36"}
+  [s & more]
+  (str/replace (if-not more
+                 (str (some-str-simple s))
+                 (apply str (interpose " " (filter some? (map some-str-simple (cons s more))))))
                #"\s+" " "))
 
 (defn some-string
@@ -293,6 +296,16 @@
       (number?     x)
       (char?       x)))
 
+(defn const-form-no-ident?
+  "Returns `true` when `x` is `nil` or is of one of the following types: string or
+  boolean or number or character. Otherwise returns `false`."
+  [x]
+  (or (nil?        x)
+      (string?     x)
+      (boolean?    x)
+      (number?     x)
+      (char?       x)))
+
 (defn simple-quote-form?
   "Returns `true` when `x` is a list or is an instance of `clojure.lang.Cons`, has 2
   elements or less and its first element is the `quote` symbol, plus its second
@@ -321,11 +334,25 @@
   [v]
   (if (keyword? v) (strb (symbol v)) (strb v)))
 
+(defn named-to-str-simple
+  "Converts a value `v` to a string. If ident is given, namespace will be removed.
+  Keywords will have the `:` character removed."
+  {:added "1.2.36"}
+  [v]
+  (if (ident? v) (name v) (strb v)))
+
 (defn named-to-str-trim
   "Converts a value `v` to a string and trims its both sides. If keyword is given, it
   will have `:` character removed."
   [v]
   (str/trim (if (keyword? v) (strb (symbol v)) (strb v))))
+
+(defn named-to-str-trim-simple
+  "Converts a value `v` to a string and trims its both sides. If keyword is given, it
+  will have `:` character removed. Idents will have namespace removed."
+  {:added "1.2.36"}
+  [v]
+  (str/trim (if (ident? v) (name v) (strb v))))
 
 (defn- const-strings-to-string
   [x]
@@ -353,10 +380,24 @@
     (cons (apply str (map named-to-str x)) nil)
     x))
 
+(defn- const-forms-named-to-string-simple
+  {:added "1.2.36"}
+  [x]
+  (if (const-form? (first x))
+    (cons (apply str (map named-to-str-simple x)) nil)
+    x))
+
 (defn- quote-forms-named-to-string
   [x]
   (if (simple-quote-form? (first x))
     (cons (apply str (map named-to-str (map second x))) nil)
+    x))
+
+(defn- quote-forms-named-to-string-simple
+  {:added "1.2.36"}
+  [x]
+  (if (simple-quote-form? (first x))
+    (cons (apply str (map named-to-str-simple (map second x))) nil)
     x))
 
 (defn- const-forms-named-to-string-spc
@@ -365,10 +406,24 @@
     (cons (str/join " " (map str (remove nil-or-empty-str? (map named-to-str-trim x)))) nil)
     x))
 
+(defn- const-forms-named-to-string-spc-simple
+  {:added "1.2.36"}
+  [x]
+  (if (const-form? (first x))
+    (cons (str/join " " (map str (remove nil-or-empty-str? (map named-to-str-trim-simple x)))) nil)
+    x))
+
 (defn- quote-forms-named-to-string-spc
   [x]
   (if (simple-quote-form? (first x))
     (cons (str/join " " (map str (remove nil-or-empty-str? (map named-to-str-trim (map second x))))) nil)
+    x))
+
+(defn- quote-forms-named-to-string-spc-simple
+  {:added "1.2.36"}
+  [x]
+  (if (simple-quote-form? (first x))
+    (cons (str/join " " (map str (remove nil-or-empty-str? (map named-to-str-trim-simple (map second x))))) nil)
     x))
 
 (defn- wrap-strb
@@ -383,10 +438,24 @@
     (map (fn [v] `(named-to-str ~v)) x)
     x))
 
+(defn- wrap-strb-named-simple
+  {:added "1.2.36"}
+  [x]
+  (if-not (string? (first x))
+    (map (fn [v] `(named-to-str-simple ~v)) x)
+    x))
+
 (defn- wrap-strb-named-spc
   [x]
   (if-not (string? (first x))
     (map (fn [v] `(named-to-str-trim ~v)) x)
+    x))
+
+(defn- wrap-strb-named-spc-simple
+  {:added "1.2.36"}
+  [x]
+  (if-not (string? (first x))
+    (map (fn [v] `(named-to-str-trim-simple ~v)) x)
     x))
 
 (defn add-spc-l
@@ -443,26 +512,26 @@
       (cons `(str/join " " (remove nil-spc-or-empty-str? [~@x])) nil))
     x))
 
-(defmacro strs-simple
+(defmacro strs-quick
   "Converts all arguments to strings and concatenates them. Neighbouring literal
   strings and known constant forms will be concatenated at compile time."
   ([]
    "")
   ([a]
-   (cond (string? a)            `~a
-         (const-form? a)        (str a)
+   (cond (string?            a) `~a
+         (const-form?        a) (str a)
          (simple-quote-form? a) (str (second a))
          :else                  `(qstrb ~a)))
   ([a & more]
    `(qstrb ~@(->> (cons a more)
                   (partition-by simple-quote-form?)
-                  (mapcat quote-forms-to-string)
+                  (mapcat       quote-forms-to-string)
                   (partition-by const-form?)
-                  (mapcat const-forms-to-string)
+                  (mapcat       const-forms-to-string)
                   (partition-by string?)
-                  (mapcat const-strings-to-string)
+                  (mapcat       const-strings-to-string)
                   (partition-by string?)
-                  (mapcat wrap-strb)))))
+                  (mapcat       wrap-strb)))))
 
 (defmacro strs
   "Converts all arguments to strings and concatenates them with keywords being
@@ -471,21 +540,46 @@
   ([]
    "")
   ([a]
-   (cond (string? a)            `~a
-         (keyword? a)           (str (symbol a))
-         (const-form? a)        (str a)
-         (simple-quote-form? a) (str (let [a (second a)] (if (keyword? a) (symbol a) a)))
-         :else                  `(let [a# ~a] (if (keyword? a#) (strb (symbol a#)) (qstrb a#)))))
+   (cond (string?              a) `~a
+         (keyword?             a) (str (symbol a))
+         (const-form-no-ident? a) (str a)
+         (simple-quote-form?   a) (str (let [a (second a)] (if (keyword? a) (symbol a) a)))
+         :else                    `(let [a# ~a] (if (keyword? a#) (strb (symbol a#)) (qstrb a#)))))
   ([a & more]
    `(qstrb ~@(->> (cons a more)
                   (partition-by simple-quote-form?)
-                  (mapcat quote-forms-named-to-string)
+                  (mapcat       quote-forms-named-to-string)
                   (partition-by const-form?)
-                  (mapcat const-forms-named-to-string)
+                  (mapcat       const-forms-named-to-string)
                   (partition-by string?)
-                  (mapcat const-strings-to-string)
+                  (mapcat       const-strings-to-string)
                   (partition-by string?)
-                  (mapcat wrap-strb-named)))))
+                  (mapcat       wrap-strb-named)))))
+
+(defmacro strs-simple
+  "Converts all arguments to strings and concatenates them with keywords being
+  converted to strings without the `:` prefix. Namespaces will be removed from
+  keywords and symbols. Neighbouring literal strings and known constant forms
+  will be concatenated at compile time."
+  {:added "1.2.36"}
+  ([]
+   "")
+  ([a]
+   (cond (string?              a) `~a
+         (ident?               a) (name a)
+         (const-form-no-ident? a) (str a)
+         (simple-quote-form?   a) (let [a (second a)] (if (ident? a) (name a) (str a)))
+         :else                    `(let [a# ~a] (if (ident? a#) (name a#) (qstrb a#)))))
+  ([a & more]
+   `(qstrb ~@(->> (cons a more)
+                  (partition-by simple-quote-form?)
+                  (mapcat       quote-forms-named-to-string-simple)
+                  (partition-by const-form?)
+                  (mapcat       const-forms-named-to-string-simple)
+                  (partition-by string?)
+                  (mapcat       const-strings-to-string)
+                  (partition-by string?)
+                  (mapcat       wrap-strb-named-simple)))))
 
 (defmacro strspc
   "Converts all arguments to strings and concatenates them with keywords being
@@ -499,29 +593,67 @@
   ([]
    "")
   ([a]
-   (cond (string? a)            `~a
-         (keyword? a)           (str (symbol a))
-         (const-form? a)        (str a)
-         (simple-quote-form? a) (str (let [a (second a)] (if (keyword? a) (symbol a) a)))
-         :else                  `(let [a# ~a] (if (keyword? a#) (strb (symbol a#)) (qstrb a#)))))
+   (cond (string?              a) `~a
+         (keyword?             a) (str (symbol a))
+         (const-form-no-ident? a) (str a)
+         (simple-quote-form?   a) (str (let [a (second a)] (if (keyword? a) (symbol a) a)))
+         :else                    `(let [a# ~a] (if (keyword? a#) (strb (symbol a#)) (qstrb a#)))))
   ([a & more]
    `(qstrb ~@(->> (cons a more)
                   (partition-by simple-quote-form?)
-                  (mapcat quote-forms-named-to-string-spc)
+                  (mapcat       quote-forms-named-to-string-spc)
                   (partition-by const-form?)
-                  (mapcat const-forms-named-to-string-spc)
+                  (mapcat       const-forms-named-to-string-spc)
                   (partition-by string?)
-                  (mapcat const-strings-to-string-spc)
+                  (mapcat       const-strings-to-string-spc)
                   (partition-by string?)
-                  (mapcat wrap-strb-named-spc)
-                  (remove nil-or-empty-str?)
+                  (mapcat       wrap-strb-named-spc)
+                  (remove       nil-or-empty-str?)
                   (partition-by string?)
-                  (mapcat const-strings-to-string)
-                  (remove nil-or-empty-str?)
+                  (mapcat       const-strings-to-string)
+                  (remove       nil-or-empty-str?)
                   (partition-by const-form?)
-                  (mapcat handle-dyn-spaces)
+                  (mapcat       handle-dyn-spaces)
                   (partition-by string?)
-                  (mapcat const-strings-to-string)
+                  (mapcat       const-strings-to-string)
+                  (add-space-wrappers)))))
+
+(defmacro strspc-simple
+  "Converts all arguments to strings and concatenates them with keywords being
+  converted to strings without the `:` prefix. Namespaces will be removed from
+  symbols and keywords. Neighbouring literal strings and known constant forms
+  will be trimmed on both ends and concatenated at compile time with space characters.
+
+  For consecutive non-constant forms (like symbols) simple wrappers will be generated
+  to ensure they are properly trimmed and separated with spaces depending on their
+  values (only single space and empty string are detected)."
+  {:added "1.2.36"}
+  ([]
+   "")
+  ([a]
+   (cond (string?              a) `~a
+         (keyword?             a) (name a)
+         (const-form-no-ident? a) (str a)
+         (simple-quote-form?   a)  (let [a (second a)] (if (ident? a) (name a) (str a)))
+         :else                    `(let [a# ~a] (if (ident? a#) (name a#) (qstrb a#)))))
+  ([a & more]
+   `(qstrb ~@(->> (cons a more)
+                  (partition-by simple-quote-form?)
+                  (mapcat       quote-forms-named-to-string-spc-simple)
+                  (partition-by const-form?)
+                  (mapcat       const-forms-named-to-string-spc-simple)
+                  (partition-by string?)
+                  (mapcat       const-strings-to-string-spc)
+                  (partition-by string?)
+                  (mapcat       wrap-strb-named-spc-simple)
+                  (remove       nil-or-empty-str?)
+                  (partition-by string?)
+                  (mapcat       const-strings-to-string)
+                  (remove       nil-or-empty-str?)
+                  (partition-by const-form?)
+                  (mapcat       handle-dyn-spaces)
+                  (partition-by string?)
+                  (mapcat       const-strings-to-string)
                   (add-space-wrappers)))))
 
 (defmacro strspc-squeezed
@@ -539,31 +671,74 @@
   ([]
    "")
   ([a]
-   (cond (string? a)            (sq-spc a)
-         (keyword? a)           (sq-spc (str (symbol a)))
-         (const-form? a)        (sq-spc (str a))
-         (simple-quote-form? a) (sq-spc (str (let [a (second a)] (if (keyword? a) (symbol a) a))))
-         :else                  `(let [a# ~a] (if (keyword? a#) (strb (symbol a#)) (qstrb a#)))))
+   (cond (string?              a) (sq-spc a)
+         (keyword?             a) (sq-spc (str (symbol a)))
+         (const-form-no-ident? a) (sq-spc (str a))
+         (simple-quote-form?   a) (sq-spc (str (let [a (second a)] (if (keyword? a) (symbol a) a))))
+         :else                    `(let [a# ~a] (if (keyword? a#) (strb (symbol a#)) (qstrb a#)))))
   ([a & more]
    `(qstrb ~@(->> (cons a more)
                   (partition-by simple-quote-form?)
-                  (mapcat quote-forms-named-to-string-spc)
+                  (mapcat       quote-forms-named-to-string-spc)
                   (partition-by const-form?)
-                  (mapcat const-forms-named-to-string-spc)
+                  (mapcat       const-forms-named-to-string-spc)
                   (partition-by string?)
-                  (mapcat const-strings-to-string-spc)
-                  (map const-strings-squeeze-spc)
+                  (mapcat       const-strings-to-string-spc)
+                  (map          const-strings-squeeze-spc)
                   (partition-by string?)
-                  (mapcat wrap-strb-named-spc)
-                  (remove nil-or-empty-str?)
+                  (mapcat       wrap-strb-named-spc)
+                  (remove       nil-or-empty-str?)
                   (partition-by string?)
-                  (mapcat const-strings-to-string)
-                  (remove nil-or-empty-str?)
+                  (mapcat       const-strings-to-string)
+                  (remove       nil-or-empty-str?)
                   (partition-by const-form?)
-                  (mapcat handle-dyn-spaces)
+                  (mapcat       handle-dyn-spaces)
                   (partition-by string?)
-                  (mapcat const-strings-to-string)
-                  (map const-strings-squeeze-spc)
+                  (mapcat       const-strings-to-string)
+                  (map          const-strings-squeeze-spc)
+                  (add-space-wrappers)))))
+
+(defmacro strspc-squeezed-simple
+  "Converts all arguments to strings and concatenates them with keywords being
+  converted to strings without the `:` prefix. Namespaces will be removed from
+  keywords and symbols. Neighbouring literal strings and known constant forms
+  will be trimmed on both ends and concatenated at compile time with space characters.
+
+  For consecutive non-constant forms (like symbols) simple wrappers will be generated
+  to ensure they are properly trimmed and separated with spaces depending on their
+  values (only single space and empty string are detected).
+
+  Moreover, spaces will be squeezed for detected constant forms at compile time. No
+  squeezing will be performed at run-time."
+  {:added "1.2.36"}
+  ([]
+   "")
+  ([a]
+   (cond (string?              a) (sq-spc a)
+         (keyword?             a) (sq-spc (name a))
+         (const-form-no-ident? a) (sq-spc (str a))
+         (simple-quote-form?   a) (sq-spc (let [a (second a)] (if (ident? a) (name a) (str a))))
+         :else                    `(let [a# ~a] (if (ident? a#) (name a#) (qstrb a#)))))
+  ([a & more]
+   `(qstrb ~@(->> (cons a more)
+                  (partition-by simple-quote-form?)
+                  (mapcat       quote-forms-named-to-string-spc-simple)
+                  (partition-by const-form?)
+                  (mapcat       const-forms-named-to-string-spc-simple)
+                  (partition-by string?)
+                  (mapcat       const-strings-to-string-spc)
+                  (map          const-strings-squeeze-spc)
+                  (partition-by string?)
+                  (mapcat       wrap-strb-named-spc-simple)
+                  (remove       nil-or-empty-str?)
+                  (partition-by string?)
+                  (mapcat       const-strings-to-string)
+                  (remove       nil-or-empty-str?)
+                  (partition-by const-form?)
+                  (mapcat       handle-dyn-spaces)
+                  (partition-by string?)
+                  (mapcat       const-strings-to-string)
+                  (map          const-strings-squeeze-spc)
                   (add-space-wrappers)))))
 
 (defn replace-first
@@ -583,7 +758,7 @@
 (defn to-lisp-str
   "ip_address --> ip-address"
   [v]
-  (if-some [v (some-str v)]
+  (when-some [v (some-str v)]
     (csk/->kebab-case-string v)))
 
 (defn to-lisp-simple-str
@@ -594,7 +769,14 @@
 (defn to-lisp-str-replace-first
   "ipCaddress_to --> ipRaddress-to"
   [v c r]
-  (if-some [v (some-str v)]
+  (when-some [v (some-str v)]
+    (csk/->kebab-case-string (replace-first v c r))))
+
+(defn to-lisp-simple-str-replace-first
+  "a/ipCaddress_to --> ipRaddress-to"
+  {:added "1.2.36"}
+  [v c r]
+  (when-some [v (some-str-simple v)]
     (csk/->kebab-case-string (replace-first v c r))))
 
 (defn to-lisp-slashed-str
@@ -605,7 +787,7 @@
 (defn to-snake-str
   "ip-address --> ip_address"
   [v]
-  (if-some [v (some-str v)]
+  (when-some [v (some-str v)]
     (csk/->snake_case_string v)))
 
 (defn to-snake-simple-str
@@ -615,8 +797,16 @@
 
 (defn to-snake-str-replace-first
   "ipCaddress-to --> ipRaddress_to"
+  {:added "1.2.36"}
   [v c r]
-  (if-some [v (some-str v)]
+  (when-some [v (some-str v)]
+    (csk/->snake_case_string (replace-first v c r))))
+
+(defn to-snake-simple-str-replace-first
+  "a/ipCaddress-to --> ipRaddress_to"
+  {:added "1.2.36"}
+  [v c r]
+  (when-some [v (some-str-simple v)]
     (csk/->snake_case_string (replace-first v c r))))
 
 (defn to-snake-slashed-str
@@ -638,7 +828,7 @@
      (clojure.core/name some-name)
      (if (seqable? some-name)
        (if (seq some-name) (str some-name) default-name)
-       (if some-name (str some-name))))))
+       (when some-name (str some-name))))))
 
 (defn normalize-name-with-ns
   "Takes a name expressed as a string or an identifier. If the object is an identifier
@@ -654,7 +844,7 @@
        (clojure.core/name some-name))
      (if (seqable? some-name)
        (if (seq some-name) (str some-name) default-name)
-       (if some-name (str some-name))))))
+       (when some-name (str some-name))))))
 
 ;; Bytes
 
@@ -713,9 +903,16 @@
 
 (defn ensure-str
   (^String [v]
-   (or (if (valuable? v) (str (if (ident? v) (symbol v) v))) ""))
+   (or (when (valuable? v) (str (if (ident? v) (symbol v) v))) ""))
   (^String [v & more]
    (apply str (map some-str (cons v more)))))
+
+(defn ensure-str-simple
+  {:added "1.2.36"}
+  (^String [v]
+   (or (when (valuable? v) (if (ident? v) (name v) (str v))) ""))
+  (^String [v & more]
+   (apply str (map some-str-simple (cons v more)))))
 
 (defn ensure-ns
   "Takes an identifier `id` and a namespace `ns` (a string), and tries to set a
@@ -732,14 +929,14 @@
   "Takes an identifier `id` and tries to convert it to a keyword. If it is not an
   identifier, it calls `keyword`."
   [id]
-  (if id
+  (when id
     (if (keyword? id)
       id
       (if (ident? id)
         (if (simple-ident? id)
           (keyword id)
           (keyword (namespace id) (name id)))
-        (keyword (if (valuable? id) id))))))
+        (keyword (when (valuable? id) id))))))
 
 (defn ensure-ident-keyword
   [id]
@@ -774,7 +971,7 @@
   "Returns the collection if it's not empty. Otherwise returns `nil`."
   {:added "1.0.0"}
   [obj]
-  (if (seq obj) obj))
+  (when (seq obj) obj))
 
 (defmacro is
   "Takes a predicate `pred`, a value `val` and a body. Evaluates `val` and passes to
@@ -923,10 +1120,10 @@
   "Like rand-int but optionally uses random number generator."
   {:added "1.0.0"}                      ; was: :tag 'int
   ([^long n]
-   (if (some? n)
+   (when (some? n)
      (rand-int n)))
   ([^long n ^Random rng]
-   (if (some? n)
+   (when (some? n)
      (if (nil? rng)
        (get-rand-int n)
        (if (zero? n) (int n) (.nextInt rng n))))))
@@ -939,7 +1136,7 @@
   ([^long x
     ^long iteration
     ^Boolean shrink-now]
-   (if (some? x)
+   (when (some? x)
      (if (zero? x) x
          (if-not shrink-now x
                  (if (zero? iteration) 1
@@ -949,7 +1146,7 @@
     ^long iteration
     ^Boolean shrink-now
     ^Random rng]
-   (if (some? x)
+   (when (some? x)
      (if (nil? rng)
        (random-digits-len x iteration shrink-now)
        (if (zero? x) x
@@ -967,7 +1164,7 @@
    (apply str (repeatedly num #(rand-int 10))))
   ([^long num
     ^Random rng]
-   (if (some? num)
+   (when (some? num)
      (if (nil? rng)
        (gen-digits num)
        (apply str (repeatedly num #(.nextInt rng 10)))))))
@@ -998,7 +1195,7 @@
    (lazy-iterator-seq coll (.iterator coll)))
   ([^Iterable coll ^java.util.Iterator iter]
    (lazy-seq
-    (if (.hasNext ^java.util.Iterator iter)
+    (when (.hasNext ^java.util.Iterator iter)
       (cons (.next ^java.util.Iterator iter)
             (lazy-iterator-seq ^Iterable coll ^java.util.Iterator iter))))))
 
@@ -1049,7 +1246,7 @@
   ([]
    (random-uuid))
   ([s]
-   (if (valuable? s) (if (uuid? s) s (UUID/fromString (str s))))))
+   (when (valuable? s) (if (uuid? s) s (UUID/fromString (str s))))))
 
 (def uuid
   (or (ns-resolve 'clojure.core 'uuid)
@@ -1059,8 +1256,8 @@
 
 (defn sanitize-base-url
   [^String url]
-  (if-some [url (str/trim (str url))]
-    (if (some? (seq url))
+  (when-some [url (str/trim (str url))]
+    (when (some? (seq url))
       (let [url (if (str/starts-with? url "http") url (str "https://" url))
             url (if (str/ends-with?   url    "/") url (str url "/"))]
         url))))
@@ -1068,7 +1265,7 @@
 (defn parse-url
   "Parses URL into a map."
   [u]
-  (if (and u (string? u) (> (count u) 0))
+  (when (and u (string? u) (> (count u) 0))
     (http/parse-url u)))
 
 ;; Numbers
@@ -1087,13 +1284,13 @@
 (defn pos-val
   "Returns the given value `x` if it is a positive number. Otherwise it returns `nil`."
   [x]
-  (if (and x (number? x) (pos? x)) x))
+  (when (and x (number? x) (pos? x)) x))
 
 (defn parse-num
   ([n default]
    (or (parse-num n) default))
   ([n]
-   (if (valuable? n)
+   (when (valuable? n)
      (let [s (str n)]
        (if (or (> (count s) 15) (str/index-of s \.))
          (bigdec ^String s)
@@ -1103,7 +1300,7 @@
   ([s default]
    (or (some-long s) default))
   ([s]
-   (if (valuable? s)
+   (when (valuable? s)
      (if (number? s) (long s)
          (parse-long-core ^String (str s))))))
 
@@ -1116,14 +1313,14 @@
    (or (safe-parse-num v) default))
   ([v]
    (try (parse-num v)
-        (catch Throwable e nil))))
+        (catch Throwable _ nil))))
 
 (defn safe-parse-long
   ([v default]
    (or (safe-parse-long v) default))
   ([v]
    (try (some-long v)
-        (catch Throwable e nil))))
+        (catch Throwable _ nil))))
 
 (defn to-long
   [s default]
@@ -1134,7 +1331,7 @@
   ([n default]
    (or (parse-percent n) default))
   ([n]
-   (if-some [n (parse-num n)] (/ n 100))))
+   (when-some [n (parse-num n)] (/ n 100))))
 
 (def percent parse-percent)
 
@@ -1143,58 +1340,58 @@
    (or (safe-parse-percent v) default))
   ([v]
    (try (parse-percent v)
-        (catch Throwable e nil))))
+        (catch Throwable _ nil))))
 
 (defn parse-re
   [v]
-  (if (and (valuable? v) (string? v)) (re-pattern v)))
+  (when (and (valuable? v) (string? v)) (re-pattern v)))
 
 ;; Identifiers
 
 (defn some-keyword
   [v]
   (if (keyword? v) v
-      (if (valuable? v)
+      (when (valuable? v)
         (keyword (if (symbol? v) v (str v))))))
 
 (defn some-keyword-up
   [v]
-  (if (valuable? v)
+  (when (valuable? v)
     (keyword
      (str/upper-case
       (str (if (keyword? v) (symbol v) v))))))
 
 (defn some-keyword-simple
   [v]
-  (if-some [v (some-keyword v)]
+  (when-some [v (some-keyword v)]
     (if (simple-keyword? v) v (keyword (name v)))))
 
 (defn simple-keyword-up
   [v]
-  (if-some [v (some-keyword-up v)]
+  (when-some [v (some-keyword-up v)]
     (if (simple-keyword? v) v (keyword (name v)))))
 
 (defn some-symbol
   [v]
   (if (symbol? v) v
-      (if (valuable? v)
+      (when (valuable? v)
         (symbol (if (ident? v) v (str v))))))
 
 (defn some-symbol-up
   [v]
-  (if (valuable? v)
+  (when (valuable? v)
     (symbol
      (str/upper-case
       (str (if (keyword? v) (symbol v) v))))))
 
 (defn some-symbol-simple
   [v]
-  (if-some [v (some-symbol v)]
+  (when-some [v (some-symbol v)]
     (if (simple-symbol? v) v (symbol (name v)))))
 
 (defn simple-symbol-up
   [v]
-  (if-some [v (some-symbol-up v)]
+  (when-some [v (some-symbol-up v)]
     (if (simple-symbol? v) v (symbol (name v)))))
 
 ;; Namespaces and global identifiers
@@ -1203,10 +1400,10 @@
   "Tries to require namespace `n` and returns the given argument. If the file does not
   exists, returns `nil`."
   [n]
-  (if n
-    (if-some [n (if (ident? n) n (some-str n))]
-      (if-some [n (symbol n)]
-        (try (do (require n) n)
+  (when n
+    (when-some [n (if (ident? n) n (some-str n))]
+      (when-some [n (symbol n)]
+        (try (require n) n
              (catch java.io.FileNotFoundException _))))))
 
 (defn fn-name
@@ -1282,17 +1479,17 @@
               confirm-prompt   "Repeat text: "
               not-match-msg    "Texts do not match."
               empty-msg        "Text is empty."}}]
-   (loop [counter (if retries (unchecked-int (if (pos-int? retries) retries 1)))]
-     (if-not (and counter (zero? counter))
+   (loop [counter (when retries (unchecked-int (if (pos-int? retries) retries 1)))]
+     (when-not (and counter (zero? counter))
        (let [p1 (ask-fn prompt)]
          (if (and (nil? p1) empty-quits?)
-           (if-not empty-quits-nil? "")
+           (when-not empty-quits-nil? "")
            (let [p2      (if confirmation? (ask-fn confirm-prompt) p1)
-                 counter (if counter (unchecked-dec-int counter))]
+                 counter (when counter (unchecked-dec-int counter))]
              (if (and (nil? p2) empty-quits?)
-               (if-not empty-quits-nil? "")
+               (when-not empty-quits-nil? "")
                (if (= p1 p2)
-                 (or p1 (if allow-empty? (if-not empty-nil? "") (do (println empty-msg) (recur counter))))
+                 (or p1 (if allow-empty? (when-not empty-nil? "") (do (println empty-msg) (recur counter))))
                  (do (println not-match-msg) (recur counter)))))))))))
 
 ;; Documentation strings
