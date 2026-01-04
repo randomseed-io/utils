@@ -1,5 +1,10 @@
 # History of random:utils releases
 
+## 1.2.36 (2026-01-04)
+
+- Added `-simple` variants of string processing functions and macros.
+- Syntactic cleanups.
+
 ## 1.2.35 (2025-12-24)
 
 - Fixed regions with false assumption that namespace of an identifier cannot be `nil`.
