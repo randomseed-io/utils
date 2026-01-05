@@ -10,6 +10,9 @@
 .hgignore
 .hg/
 gh-pages
+.lsp/
+.clj-kondo/.cache/
+.clj-kondo/imports/
 .cpcache/
 /DELETE_ME
 /.dir-locals.el
