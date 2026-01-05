@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 1.2.37 (2026-01-05)
+
+- Fixed logging issues when JAnsi is enabled, added context restoring.
+
 ## 1.2.36 (2026-01-04)
 
 - Added `-simple` variants of string processing functions and macros.
