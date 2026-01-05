@@ -12,6 +12,7 @@
             [io.randomseed.utils             :as     util]
             [io.randomseed.utils.fs          :as       fs]
             [io.randomseed.utils.map         :as      map]
+            [io.randomseed.utils.log.logback :as  logback]
             [cheshire.core                   :as     json]
             [cheshire.parse                  :as       cp]
             [unilog.config                   :as   unilog]
@@ -87,7 +88,9 @@
 (defmethod unilog/build-appender :console-error
   [config]
   (assoc config :appender (doto (ConsoleAppender.)
-                            (.setWithJansi true)
+                            (.setName "io.randomseed.utils.log.console-error")
+                            (.setWithJansi false)
+                            (.setTarget "System.err")
                             (.addFilter (doto (ThresholdFilter.)
                                           (.setLevel "ERROR")
                                           (.start))))))
@@ -95,7 +98,9 @@
 (defmethod unilog/build-appender :console-warn
   [config]
   (assoc config :appender (doto (ConsoleAppender.)
-                            (.setWithJansi true)
+                            (.setName "io.randomseed.utils.log.console-warn")
+                            (.setWithJansi false)
+                            (.setTarget "System.err")
                             (.addFilter (doto (ThresholdFilter.)
                                           (.setLevel "WARN")
                                           (.start))))))
@@ -103,7 +108,9 @@
 (defmethod unilog/build-appender :console-info
   [config]
   (assoc config :appender (doto (ConsoleAppender.)
-                            (.setWithJansi true)
+                            (.setName "io.randomseed.utils.log.console-error")
+                            (.setWithJansi false)
+                            (.setTarget "System.err")
                             (.addFilter (doto (ThresholdFilter.)
                                           (.setLevel "INFO")
                                           (.start))))))
@@ -111,7 +118,9 @@
 (defmethod unilog/build-appender :console-debug
   [config]
   (assoc config :appender (doto (ConsoleAppender.)
-                            (.setWithJansi true)
+                            (.setName "io.randomseed.utils.log.console-debug")
+                            (.setWithJansi false)
+                            (.setTarget "System.err")
                             (.addFilter (doto (ThresholdFilter.)
                                           (.setLevel "DEBUG")
                                           (.start))))))
@@ -119,7 +128,9 @@
 (defmethod unilog/build-appender :console-trace
   [config]
   (assoc config :appender (doto (ConsoleAppender.)
-                            (.setWithJansi true)
+                            (.setName "io.randomseed.utils.log.console-trace")
+                            (.setWithJansi false)
+                            (.setTarget "System.err")
                             (.addFilter (doto (ThresholdFilter.)
                                           (.setLevel "TRACE")
                                           (.start))))))
@@ -248,13 +259,15 @@
 ;;
 
 (defn initialize-context-transformer!
+  "Installs a cambium context transformer derived from `transform-map`.
+  Returns the previous transformer (or nil if nothing changed)."
   [transform-map]
-  (if (seq transform-map)
-    (alter-var-root
-     #'cambium.core/transform-context
-     (fn [_]
-       (fn [context]
-         (map/update-values-or-seqs-recur context transform-map))))))
+  (when (seq transform-map)
+    (let [prev cambium.core/transform-context
+          xf   (fn [context]
+                 (map/update-values-or-seqs-recur context transform-map))]
+      (alter-var-root #'cambium.core/transform-context (constantly xf))
+      prev)))
 
 ;;
 ;; Logging start
@@ -282,14 +295,26 @@
 
 (defn init!
   [config]
-  (let [config          (preprocess-config config)
-        pname           (:profile (:system config))
-        ctx-transformer (map/map-of-vectors-invert-flatten (:context-transformer config))]
+  (let [config          (if (and (contains? config :config) (contains? config :unilog)) (get config :config) config)
+        config          (preprocess-config config)
+        ;; pname        (:profile (:system config))
+        ctx-transformer (map/map-of-vectors-invert-flatten (:context-transformer config))
+        prev-logback    (logback/snapshot-logback!)
+        prev-ctx        cambium.core/transform-context]
+    (logback/detach-appenders-by-prefix! "io.randomseed.utils.log.")
     (initialize-json-decoder!)
     (initialize-context-transformer! ctx-transformer)
-    (start! config)))
+    (let [unilog-ret (start! config)]
+      {:config                   config
+       :previous-ctx-transformer prev-ctx
+       :previous-logback         prev-logback
+       :unilog                   unilog-ret})))
 
 (defn stop!
-  [config]
-  (unilog/start-logging! default-config)
-  default-config)
+  [{:keys [previous-ctx-transformer previous-logback]}]
+  (logback/detach-appenders-by-prefix! "io.randomseed.utils.log.")
+  (when previous-ctx-transformer
+    (alter-var-root #'cambium.core/transform-context (constantly previous-ctx-transformer)))
+  (when previous-logback
+    (logback/restore-logback! previous-logback))
+  nil)
