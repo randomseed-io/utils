@@ -6,12 +6,12 @@
 
     io.randomseed.utils.map
 
-  (:refer-clojure :exclude [parse-long uuid random-uuid])
+  (:require [io.randomseed.utils :refer  [bytes-to-string
+                                          normalize-to-bytes]]
+            [lazy-map.core       :as                 lazy-map])
 
-  (:require [io.randomseed.utils :refer  :all]
-            [lazy-map.core       :as lazy-map])
-
-  (:import  [lazy_map.core LazyMapEntry LazyMap]))
+  (:import  (clojure.lang  Associative IPersistentMap)
+            (lazy_map.core LazyMapEntry LazyMap)))
 
 (defmacro lazy-get
   "Like get but the default value is an expression that is going to be evaluated only
@@ -22,97 +22,75 @@
 
 (defn or-map
   "Returns an empty map if the argument is `nil`. Otherwise returns its argument."
-  [m]
+  ^IPersistentMap [^Associative m]
   (if (nil? m) {} m))
 
-(defn- jassoc
-  ^clojure.lang.Associative [^clojure.lang.Associative m k v]
-  (.assoc m k v))
+(defmacro qassoc*
+  [mp & kvs]
+  (when (odd? (count kvs))
+    (throw (IllegalArgumentException. "qassoc* expects even number of kvs")))
+  (letfn [(tag-assoc [form]
+            (with-meta form (assoc (or (meta form) {}) :tag 'clojure.lang.Associative)))]
+    (reduce
+     (fn [acc [k v]]
+       `(. ~(tag-assoc acc) assoc ~k ~v))
+     mp
+     (partition 2 kvs))))
 
 (defn qassoc
   "Faster version of `assoc` with some of the checks and conversions
   disabled. Associates key `a` with value `b` in `mp`. If `mp` is `nil` it creates a
   new map."
-  (^clojure.lang.Associative [^clojure.lang.Associative mp a b]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  (^Associative [^Associative mp]
+   mp)
+  (^Associative [^Associative mp a b]
    (if (nil? mp)
      {a b}
      (.assoc mp a b)))
-  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d]
+  (^Associative [^Associative mp a b c d]
    (if (nil? mp)
      {a b c d}
-     (-> (.assoc mp a b)
-         (jassoc c d))))
-  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f]
+     (.assoc ^Associative (.assoc mp a b) c d)))
+  (^Associative [^Associative mp a b c d e f]
    (if (nil? mp)
      {a b c d e f}
-     (-> (.assoc mp a b)
-         (jassoc c d)
-         (jassoc e f))))
-  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h]
+     (qassoc* mp a b c d e f)))
+  (^Associative [^Associative mp a b c d e f g h]
    (if (nil? mp)
      {a b c d e f g h}
-     (-> (.assoc mp a b)
-         (jassoc c d)
-         (jassoc e f)
-         (jassoc g h))))
-  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j]
+     (qassoc* mp a b c d e f g h)))
+  (^Associative [^Associative mp a b c d e f g h i j]
    (if (nil? mp)
      {a b c d e f g h i j}
-     (-> (.assoc mp a b)
-         (jassoc c d)
-         (jassoc e f)
-         (jassoc g h)
-         (jassoc i j))))
-  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j k l]
+     (qassoc* mp a b c d e f g h i j)))
+  (^Associative [^Associative mp a b c d e f g h i j k l]
    (if (nil? mp)
      {a b c d e f g h i j k l}
-     (-> (.assoc mp a b)
-         (jassoc c d)
-         (jassoc e f)
-         (jassoc g h)
-         (jassoc i j)
-         (jassoc k l))))
-  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j k l m n]
+     (qassoc* mp a b c d e f g h i j k l)))
+  (^Associative [^Associative mp a b c d e f g h i j k l m n]
    (if (nil? mp)
      {a b c d e f g h i j k l m n}
-     (-> (.assoc mp a b)
-         (jassoc c d)
-         (jassoc e f)
-         (jassoc g h)
-         (jassoc i j)
-         (jassoc k l)
-         (jassoc m n))))
-  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j k l m n o p]
+     (qassoc* mp a b c d e f g h i j k l m n)))
+  (^Associative [^Associative mp a b c d e f g h i j k l m n o p]
    (if (nil? mp)
      {a b c d e f g h i j k l m n o p}
-     (-> (.assoc mp a b)
-         (jassoc c d)
-         (jassoc e f)
-         (jassoc g h)
-         (jassoc i j)
-         (jassoc k l)
-         (jassoc m n)
-         (jassoc o p))))
-  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j k l m n o p q r]
+     (qassoc* mp a b c d e f g h i j k l m n o p)))
+  (^Associative [^Associative mp a b c d e f g h i j k l m n o p q r]
    (if (nil? mp)
      {a b c d e f g h i j k l m n o p q r}
-     (-> (.assoc mp a b)
-         (jassoc c d)
-         (jassoc e f)
-         (jassoc g h)
-         (jassoc i j)
-         (jassoc k l)
-         (jassoc m n)
-         (jassoc o p)
-         (jassoc q r))))
-  (^clojure.lang.Associative [^clojure.lang.Associative mp a b c d e f g h i j k l m n o p q r & pairs]
-   (loop [r     (qassoc mp a b c d e f g h i j k l m n o p q r)
-          pairs pairs]
-     (if pairs
-       (if (next pairs)
-         (recur (jassoc r (first pairs) (second pairs)) (nnext pairs))
-         (throw (IllegalArgumentException. "qassoc expects even number of arguments, found odd number")))
-       r))))
+     (qassoc* mp a b c d e f g h i j k l m n o p q r)))
+  (^Associative [^Associative mp a b c d e f g h i j k l m n o p q r & pairs]
+   (if (nil? mp)
+     (apply qassoc {a b c d e f g h i j k l m n o p q r} pairs)
+     (let [pairs (seq pairs)]
+       (loop [^Associative r (qassoc mp a b c d e f g h i j k l m n o p q r)
+              s              pairs]
+         (if s
+           (if (next s)
+             (recur (.assoc r (first s) (second s)) (nnext s))
+             (throw (IllegalArgumentException. "qassoc expects even number of arguments, found odd number")))
+           r))))))
 
 (defn qupdate
   "Similar to `clojure.core/update`, updates a value in an associative structure,
@@ -121,45 +99,48 @@
   instead of `clojure.core/assoc` internally.
 
   If the key does not exist, `nil` is passed as the old value."
-  (^clojure.lang.Associative [^clojure.lang.Associative m k f]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  (^Associative [^Associative m k f]
    (qassoc m k (f (get m k))))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k f x]
+  (^Associative [^Associative m k f x]
    (qassoc m k (f (get m k) x)))
-  (^clojure.lang.Associative[^clojure.lang.Associative m k f x y]
+  (^Associative[^Associative m k f x y]
    (qassoc m k (f (get m k) x y)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z]
+  (^Associative [^Associative m k f x y z]
    (qassoc m k (f (get m k) x y z)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z c]
+  (^Associative [^Associative m k f x y z c]
    (qassoc m k (f (get m k) x y z c)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z c v]
+  (^Associative [^Associative m k f x y z c v]
    (qassoc m k (f (get m k) x y z c v)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z c v a]
+  (^Associative [^Associative m k f x y z c v a]
    (qassoc m k (f (get m k) x y z c v a)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z c v a b]
+  (^Associative [^Associative m k f x y z c v a b]
    (qassoc m k (f (get m k) x y z c v a b)))
-  (^clojure.lang.Associative [^clojure.lang.Associative m k f x y z c v a b & more]
+  (^Associative [^Associative m k f x y z c v a b & more]
    (qassoc m k (apply f (get m k) x y z c v a b more))))
 
 (defn assoc-missing
-  "Associates keys and values only if the keys do not yet exist in a map."
-  ([]            nil)
-  ([coll]       coll)
-  ([coll k val] (if (contains? coll k) coll (qassoc coll k val)))
-  ([coll k val & more]
+  "Associates keys and values only if keys do not yet exist in a map."
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ([] nil)
+  (^Associative [^Associative coll]       coll)
+  (^Associative [^Associative coll k val] (if (contains? coll k) coll (qassoc coll k val)))
+  (^Associative [^Associative coll k val & more]
    (if-not more
      (if (contains? coll k) coll (qassoc coll k val))
-     (reduce (fn [acc [k v]] (if (contains? acc k) acc (qassoc acc k v)))
+     (reduce (fn ^Associative [^Associative acc [k v]] (if (contains? acc k) acc (qassoc acc k v)))
              (if (nil? coll) {} coll) (partition 2 (cons k (cons val more)))))))
 
 (defn assoc-existing
-  "Associates keys and values only if the keys exist in a map."
-  ([]           nil)
-  ([coll]       coll)
-  ([coll k val] (if (contains? coll k) (qassoc coll k val) coll))
-  ([coll k val & more]
+  "Associates keys and values only if keys exist in a map."
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ([] nil)
+  (^Associative [^Associative coll]       coll)
+  (^Associative [^Associative coll k val] (if (contains? coll k) (qassoc coll k val) coll))
+  (^Associative [^Associative coll k val & more]
    (if-not more
      (if (contains? coll k) (qassoc coll k val) coll)
-     (reduce (fn [acc [k v]] (if (contains? acc k) (qassoc acc k v) acc))
+     (reduce (fn ^Associative [^Associative acc [k v]] (if (contains? acc k) (qassoc acc k v) acc))
              coll (partition 2 (cons k (cons val more)))))))
 
 (defn update-existing
@@ -168,11 +149,12 @@
   given key does not exist within the collection. Returns updated collection.
 
   If `fun` is not a function it will be made one by using `constantly`."
-  ([^clojure.lang.IPersistentMap coll k fun]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  (^Associative [^Associative coll k fun]
    (if (contains? coll k)
      (qassoc coll k (if (ifn? fun) (fun (get coll k)) fun))
      coll))
-  ([^clojure.lang.IPersistentMap coll k fun & more]
+  (^Associative [^Associative coll k fun & more]
    (if (contains? coll k)
      (qassoc coll k (if (ifn? fun) (apply fun (get coll k) more) fun))
      coll)))
@@ -184,24 +166,26 @@
   `nil` as its argument. Returns updated collection.
 
   If `fun` is not a function it will be made one by using `constantly`."
-  ([coll k fun]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  (^Associative [^Associative coll k fun]
    (if (contains? coll k)
      coll
      (qassoc coll k (if (ifn? fun) (fun (get coll k)) fun))))
-  ([coll k fun & more]
+  (^Associative [^Associative coll k fun & more]
    (if (contains? coll k)
      coll
      (qassoc coll k (if (ifn? fun) (apply fun (get coll k) more) fun)))))
 
 (defn update-if
-  ([coll k pred fun]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  (^Associative [^Associative coll k pred fun]
    (if (contains? coll k)
      (let [v (get coll k)]
        (if (pred v)
          (qassoc coll k (fun v))
          coll))
      coll))
-  ([coll k pred fun & more]
+  (^Associative [^Associative coll k pred fun & more]
    (if (contains? coll k)
      (let [v (get coll k)]
        (if (pred v)
@@ -210,14 +194,15 @@
      coll)))
 
 (defn update-if-not
-  ([coll k pred fun]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  (^Associative [^Associative coll k pred fun]
    (if (contains? coll k)
      (let [v (get coll k)]
        (if (pred v)
          coll
          (qassoc coll k (fun v))))
      coll))
-  ([coll k pred fun & more]
+  (^Associative [^Associative coll k pred fun & more]
    (if (contains? coll k)
      (let [v (get coll k)]
        (if (pred v)
@@ -226,16 +211,18 @@
      coll)))
 
 (defn update-to-bytes
-  ([coll k]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  (^Associative [^Associative coll k]
    (update-if-not coll k bytes? normalize-to-bytes))
-  ([coll k & keys]
-   (reduce #(update-if-not %1 %2 bytes? normalize-to-bytes) coll (cons k keys))))
+  (^Associative [^Associative coll k & keys]
+   (reduce #(update-if-not ^Associative %1 %2 bytes? normalize-to-bytes) coll (cons k keys))))
 
 (defn update-bytes-to-strings
-  ([coll k]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  (^Associative [^Associative coll k]
    (update-if coll k bytes? bytes-to-string))
-  ([coll k & keys]
-   (reduce #(update-if %1 %2 bytes? bytes-to-string) coll (cons k keys))))
+  (^Associative [^Associative coll k & keys]
+   (reduce #(update-if ^Associative %1 %2 bytes? bytes-to-string) coll (cons k keys))))
 
 (defmacro assoc-if
   ([coll pred k val]
@@ -278,28 +265,31 @@
        (qassoc kol# key# ~val))))
 
 (defn dissoc-if
-  [^clojure.lang.IPersistentMap m k
-   ^clojure.lang.IFn pred]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ^Associative [^Associative m k
+                ^clojure.lang.IFn pred]
   (if (pred (get m k)) (dissoc m k) m))
 
 (defn remove-if-value
-  ^clojure.lang.IPersistentMap
-  [^clojure.lang.IPersistentMap m
-   ^clojure.lang.IFn pred]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ^Associative [^Associative m
+                ^clojure.lang.IFn pred]
   (reduce-kv
-   (fn [^clojure.lang.IPersistentMap mp k v]
+   (fn ^Associative [^Associative mp k v]
      (if (pred v) (dissoc mp k) mp))
    m m))
 
 (defn remove-if-value-in
-  ^clojure.lang.IPersistentMap [^clojure.lang.IPersistentMap m vals]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ^Associative [^Associative m vals]
   (if (nil? vals) m
       (if (< (count m) 1) m
           (let [vset (set vals)]
             (remove-if-value m #(contains? vset %))))))
 
 (defn remove-if-value-not-in
-  ^clojure.lang.IPersistentMap [^clojure.lang.IPersistentMap m vals]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ^Associative [^Associative m vals]
   (if (nil? vals) (empty m)
       (if (< (count m) 1) m
           (let [vset          (set vals)
@@ -307,11 +297,13 @@
             (remove-if-value m #(not-contains? vset %))))))
 
 (defn remove-except
-  ^clojure.lang.IPersistentMap [^clojure.lang.IPersistentMap m ^clojure.lang.ISeq keyseq]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ^Associative [^Associative m ^clojure.lang.ISeq keyseq]
   (select-keys m keyseq))
 
 (defn remove-empty-values
-  ^clojure.lang.IPersistentMap [^clojure.lang.IPersistentMap m]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ^Associative [^Associative m]
   (remove-if-value
    m #(or (nil? %) (and (seqable? %) (nil? (seq %))))))
 
@@ -322,17 +314,17 @@
   given it should be a map on which operations are performed instead of using the
   original map. This may be helpful when we want to avoid merging the results with
   another map."
-  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
+  {:added "1.0.0" :tag clojure.lang.Associative}
   ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m]
+    ^Associative m]
    (map-vals-by-k f m m))
   ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m
-    ^clojure.lang.IPersistentMap dst]
+    ^Associative m
+    ^Associative dst]
    (if (nil? m)
      dst
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v] (qassoc mp k (f k)))
+      (fn ^Associative [^Associative mp k _] (qassoc mp k (f k)))
       dst m))))
 
 (defn map-vals-by-kv
@@ -342,17 +334,17 @@
   argument is given it should be a map on which operations are performed instead of
   using the original map. This may be helpful when we want to avoid merging the
   results with another map."
-  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
+  {:added "1.0.0" :tag clojure.lang.Associative}
   ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m]
+    ^Associative m]
    (map-vals-by-kv f m m))
   ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m
-    ^clojure.lang.IPersistentMap dst]
+    ^Associative m
+    ^Associative dst]
    (if (nil? m)
      dst
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v] (qassoc mp k (f k v)))
+      (fn ^Associative [^Associative mp k v] (qassoc mp k (f k v)))
       dst m))))
 
 (defn map-vals
@@ -362,36 +354,36 @@
   given it should be a map on which operations are performed instead of using the
   original map. This may be helpful when we want to avoid merging the results with
   another map."
-  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
+  {:added "1.0.0" :tag clojure.lang.Associative}
   ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m]
+    ^Associative m]
    (map-vals f m m))
   ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m
-    ^clojure.lang.IPersistentMap dst]
+    ^Associative m
+    ^Associative dst]
    (if (nil? m)
      dst
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v] (qassoc mp k (f v)))
+      (fn ^Associative [^Associative mp k v] (qassoc mp k (f v)))
       dst m))))
 
 (defn map-keys-by-v
   "For each key and value of the given map m calls a function passed as the first
   argument (passing successive values during calls to it) and generates a map with
-  keys updated by results returned by the function. When the third argument is
+  key names generated by results returned by the function. When the third argument is
   given then it should be a map on which operations are performed instead of using
   and empty map."
-  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
+  {:added "1.0.0" :tag clojure.lang.Associative}
   ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m]
+    ^Associative m]
    (map-keys-by-v f m {}))
   ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m
-    ^clojure.lang.IPersistentMap dst]
+    ^Associative m
+    ^Associative dst]
    (if (nil? m)
      dst
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v] (qassoc mp (f v) v))
+      (fn ^Associative [^Associative mp _ v] (qassoc mp (f v) v))
       dst m))))
 
 (defn map-keys
@@ -400,17 +392,17 @@
   updated by results returned by the function. When the third argument is given then
   it should be a map on which operations are performed instead of using an empty
   map."
-  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
-  ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  (^Associative [^clojure.lang.IFn f
+                 ^Associative m]
    (map-keys f m {}))
-  ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m
-    ^clojure.lang.IPersistentMap dst]
+  (^Associative [^clojure.lang.IFn f
+                 ^Associative m
+                 ^Associative dst]
    (if (nil? m)
      dst
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v] (qassoc mp (f k) v))
+      (fn ^Associative [^Associative mp k v] (qassoc mp (f k) v))
       dst m))))
 
 (defn map-keys-and-vals
@@ -422,17 +414,17 @@
   of a transformed value associated with that key. When the third argument is given
   then it should be a map on which operations are performed instead of using an empty
   map."
-  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
-  ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  (^Associative [^clojure.lang.IFn f
+                 ^Associative m]
    (map-keys-and-vals f m {}))
-  ([^clojure.lang.IFn f
-    ^clojure.lang.IPersistentMap m
-    ^clojure.lang.IPersistentMap dst]
+  (^Associative [^clojure.lang.IFn f
+                 ^Associative m
+                 ^Associative dst]
    (if (nil? m)
      dst
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v]
+      (fn ^Associative [^Associative mp k v]
         (let [[new-k new-v] (f k v)] (qassoc mp new-k new-v)))
       dst m))))
 
@@ -440,10 +432,10 @@
   "Like `clojure.set/map-invert` but for map of sets (as values) to preserve all
   possible values (as keys of newly created map)."
   {:added "1.0.0" :tag clojure.lang.IPersistentMap}
-  [^clojure.lang.IPersistentMap m]
+  ^IPersistentMap [^Associative m]
   (if (nil? m)
     nil
-    (reduce (fn [^clojure.lang.IPersistentMap am [k v]]
+    (reduce (fn ^Associative [^Associative am [k v]]
               (qassoc am k (conj (am k (hash-set)) v)))
             {}
             (for [[k st] m v st] [v k]))))
@@ -451,9 +443,9 @@
 (defn invert-in-sets
   "Like `clojure.set/map-invert` but preserves all possible values in sets."
   {:added "1.0.0" :tag clojure.lang.IPersistentMap}
-  ([^clojure.lang.IPersistentMap m]
+  (^IPersistentMap [^Associative m]
    (invert-in-sets m #{}))
-  ([^clojure.lang.IPersistentMap m ^clojure.lang.PersistentHashSet dst]
+  (^IPersistentMap [^Associative m ^clojure.lang.PersistentHashSet dst]
    (persistent!
     (reduce (fn [am [k v]]
               (assoc! am v (conj (am v dst) k)))
@@ -463,7 +455,7 @@
   "Like `clojure.set/map-invert` but for map of vectors (as values). Duplicated keys
   are replaced."
   {:added "1.0.0" :tag clojure.lang.IPersistentMap}
-  [^clojure.lang.IPersistentMap m]
+  ^IPersistentMap [^Associative m]
   (->> (mapcat (fn [[k v]] (interleave v (repeat k))) m)
        (partition 2)
        (map vec)
@@ -472,9 +464,10 @@
 (defn map-values
   "Recursively transforms values of a map coll using function f. The function should
   take a value and return new value."
-  [^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll]
-  (if (some? coll)
-    (reduce-kv (fn [^clojure.lang.IPersistentMap m, k, v]
+  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
+  ^IPersistentMap [^clojure.lang.IFn f, ^Associative coll]
+  (when (some? coll)
+    (reduce-kv (fn ^Associative [^Associative m k v]
                  (qassoc m k (if (map? v) (map-values f v) (f v))))
                (empty coll) coll)))
 
@@ -482,65 +475,68 @@
   "Recursively transforms values of a map coll using function f. The function should
   take a value and a sequence of visited keys in reverse order, and return a new
   value. Third argument should be an initial key-path."
-  ([^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll, kpath]
-   (if (some? coll)
-     (reduce-kv (fn [m k v]
-                  (qassoc m k (if (map? v)
-                                    (map-values-with-path-core f v (conj kpath k))
-                                    (f v (conj kpath k)))))
-                (empty coll) coll))))
+  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
+  ^IPersistentMap [^clojure.lang.IFn f, ^Associative coll, kpath]
+  (when (some? coll)
+    (reduce-kv (fn ^Associative [^Associative m k v]
+                 (qassoc m k (if (map? v)
+                               (map-values-with-path-core f v (conj kpath k))
+                               (f v (conj kpath k)))))
+               (empty coll) coll)))
 
 (defn map-values-with-rpath
   "Recursively transforms values of a map coll using function f. The function should
   take a value and a sequence of visited keys in reverse order (stored in a
   persistent list), and return a new value."
-  [^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll]
+  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
+  ^IPersistentMap [^clojure.lang.IFn f, ^Associative coll]
   (map-values-with-path-core f coll ()))
 
 (defn map-values-with-path
   "Recursively transforms values of a map coll using function f. The function should
   take a value and a sequence of visited keys (stored in a vector), and return a new
   value."
-  [^clojure.lang.IFn f, ^clojure.lang.IPersistentMap coll]
+  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
+  ^IPersistentMap [^clojure.lang.IFn f, ^Associative coll]
   (map-values-with-path-core f coll []))
 
 (defn update-values
-  "Returns the map with its values identified with keys from vmap updated with the
+  "Returns a map with its values identified with keys from vmap updated with the
   associated functions from vmap."
-  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
-  ([^clojure.lang.IPersistentMap map
-    ^clojure.lang.IPersistentMap vmap]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  (^Associative [^Associative map
+                 ^Associative vmap]
    (update-values map vmap false))
-  ([^clojure.lang.IPersistentMap map
-    ^clojure.lang.IPersistentMap vmap
-    ^Boolean create-keys?]
-   (if (some? map)
+  (^Associative [^Associative map
+                 ^Associative vmap
+                 ^Boolean create-keys?]
+   (when (some? map)
      (if create-keys?
        (reduce-kv
-        (fn [^clojure.lang.IPersistentMap mp k v]
+        (fn ^Associative [^Associative mp k v]
           (qassoc mp k (if (fn? v) (v (get mp k)) v)))
         map vmap)
        (reduce-kv
-        (fn [^clojure.lang.IPersistentMap mp k v]
+        (fn ^Associative [^Associative mp k v]
           (if (contains? mp k)
             (qassoc mp k (if (fn? v) (v (get mp k)) v))
             mp))
         map vmap))))
-  ([^clojure.lang.IPersistentMap map
-    ^clojure.lang.IPersistentMap vmap
-    ^Boolean create-keys?
-    ^clojure.lang.Keyword remove-key-mark]
-   (if (some? map)
+  (^Associative [^Associative map
+                 ^Associative vmap
+                 ^Boolean create-keys?
+                 ^clojure.lang.Keyword remove-key-mark]
+   (when (some? map)
      (if create-keys?
        (reduce-kv
-        (fn [^clojure.lang.IPersistentMap mp k v]
+        (fn ^Associative [^Associative mp k v]
           (let [r (if (fn? v) (v (get mp k)) v)]
             (if (identical? r remove-key-mark)
               (dissoc mp k)
               (qassoc mp k r))))
         map vmap)
        (reduce-kv
-        (fn [^clojure.lang.IPersistentMap mp k v]
+        (fn ^Associative [^Associative mp k v]
           (if (contains? mp k)
             (let [r (if (fn? v) (v (get mp k)) v)]
               (if (identical? r remove-key-mark)
@@ -554,15 +550,15 @@
   with the associated functions from vmap. Shape is not reflected, second map (vmap)
   should be flat, searching for keys is recursive, including nested vectors."
   {:added "1.0.0" :tag clojure.lang.IPersistentMap}
-  ([^clojure.lang.IPersistentMap map
-    ^clojure.lang.IPersistentMap vmap]
+  (^IPersistentMap [^Associative map
+                    ^Associative vmap]
    (update-values-recur map vmap false))
-  ([^clojure.lang.IPersistentMap map
-    ^clojure.lang.IPersistentMap vmap
-    ^Boolean create-keys?]
-   (if (some? map)
+  (^IPersistentMap [^Associative map
+                    ^Associative vmap
+                    ^Boolean create-keys?]
+   (when (some? map)
      (reduce-kv
-      (fn [^clojure.lang.IPersistentMap mp k v]
+      (fn ^Associative [^Associative mp k v]
         (if (or (map? v) (vector? v))
           (qassoc mp k (update-values-recur v vmap create-keys?))
           mp))
@@ -571,7 +567,8 @@
         (update-values map vmap create-keys?)) map))))
 
 (defn- update-values-redux
-  [^clojure.lang.IPersistentMap mp k v]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ^Associative [^Associative mp k v]
   (if (contains? mp k)
     (let [funik (if (fn? v) v (constantly v))]
       (qassoc mp k (let [val (get mp k)]
@@ -586,16 +583,16 @@
   "Returns the map with its values identified with keys from `vmap` updated with the
   associated functions from `vmap`."
   {:added "1.0.0" :tag clojure.lang.IPersistentMap}
-  ([^clojure.lang.IPersistentMap map
-    ^clojure.lang.IPersistentMap vmap]
+  (^IPersistentMap [^Associative map
+                    ^Associative vmap]
    (update-values-or-seqs map vmap false))
-  ([^clojure.lang.IPersistentMap map
-    ^clojure.lang.IPersistentMap vmap
-    ^Boolean create-keys?]
-   (if (some? map)
+  (^IPersistentMap [^Associative map
+                    ^Associative vmap
+                    ^Boolean create-keys?]
+   (when (some? map)
      (if create-keys?
        (reduce-kv
-        (fn [^clojure.lang.IPersistentMap mp k v]
+        (fn ^Associative [^Associative mp k v]
           (qassoc mp k (if (fn? v) (v (get mp k)) v)))
         map vmap)
        (reduce-kv
@@ -603,18 +600,18 @@
         map vmap)))))
 
 (defn update-values-or-seqs-recur
-  "Returns the map with its values identified with keys from `vmap` recursively updated
+  "Returns a map with its values identified with keys from `vmap` recursively updated
   with the associated functions from `vmap`. Shape is not reflected, second
   map (`vmap`) should be flat, searching for keys is recursive, including nested
   vectors."
   {:added "1.0.0" :tag clojure.lang.IPersistentMap}
-  ([^clojure.lang.IPersistentMap map
-    ^clojure.lang.IPersistentMap vmap]
+  (^IPersistentMap [^clojure.lang.IPersistentMap map
+                    ^clojure.lang.IPersistentMap vmap]
    (update-values-or-seqs-recur map vmap false))
-  ([^clojure.lang.IPersistentMap map
-    ^clojure.lang.IPersistentMap vmap
-    ^Boolean create-keys?]
-   (if (some? map)
+  (^IPersistentMap [^clojure.lang.IPersistentMap map
+                    ^clojure.lang.IPersistentMap vmap
+                    ^Boolean create-keys?]
+   (when (some? map)
      (reduce-kv
       (fn [^clojure.lang.IPersistentMap mp k v]
         (if (or (map? v) (vector? v))
@@ -633,10 +630,10 @@
 
 (defn dissoc-in
   "Like `clojure.core/assoc-in` but removes entries. Leaves empty maps."
-  {:added "1.0.0" :tag clojure.lang.IPersistentMap}
-  [^clojure.lang.IPersistentMap m [k & ks :as keys]]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ^Associative [^Associative m [k & ks]]
   (if ks
-    (if-some [nmap (get m k)]
+    (if-some [^Associative nmap (get m k)]
       (qassoc m k (dissoc-in nmap ks))
       m)
     (dissoc m k)))
@@ -644,26 +641,29 @@
 (defn duplicate-keys
   "Returns a map `map` with the keys present in `kmap` duplicated under new names
   according to the values in `kmap`."
-  [map kmap]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ^Associative [^Associative map ^Associative kmap]
   (if (nil? kmap)
     map
     (reduce
-     (fn [m [old new]]
+     (fn ^Associative [^Associative m [old new]]
        (if (contains? map old)
          (qassoc m new (get map old))
          m))
      map kmap)))
 
 (defn nil-keys
-  [m keys]
-  (if (some? m)
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ^Associative [^Associative m keys]
+  (when (some? m)
     (if-some [keys (seq keys)]
       (apply qassoc m (interleave keys (repeat nil)))
       m)))
 
 (defn nil-existing-keys
-  [m keys]
-  (if (some? m)
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  ^Associative [^Associative m keys]
+  (when (some? m)
     (if-some [keys (seq (filter (partial contains? m) keys))]
       (apply qassoc m (interleave keys (repeat nil)))
       m)))
@@ -689,7 +689,8 @@
 
 (defn select-keys-lazy
   "Like `clojure.core/select-keys` but preserves unrealized values as they are."
-  [m keyseq]
+  {:added "1.0.0" :tag clojure.lang.Associative}
+  [^Associative m keyseq]
   (loop [ret  (lazy-map/lazy-map nil)
          keys (seq keyseq)]
     (if keys
