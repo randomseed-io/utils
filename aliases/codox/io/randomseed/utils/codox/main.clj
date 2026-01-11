@@ -2,7 +2,7 @@
   (:require [codox.main                      :as       c]
             [clojure.java.io                 :as      io]
             [clojure.edn                     :as     edn]
-            [clojure.tools.deps.alpha        :as    deps]
+            [clojure.tools.deps              :as    deps]
             [clojure.string                  :as     str]))
 
 (defn- read-deps
