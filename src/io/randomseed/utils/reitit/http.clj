@@ -70,7 +70,7 @@
 
   Object
 
-  ;; (satisfies? Router r)
+  ;; (satisfies? r/Router r)
   (^Boolean router? [r] false))
 
 (extend-protocol Matchable
