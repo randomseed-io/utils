@@ -45,52 +45,33 @@
   (^Associative [^Associative mp]
    mp)
   (^Associative [^Associative mp a b]
-   (if (nil? mp)
-     {a b}
-     (.assoc mp a b)))
+   (.assoc (if (nil? mp) {} mp) a b))
   (^Associative [^Associative mp a b c d]
-   (if (nil? mp)
-     {a b c d}
-     (.assoc ^Associative (.assoc mp a b) c d)))
+   (.assoc ^Associative (.assoc ^Associative (if (nil? mp) {} mp) a b) c d))
   (^Associative [^Associative mp a b c d e f]
-   (if (nil? mp)
-     {a b c d e f}
-     (qassoc* mp a b c d e f)))
+   (qassoc* (if (nil? mp) {} mp) a b c d e f))
   (^Associative [^Associative mp a b c d e f g h]
-   (if (nil? mp)
-     {a b c d e f g h}
-     (qassoc* mp a b c d e f g h)))
+   (qassoc* (if (nil? mp) {} mp) a b c d e f g h))
   (^Associative [^Associative mp a b c d e f g h i j]
-   (if (nil? mp)
-     {a b c d e f g h i j}
-     (qassoc* mp a b c d e f g h i j)))
+   (qassoc* (if (nil? mp) {} mp) a b c d e f g h i j))
   (^Associative [^Associative mp a b c d e f g h i j k l]
-   (if (nil? mp)
-     {a b c d e f g h i j k l}
-     (qassoc* mp a b c d e f g h i j k l)))
+   (qassoc* (if (nil? mp) {} mp) a b c d e f g h i j k l))
   (^Associative [^Associative mp a b c d e f g h i j k l m n]
-   (if (nil? mp)
-     {a b c d e f g h i j k l m n}
-     (qassoc* mp a b c d e f g h i j k l m n)))
+   (qassoc* (if (nil? mp) {} mp) a b c d e f g h i j k l m n))
   (^Associative [^Associative mp a b c d e f g h i j k l m n o p]
-   (if (nil? mp)
-     {a b c d e f g h i j k l m n o p}
-     (qassoc* mp a b c d e f g h i j k l m n o p)))
+   (qassoc* (if (nil? mp) {} mp) a b c d e f g h i j k l m n o p))
   (^Associative [^Associative mp a b c d e f g h i j k l m n o p q r]
-   (if (nil? mp)
-     {a b c d e f g h i j k l m n o p q r}
-     (qassoc* mp a b c d e f g h i j k l m n o p q r)))
+   (qassoc* (if (nil? mp) {} mp) a b c d e f g h i j k l m n o p q r))
   (^Associative [^Associative mp a b c d e f g h i j k l m n o p q r & pairs]
-   (if (nil? mp)
-     (apply qassoc {a b c d e f g h i j k l m n o p q r} pairs)
-     (let [pairs (seq pairs)]
-       (loop [^Associative r (qassoc mp a b c d e f g h i j k l m n o p q r)
-              s              pairs]
-         (if s
-           (if (next s)
-             (recur (.assoc r (first s) (second s)) (nnext s))
-             (throw (IllegalArgumentException. "qassoc expects even number of arguments, found odd number")))
-           r))))))
+   (let [^Associative mp (if (nil? mp) {} mp)
+         pairs           (seq pairs)]
+     (loop [^Associative r (qassoc mp a b c d e f g h i j k l m n o p q r)
+            s              pairs]
+       (if s
+         (if (next s)
+           (recur (.assoc r (first s) (second s)) (nnext s))
+           (throw (IllegalArgumentException. "qassoc expects even number of arguments, found odd number")))
+         r)))))
 
 (defn qupdate
   "Similar to `clojure.core/update`, updates a value in an associative structure,
