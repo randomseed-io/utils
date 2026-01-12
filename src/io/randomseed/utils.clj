@@ -1361,6 +1361,21 @@
      (str/upper-case
       (str (if (keyword? v) (symbol v) v))))))
 
+(defn some-keyword-down
+  [v]
+  (when (valuable? v)
+    (keyword
+     (str/lower-case
+      (str (if (keyword? v) (symbol v) v))))))
+
+(defn some-keyword-down-tr
+  [v]
+  (when (valuable? v)
+    (keyword
+     (str/lower-case
+      (str/trim
+       (str (if (keyword? v) (symbol v) v)))))))
+
 (defn some-keyword-simple
   [v]
   (when-some [v (some-keyword v)]
