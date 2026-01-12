@@ -1,5 +1,12 @@
 # History of random:utils releases
 
+## 1.2.38 (2026-01-12)
+
+- Improved `io.randomseed.utils.time/parse-duration`.
+- Speed optimizations and specification alignment in `io.randomseed.utils.map/qassoc`.
+- Added `io.randomseed.utils/some-keyword-down`, `io.randomseed.utils/some-keyword-down-tr`.
+- Added tests for `io.randomseed.utils.map` and `io.randomseed.utils.time`.
+
 ## 1.2.37 (2026-01-05)
 
 - Fixed logging issues when JAnsi is enabled, added context restoring.
