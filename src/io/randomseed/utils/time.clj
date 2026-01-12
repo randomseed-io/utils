@@ -13,106 +13,17 @@
 
   (:require [tick.core           :as       t]
             [tick.protocols      :as      tp]
-            [io.randomseed.utils :refer :all]))
-
-(defn- parse-ts-core
-  [s multiply?]
-  (if (valuable? s)
-    (if (t/instant? s) s
-        (if (inst? s)
-          (t/instant s)
-          (t/instant (if multiply?
-                       (* 1000 (some-long s))
-                       (some-long s)))))))
-
-(defn parse-ts
-  [s]
-  (parse-ts-core s false))
-
-(defn parse-ts-secs
-  [s]
-  (parse-ts-core s true))
-
-(defn safe-parse-ts
-  [s]
-  (try (parse-ts-core s false)
-       (catch Throwable e nil)))
-
-(defn safe-parse-ts-secs
-  [s]
-  (try (parse-ts-core s true)
-       (catch Throwable e nil)))
-
-(def date-time-rpat #"(\d\d\d\d[\.\-\/]\d\d[\.\-\/]\d\d)\s(\d\d:\d\d:\d\d(\.\d{2,4})?)")
-(def tstamp-pat     #"\d{10,17}")
-
-(defn- parse-dt-core
-  [s multiply?]
-  (if (valuable? s)
-    (if (inst? s)
-      (t/instant s)
-      (if (number? s)
-        (parse-ts-core s multiply?)
-        (if (string? s)
-          (let [[_ d t] (re-find date-time-rpat s)]
-            (if (and d t)
-              (tp/parse (str d "T" t))
-              (if-let [t (re-find tstamp-pat s)]
-                (parse-ts-core t multiply?)
-                (tp/parse s))))
-          (tp/parse (str s)))))))
-
-(defn parse-dt
-  [s]
-  (parse-dt-core s false))
-
-(defn parse-dt-secs
-  [s]
-  (parse-dt-core s true))
-
-(defn safe-parse-dt
-  [s]
-  (try (parse-dt-core s false)
-       (catch Throwable e nil)))
-
-(defn safe-parse-dt-secs
-  [s]
-  (try (parse-dt-core s true)
-       (catch Throwable e nil)))
-
-(defn timestamp
-  (^Long [] (.toEpochMilli ^Instant (t/now)))
-  (^Long [t]
-   (if (valuable? t)
-     (let [t (parse-dt t)]
-       (if (instant? t)
-         (.toEpochMilli ^Instant t)
-         (.toEpochMilli ^Instant (t/instant t)))))))
-
-(defn timestamp-secs
-  (^Long []  (long (/ (timestamp)   1000)))
-  (^Long [t] (if-some [t (timestamp t)] (long (/ t 1000)))))
-
-(defn zero-duration?
-  ^Boolean [^Duration d]
-  (.isZero ^Duration d))
-
-(defn pos-duration?
-  ^Boolean [^Duration d]
-  (not (or (.isNegative ^Duration d)
-           (.isZero     ^Duration d))))
-
-(defn neg-duration?
-  ^Boolean [^Duration d]
-  (.isNegative ^Duration d))
-
-(defn parse-dur-min
-  ^Duration [v]
-  (if-some [v (some-long v)]
-    (t/new-duration v :minutes)))
+            [clojure.string      :as     str]
+            [io.randomseed.utils :as       u]))
 
 (def ^:const duration-map
-  {:yoctosecond  :yoctoseconds
+  {:ns           :nanos
+   "ns"          :nanos
+   :us           :micros
+   "us"          :micros
+   :ms           :millis
+   "ms"          :millis
+   :yoctosecond  :yoctoseconds
    :zeptosecond  :zeptoseconds
    :attosecond   :attoseconds
    :femtosecond  :femtoseconds
@@ -150,46 +61,6 @@
    :era          :eras
    :eon          :eons})
 
-(defn parse-duration
-  "Parses time duration expressed as value and unit. For a single argument being a
-  single value it is treated as minutes. For a single value being a collection the
-  function is applied to consecutive values. For the given `d` and `default-unit` the
-  value of `d` is parsed as a long number and the unit is converted into a keyword
-  and should be one of the: `:day`, `:hour`, `:minute`, `:second`, `:millisecond`,
-  `:microsecond` or `:nanosecond` (including their corresponding plural forms). When
-  multiple arguments are given they are parsed in pairs and added to create a single
-  duration."
-  ([d]
-   (parse-duration d :minutes))
-  ([d default-unit]
-   (if d
-     (if (t/duration? d)
-       d
-       (if (map? d)
-         (let [t (or (:time d) (:duration d))
-               u (or (:unit d) (:units    d))]
-           (if (and t u)
-             (parse-duration (cons u (cons t nil)))
-             (if (and (= (count d) 1) (number? (ffirst d)))
-               (parse-duration (first d))
-               (t/new-duration 0 (or default-unit :minutes)))))
-         (if (sequential? d)
-           (let [dunit (some-keyword default-unit)
-                 dunit (or (get duration-map dunit dunit) :minutes)]
-             (->> (partition 2 2 '(nil) d)
-                  (map (fn [d]
-                         (let [unit (some-keyword (nth d 1))]
-                           (t/new-duration (safe-parse-long (nth d 0 0) 0)
-                                           (or (and unit (get duration-map unit unit))
-                                               dunit)))))
-                  (reduce t/+)))
-           (t/new-duration (safe-parse-long d 0)
-                           (if-some [dunit (some-keyword default-unit)]
-                             (get duration-map dunit dunit)
-                             :minutes)))))))
-  ([d default-unit & pairs]
-   (parse-duration (cons d (cons default-unit pairs)) :minutes)))
-
 (def ^:const unit-to-efn
   {:nanos   t/nanos
    :micros  t/micros
@@ -201,17 +72,337 @@
    :months  t/months
    :years   t/years})
 
+(def ^:private parse-duration-unit-alias
+  "Alias-map used *only* by parse-duration.
+  Intentionally does NOT include single-letter keyword shorthands like :m/:s,
+  so that [3 :m] continues to throw (matching tick.core/new-duration behavior)."
+  {;; nanos
+   :ns           :nanos
+   :nano         :nanos
+   :nanos        :nanos
+   :nanosecond   :nanos
+   :nanoseconds  :nanos
+   ;; micros
+   :us           :micros
+   :micro        :micros
+   :micros       :micros
+   :microsecond  :micros
+   :microseconds :micros
+   ;; millis
+   :ms           :millis
+   :milli        :millis
+   :millis       :millis
+   :millisecond  :millis
+   :milliseconds :millis
+   ;; seconds
+   :s            :seconds
+   :sec          :seconds
+   :secs         :seconds
+   :second       :seconds
+   :seconds      :seconds
+   ;; minutes
+   :m            :minutes
+   :min          :minutes
+   :mins         :minutes
+   :minute       :minutes
+   :minutes      :minutes
+   ;; hours
+   :h            :hours
+   :hr           :hours
+   :hrs          :hours
+   :hour         :hours
+   :hours        :hours
+   ;; days
+   :d            :days
+   :day          :days
+   :days         :days})
+
+(def ^:private compact-duration-unit->canonical
+  "Units supported in compact string syntax like \"3m\" / \"0.05s\"."
+  {"ns"      :nanos
+   "us"      :micros
+   "µs"      :micros
+   "ms"      :millis
+   "s"       :seconds
+   "sec"     :seconds
+   "secs"    :seconds
+   "second"  :seconds
+   "seconds" :seconds
+   "m"       :minutes
+   "min"     :minutes
+   "mins"    :minutes
+   "minute"  :minutes
+   "minutes" :minutes
+   "h"       :hours
+   "hr"      :hours
+   "hrs"     :hours
+   "hour"    :hours
+   "hours"   :hours
+   "d"       :days
+   "day"     :days
+   "days"    :days})
+
+(defn- ^:private assert-valid-duration-unit!
+  [u]
+  (when-not (keyword? u)
+    (throw (AssertionError. (str "Duration unit must be a keyword, got: " (pr-str u)))))
+  (when-not (contains? #{:nanos :micros :millis :seconds :minutes :hours :days} u)
+    ;; We throw AssertionError on purpose, to mirror tick.core/new-duration style failures.
+    (throw (AssertionError. (str "Unsupported duration unit: " (pr-str u))))))
+
+(defn- ^:private canonicalize-duration-unit
+  "Normalizes common aliases (like :sec -> :seconds)."
+  [u]
+  (when-some [u (u/some-keyword-down-tr u)]
+    (or (get parse-duration-unit-alias u)
+        (get parse-duration-unit-alias (get duration-map u))
+        u)))
+
+(defn- ^:private duration-from-decimal
+  "Creates java.time.Duration from a BigDecimal value + canonical unit keyword."
+  ^Duration [^java.math.BigDecimal n unit]
+  (assert-valid-duration-unit! unit)
+  (let [^java.math.BigDecimal factor
+        (case unit
+          :nanos   (java.math.BigDecimal. "1")
+          :micros  (java.math.BigDecimal. "1000")
+          :millis  (java.math.BigDecimal. "1000000")
+          :seconds (java.math.BigDecimal. "1000000000")
+          :minutes (java.math.BigDecimal. "60000000000")
+          :hours   (java.math.BigDecimal. "3600000000000")
+          :days    (java.math.BigDecimal. "86400000000000"))
+        ;; nanos = n * factor, rounded to nearest nanosecond
+        ^java.math.BigDecimal nanos-bd
+        (.setScale (.multiply n factor) 0 java.math.RoundingMode/HALF_UP)
+        nanos (try
+                (.longValueExact nanos-bd)
+                (catch ArithmeticException _
+                  (throw (ArithmeticException.
+                          (str "Duration too large (nanos overflow): " (.toPlainString nanos-bd))))))]
+    (Duration/ofNanos nanos)))
+
+(defn- ^:private parse-duration-compact-string
+  "Parses compact duration syntax: \"3m\", \"10s\", \"0.05s\", \"250ms\", etc.
+  Also accepts ISO-8601 duration strings like \"PT3M\" (via Duration/parse)."
+  ^Duration [^String s]
+  (let [s (some-> s str/trim)]
+    (when (seq s)
+      (cond
+        ;; ISO-8601 duration
+        (or (str/starts-with? s "P") (str/starts-with? s "p"))
+        (Duration/parse (str/upper-case s))
+
+        :else
+        (let [m (re-matches #"(?i)^\s*([+-]?\d+(?:\.\d+)?)\s*([a-zµ]+)\s*$" s)]
+          (when m
+            (let [num-str  (nth m 1)
+                  unit-str (-> (nth m 2) str/lower-case)
+                  unit     (get compact-duration-unit->canonical unit-str)]
+              (when unit
+                (duration-from-decimal (java.math.BigDecimal. num-str) unit)))))))))
+
+(defn- parse-ts-core
+  [s multiply?]
+  (when (u/valuable? s)
+    (if (t/instant? s) s
+        (if (inst? s)
+          (t/instant s)
+          (t/instant (if multiply?
+                       (* 1000 (u/some-long s))
+                       (u/some-long s)))))))
+
+(defn parse-ts
+  [s]
+  (parse-ts-core s false))
+
+(defn parse-ts-secs
+  [s]
+  (parse-ts-core s true))
+
+(defn safe-parse-ts
+  [s]
+  (try (parse-ts-core s false)
+       (catch Throwable _e nil)))
+
+(defn safe-parse-ts-secs
+  [s]
+  (try (parse-ts-core s true)
+       (catch Throwable _e nil)))
+
+(def date-time-rpat #"(\d\d\d\d[\.\-\/]\d\d[\.\-\/]\d\d)\s(\d\d:\d\d:\d\d(\.\d{2,4})?)")
+(def tstamp-pat     #"\d{10,17}")
+
+(defn- parse-dt-core
+  [s multiply?]
+  (when (u/valuable? s)
+    (if (inst? s)
+      (t/instant s)
+      (if (number? s)
+        (parse-ts-core s multiply?)
+        (if (string? s)
+          (let [[_ d t] (re-find date-time-rpat s)]
+            (if (and d t)
+              (tp/parse (str d "T" t))
+              (if-let [t (re-find tstamp-pat s)]
+                (parse-ts-core t multiply?)
+                (tp/parse s))))
+          (tp/parse (str s)))))))
+
+(defn parse-dt
+  [s]
+  (parse-dt-core s false))
+
+(defn parse-dt-secs
+  [s]
+  (parse-dt-core s true))
+
+(defn safe-parse-dt
+  [s]
+  (try (parse-dt-core s false)
+       (catch Throwable _e nil)))
+
+(defn safe-parse-dt-secs
+  [s]
+  (try (parse-dt-core s true)
+       (catch Throwable _e nil)))
+
+(defn timestamp
+  (^Long [] (.toEpochMilli ^Instant (t/now)))
+  (^Long [t]
+   (when (u/valuable? t)
+     (let [t (parse-dt t)]
+       (if (u/instant? t)
+         (.toEpochMilli ^Instant t)
+         (.toEpochMilli ^Instant (t/instant t)))))))
+
+(defn timestamp-secs
+  (^Long []  (long (/ (timestamp)   1000)))
+  (^Long [t] (when-some [t (timestamp t)] (long (/ t 1000)))))
+
+(defn zero-duration?
+  ^Boolean [^Duration d]
+  (.isZero ^Duration d))
+
+(defn pos-duration?
+  ^Boolean [^Duration d]
+  (not (or (.isNegative ^Duration d)
+           (.isZero     ^Duration d))))
+
+(defn neg-duration?
+  ^Boolean [^Duration d]
+  (.isNegative ^Duration d))
+
+(defn parse-dur-min
+  ^Duration [v]
+  (when-some [v (u/some-long v)]
+    (t/new-duration v :minutes)))
+
+(defn parse-duration
+  "Parses a duration from many forms.
+
+  Supported:
+  - nil -> nil
+  - java.time.Duration -> passthrough
+  - number -> treated as (default-unit), default is :minutes
+  - string:
+      * ISO-8601 Duration (\"PT3M\")
+      * compact (\"3m\", \"0.05s\", \"250ms\")
+  - vector/list:
+      * [time unit] or [unit time]
+      * even-length sequences are treated as (time unit) pairs and summed
+  - map:
+      * {:time <n> :unit <kw>} (unit optional -> default-unit)
+
+  Notes:
+  - Keyword shorthands like :m are intentionally NOT accepted here (they should throw),
+    even if you keep a broader duration-map for convenience elsewhere."
+  ([v]
+   (parse-duration v :minutes))
+  ([v default-unit]
+   (let [default-unit (canonicalize-duration-unit default-unit)]
+     (when (some? default-unit)
+       ;; if you pass default-unit, we validate it early
+       (assert-valid-duration-unit! default-unit))
+     (cond
+       (nil? v)
+       nil
+
+       (instance? Duration v)
+       v
+
+       ;; numeric -> default unit
+       (number? v)
+       (t/new-duration v (or default-unit :minutes))
+
+       ;; string -> compact/ISO parser (if it can't parse, return ZERO to stay conservative)
+       (string? v)
+       (or (parse-duration-compact-string v)
+           Duration/ZERO)
+
+       ;; map form {:time .. :unit ..}
+       (map? v)
+       (let [tval (get v :time)
+             uval (some-> (get v :unit) canonicalize-duration-unit)
+             uval (or uval default-unit :minutes)]
+         (assert-valid-duration-unit! uval)
+         (t/new-duration tval uval))
+
+       ;; sequential forms
+       (sequential? v)
+       (let [xs (seq v)]
+         (cond
+           (nil? xs)
+           Duration/ZERO
+
+           ;; single element -> treat as numeric with default-unit
+           (and (next xs) (nil? (nnext xs)))
+           (let [a (first xs)
+                 b (second xs)]
+             (cond
+               (and (number? a) (keyword? b))
+               (let [u (canonicalize-duration-unit b)]
+                 ;; do NOT accept :m etc: if not canonical -> assert
+                 (assert-valid-duration-unit! u)
+                 (t/new-duration a u))
+
+               (and (keyword? a) (number? b))
+               (let [u (canonicalize-duration-unit a)]
+                 (assert-valid-duration-unit! u)
+                 (t/new-duration b u))
+
+               :else
+               ;; fallback: treat first element as value with default unit
+               (parse-duration a default-unit)))
+
+           ;; even-length -> sum pairs (time unit)
+           (even? (count v))
+           (reduce
+            (fn [^Duration acc [time unit]]
+              (let [u (canonicalize-duration-unit unit)]
+                (assert-valid-duration-unit! u)
+                (.plus acc ^Duration (t/new-duration time u))))
+            Duration/ZERO
+            (partition 2 v))
+
+           :else
+           (throw (IllegalArgumentException.
+                   (str "Odd number of elements in duration sequence: " (pr-str v))))))
+
+       :else
+       (throw (IllegalArgumentException.
+               (str "Unsupported duration value: " (pr-str (type v)) " " (pr-str v))))))))
+
 (defn time-unit
   ([v default-unit]
    (time-unit v default-unit
               (get unit-to-efn (get duration-map default-unit default-unit))))
   ([v default-unit extraction-fn]
-   (if v
+   (when v
      (if (t/duration? v)
        (extraction-fn v)
        (if (number? v)
-         (safe-parse-long v)
-         (if-some [dur (parse-duration v (or default-unit :minutes))]
+         (u/safe-parse-long v)
+         (when-some [dur (parse-duration v (or default-unit :minutes))]
            (extraction-fn dur)))))))
 
 (defn millis
@@ -274,7 +465,7 @@
   ([v]
    (duration-or-time v nil))
   ([v t]
-   (if v
+   (when v
      (if (t/duration? v)
        [v (duration->time v (or t (t/now)))]
        [(time->duration v (or t (t/now))) v]))))
@@ -317,7 +508,7 @@
 (defn try-times*
   [times thunk]
   (let [res (first (drop-while
-                    exception?
+                    u/exception?
                     (repeatedly times
                                 #(try (thunk)
                                       (catch Exception e
@@ -325,7 +516,7 @@
                                           (println "Exception:" (str e))
                                           (Thread/sleep 5000)
                                           e))))))]
-    (if (exception? res)
+    (if (u/exception? res)
       (throw res)
       res)))
 
