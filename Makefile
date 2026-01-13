@@ -50,6 +50,7 @@ deploy:
 
 clean:
 			rm -f $(APPNAME).jar pom.xml.asc
+			find . -name .DS_Store | xargs rm
 
 .PHONY: list
 list:
