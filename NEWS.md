@@ -1,5 +1,16 @@
 # History of random:utils releases
 
+## 1.2.39 (2026-01-13)
+
+- Added to `io.randomseed.utils`:
+  `plaintext->base64-url-safe`, `base64-url-safe->plaintext`, `plaintext->base64`,
+  `base64->plaintext`, `base64-url-safe->bin`, `bin->base64-url-safe`, `base64->bin`,
+  `bin->base64`, `bin->plaintext`.
+- Added to `io.randomseed.utils.crypto`:
+  `salt-b64->bin`, `salt-bin->b64`, `key-b64->bin`, `key-bin->b64`, `key-text-bin`.
+- Fixed interactive password and key readers to allow option overrides in `io.randomseed.utils.crypto`.
+- Added tests for `io.randomseed.utils.crypto`.
+
 ## 1.2.38 (2026-01-12)
 
 - Improved `io.randomseed.utils.time/parse-duration`.
