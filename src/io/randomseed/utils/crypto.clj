@@ -6,33 +6,47 @@
 
     io.randomseed.utils.crypto
 
-  (:refer-clojure :exclude [parse-long uuid random-uuid])
-
-  (:import [java.util Random]
-           [java.io   Console])
-
-  (:require [crypto.equality     :as       eq]
-            [buddy.core.crypto   :as   crypto]
+  (:require [buddy.core.crypto   :as   crypto]
             [buddy.core.codecs   :as   codecs]
             [buddy.core.nonce    :as    nonce]
             [buddy.core.hash     :as     hash]
-            [io.randomseed.utils :refer  :all]))
+            [io.randomseed.utils :as        u]))
 
 ;;
 ;; Key encryption
 ;;
 
-(defn salt->bin
+(defn salt-b64->bin
+  "Decodes Base64-encoded, url-safe salt string to bytes. Returns nil on nil input."
   [v]
-  (codecs/b64u->bytes (codecs/str->bytes (some-str v))))
+  (when v (u/base64-url-safe->bin v)))
 
-(defn key->bin
+(defn salt-bin->b64
+  "Encodes binary salt data to a Base64-encoded, url-safe string."
   [v]
-  (codecs/b64u->bytes (codecs/str->bytes (some-str v))))
+  (u/bin->base64-url-safe v))
+
+(defn key-b64->bin
+  "Decodes Base64-encoded, url-safe key string to bytes. Returns nil on nil
+  input."
+  [v]
+  (when v (u/base64-url-safe->bin v)))
+
+(defn key-bin->b64
+  "Encodes binary key data to Base64-encoded, url-safe string."
+  [^bytes v]
+  (u/bin->base64-url-safe v))
+
+(defn key-text->bin
+  "Decodes text key to bytes."
+  ^bytes [v]
+  (u/plaintext->bin v))
 
 (defn pwd->bin
-  [v]
-  (hash/sha256 (some-str v)))
+  "Hashes password with SHA-256 (bytes). Returns nil on nil/empty input."
+  ^bytes [pwd]
+  (when-some [s (u/some-str pwd)]
+    (hash/sha256 s)))
 
 (defn encrypt-key
   "Encrypts private key using random IV and the given password. Returns base64-encoded
