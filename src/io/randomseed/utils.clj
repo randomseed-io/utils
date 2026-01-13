@@ -848,10 +848,87 @@
 
 ;; Bytes
 
-(defn b64-to-bytes
-  "Converts Base64 encoded string to array of bytes."
-  ^"[B" [s]
-  (codecs/b64->bytes (codecs/str->bytes (str s))))
+(defn plaintext->bin
+  "Takes an object, converts it to a string (unless it's already a string), and returns
+  its byte-array representation."
+  {:added "1.0.0"}
+  ^bytes [v]
+  (codecs/str->bytes (str v)))
+
+(defn bin->plaintext
+  "Takes a byte array and returns a string."
+  {:added "1.2.39"}
+  [^bytes v]
+  (codecs/bytes->str v))
+
+(defn plaintext->base64-url-safe
+  "Takes an object, converts it to a string (unless it's already a string), and returns
+  a string (Base64-encoded, url-safe representation)."
+  {:added "1.2.39"}
+  [v]
+  (codecs/bytes->b64-str
+   (codecs/str->bytes (or (some-str v) ""))
+   true))
+
+(defn base64-url-safe->plaintext
+  "Takes an object, converts it to a string (unless it's already a string) which should
+  be a Base64-encoded, url-safe representation of data, and returns a plain-text
+  string."
+  {:added "1.2.39"}
+  [v]
+  (codecs/b64->str
+   (codecs/str->bytes (or (some-str v) ""))
+   true))
+
+(defn plaintext->base64
+  "Takes an object, converts it to a string (unless it's already a string), and returns
+  a string (Base64-encoded representation, not url-safe)."
+  {:added "1.2.39"}
+  [v]
+  (codecs/bytes->b64-str
+   (codecs/str->bytes (or (some-str v) ""))
+   false))
+
+(defn base64->plaintext
+  "Takes an object, converts it to a string (unless it's already a string) which should
+  be a Base64-encoded representation of data, and returns a plain-text string."
+  {:added "1.2.39"}
+  [v]
+  (codecs/b64->str
+   (codecs/str->bytes (or (some-str v) ""))
+   false))
+
+(defn base64-url-safe->bin
+  "Takes an object, converts it to a string (unless it's already a string) which should
+  be a Base64-encoded, url-safe representation of data, and returns a decoded byte array."
+  {:added "1.2.39"}
+  ^bytes [v]
+  (codecs/b64->bytes
+   (codecs/str->bytes (or (some-str v) ""))
+   true))
+
+(defn bin->base64-url-safe
+  "Takes a byte array and returns its Base64-encoded, url-safe representation."
+  {:added "1.2.39"}
+  [^bytes v]
+  (codecs/bytes->b64-str v true))
+
+(defn base64->bin
+  "Takes an object, converts it to a string (unless it's already a string) which should
+  be a Base64-encoded representation of data, and returns a decoded byte array."
+  {:added "1.2.39"}
+  ^bytes [v]
+  (codecs/b64->bytes
+   (codecs/str->bytes (or (some-str v) ""))
+   false))
+
+(defn bin->base64
+  "Takes a byte array and returns its Base64-encoded representation."
+  {:added "1.2.39"}
+  [^bytes v]
+  (codecs/bytes->b64-str v false))
+
+(def b64-to-bytes base64-url-safe->bin)
 
 (defn to-bytes
   "Converts object to bytes by converting it to a string first with UTF-8 encoding."
@@ -876,7 +953,7 @@
    (not-empty bary))
   (^"[B" [^"[B" bary & byte-arys]
    (let [byte-arys (remove empty? (cons bary byte-arys))]
-     (if (seq byte-arys)
+     (when (seq byte-arys)
        (let [sum-size          (apply + (map count byte-arys))
              ^"[B"       buff  (byte-array sum-size)
              ^ByteBuffer bbuff (ByteBuffer/wrap buff)]
