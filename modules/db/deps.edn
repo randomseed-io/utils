@@ -1,0 +1,50 @@
+{:paths   ["src" "resources"]
+ :deps    {io.randomseed/utils-core            {:local/root  "../core"}
+           io.randomseed/utils-time            {:local/root  "../time"}
+           io.randomseed/utils-log             {:local/root  "../log"}
+           potemkin/potemkin                   {:mvn/version "0.4.6"}      ;; var exposition
+           danlentz/clj-uuid                   {:mvn/version "0.2.0"}      ;; UUID support
+           org.clojure/core.memoize            {:mvn/version "1.1.266"}    ;; memoization
+           org.clojure/core.cache              {:mvn/version "1.1.234"}    ;; caching
+           org.clojure/core.async              {:mvn/version "1.8.741"}    ;; asynchronous operations
+           mvxcvi/puget                        {:mvn/version "1.3.4"}      ;; pretty printing
+           io.randomseed/phone-number          {:mvn/version "8.13.6-3"}   ;; phone number validation
+           com.github.seancorfield/next.jdbc   {:mvn/version "1.3.1086"}   ;; JDBC driver
+           com.taoensso/encore                 {:mvn/version "3.159.0"}    ;; explicit dependency for nippy
+           com.taoensso/nippy                  {:mvn/version "3.6.0"}}     ;; data serialization
+ :aliases {:test      {:extra-paths ["test"]
+                       :extra-deps  {org.clojure/test.check {:mvn/version "1.1.3"}
+                                     ns-tracker/ns-tracker  {:mvn/version "1.0.0"}
+                                     orchestra/orchestra    {:mvn/version "2021.01.01-1"}
+                                     expound/expound        {:mvn/version "0.9.0"}
+                                     lambdaisland/kaocha    {:mvn/version "1.91.1392"}}
+                       :exec-fn     kaocha.runner/-main
+                       :main-opts   ["-m" "kaocha.runner",
+                                     "--config-file"   "tests.edn",
+                                     "--stc-num-tests" "100"
+                                     "--stc-instrumentation"
+                                     "--stc-asserts"
+                                     "--no-profiling"]
+                       :jvm-opts    ["-Xmx512m"]}
+           :test-full {:extra-paths ["test"]
+                       :extra-deps  {ns-tracker/ns-tracker         {:mvn/version "1.0.0"}
+                                     orchestra/orchestra           {:mvn/version "2021.01.01-1"}
+                                     lambdaisland/kaocha           {:mvn/version "1.91.1392"}
+                                     lambdaisland/kaocha-cloverage {:mvn/version "1.1.89"}
+                                     expound/expound               {:mvn/version "0.9.0"}}
+                       :exec-fn     kaocha.runner/-main
+                       :main-opts   ["-m" "kaocha.runner",
+                                     "--config-file"   "tests.edn",
+                                     "--stc-num-tests" "100"
+                                     "--stc-instrumentation"
+                                     "--stc-asserts"]
+                       :jvm-opts    ["-Xmx512m"]}
+           :eastwood  {:main-opts  ["-m" "eastwood.lint" {:source-paths ["src"]}]
+                       :extra-deps {org.clojure/tools.namespace {:mvn/version "1.5.1"}
+                                    org.clojure/tools.deps      {:mvn/version "0.28.1569"}
+                                    org.clojure/spec.alpha      {:mvn/version "0.6.249"}
+                                    org.clojure/test.check      {:mvn/version "1.1.3"}
+                                    ns-tracker/ns-tracker       {:mvn/version "1.0.0"}
+                                    orchestra/orchestra         {:mvn/version "2021.01.01-1"}
+                                    expound/expound             {:mvn/version "0.9.0"}
+                                    jonase/eastwood             {:mvn/version "1.4.3"}}}}}

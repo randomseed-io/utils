@@ -1,0 +1,42 @@
+{:paths   ["src" "resources"]
+ :deps    {camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.3"}      ;; case conversions
+           com.intuitiveexplanations/lazy-map  {:mvn/version "1.0.0"}      ;; lazy maps
+           org.clojure/java.classpath          {:mvn/version "1.1.1"}      ;; Java classpath tools
+           mvxcvi/puget                        {:mvn/version "1.3.4"}      ;; pretty printing
+           clj-http/clj-http                   {:mvn/version "3.13.1"}}    ;; HTTP operations
+ :aliases {:test      {:extra-paths ["test"]
+                       :extra-deps  {org.clojure/test.check {:mvn/version "1.1.3"}
+                                     ns-tracker/ns-tracker  {:mvn/version "1.0.0"}
+                                     orchestra/orchestra    {:mvn/version "2021.01.01-1"}
+                                     expound/expound        {:mvn/version "0.9.0"}
+                                     lambdaisland/kaocha    {:mvn/version "1.91.1392"}}
+                       :exec-fn     kaocha.runner/-main
+                       :main-opts   ["-m" "kaocha.runner",
+                                     "--config-file"   "tests.edn",
+                                     "--stc-num-tests" "100"
+                                     "--stc-instrumentation"
+                                     "--stc-asserts"
+                                     "--no-profiling"]
+                       :jvm-opts    ["-Xmx512m"]}
+           :test-full {:extra-paths ["test"]
+                       :extra-deps  {ns-tracker/ns-tracker         {:mvn/version "1.0.0"}
+                                     orchestra/orchestra           {:mvn/version "2021.01.01-1"}
+                                     lambdaisland/kaocha           {:mvn/version "1.91.1392"}
+                                     lambdaisland/kaocha-cloverage {:mvn/version "1.1.89"}
+                                     expound/expound               {:mvn/version "0.9.0"}}
+                       :exec-fn     kaocha.runner/-main
+                       :main-opts   ["-m" "kaocha.runner",
+                                     "--config-file"   "tests.edn",
+                                     "--stc-num-tests" "100"
+                                     "--stc-instrumentation"
+                                     "--stc-asserts"]
+                       :jvm-opts    ["-Xmx512m"]}
+           :eastwood  {:main-opts  ["-m" "eastwood.lint" {:source-paths ["src"]}]
+                       :extra-deps {org.clojure/tools.namespace {:mvn/version "1.5.1"}
+                                    org.clojure/tools.deps      {:mvn/version "0.28.1569"}
+                                    org.clojure/spec.alpha      {:mvn/version "0.6.249"}
+                                    org.clojure/test.check      {:mvn/version "1.1.3"}
+                                    ns-tracker/ns-tracker       {:mvn/version "1.0.0"}
+                                    orchestra/orchestra         {:mvn/version "2021.01.01-1"}
+                                    expound/expound             {:mvn/version "0.9.0"}
+                                    jonase/eastwood             {:mvn/version "1.4.3"}}}}}

@@ -1,4 +1,8 @@
 #!/bin/sh
 
+[ -d $1/test ] || exit 0
+echo "Testing $1"
+
+cd $1
 test -f secrets.env && . secrets.env
 clojure -X:test
