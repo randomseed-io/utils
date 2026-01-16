@@ -15,7 +15,7 @@
     </license>
   </licenses>
   <scm>
-    <connection>scm:git:git://github.org/randomseed-io/utils.git</connection>
+    <connection>scm:git:git://github.com/randomseed-io/utils.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/randomseed-io/utils.git</developerConnection>
     <tag>1.2.39</tag>
     <url>https://github.com/randomseed-io/utils/</url>

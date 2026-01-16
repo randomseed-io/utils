@@ -9,12 +9,14 @@ moddir         = modules/$1
 pomfile        = modules/$1/pom.xml
 jarfile        = target/utils-$1-$(VERSION).jar
 
-.PHONY: watch default docs deploy deploy-all \
-        test tests test-all \
-        pom poms pom-all $(addprefix pom-,$(MODULES)) \
-        jar jars jar-all $(addprefix jar-,$(MODULES)) \
-        sig sigs sig-all $(addprefix sig-,$(MODULES)) \
-        tag clean clean-all
+.PHONY: watch default docs
+.PHONY: deploy deploys deploy-all
+.PHONY: test tests test-al
+.PHONY: sync-pom sync-poms sync-pom-all
+.PHONY: pom poms pom-all
+.PHONY: jar jars jar-all
+.PHONY: sig sigs sig-all
+.PHONY: tag clean clean-all
 
 default:		docs
 
@@ -33,7 +35,7 @@ test-%:
 			@rm -rf $(call moddir,$*)/.cpcache
 			@bin/test $(call moddir,$*)
 
-tests: $(addprefix test-,$(MODULES))
+tests: $(MODULES:%=test-%)
 
 test: tests
 
@@ -43,20 +45,20 @@ sync-pom-%:
 			@echo "[sync-pom] $*"
 			$(BUILD) sync-pom :module :$*
 
-sync-poms: clean $(addprefix sync-pom-,$(MODULES))
+sync-poms: clean $(MODULES:%=sync-pom-%)
 
 sync-pom-all: sync-poms
 
 sync-pom: sync-poms
 
-pom-%: clean
+pom-%:
 			@echo "[pom] $* -> $(VERSION)"
 			@mvn -f $(call pomfile,$*) versions:set versions:commit -DnewVersion="$(VERSION)"
 			@mvn -f $(call pomfile,$*) versions:set-scm-tag -DnewTag="$(VERSION)"
 			@rm -f $(call pomfile,$*).asc || true
 			$(BUILD) sync-pom :module :$*
 
-poms: $(addprefix pom-,$(MODULES))
+poms: $(MODULES:%=pom-%)
 
 pom-all: poms
 
@@ -66,7 +68,7 @@ jar-%: clean pom-%
 			@echo "[jar] $*"
 			$(BUILD) jar :module :$*
 
-jars: $(addprefix jar-,$(MODULES))
+jars: $(MODULES:%=jar-%)
 
 jar-all: jars
 
@@ -80,7 +82,7 @@ deploy-%: clean pom-% jar-%
 			@echo @$(DEPLOY) deploy :artifact "\"$(call jarfile,$*)\""
 			@echo @test -f "$(APPNAME)-$(VERSION).pom.asc" && mv -f "$(APPNAME)-$(VERSION).pom.asc" "$(POMFILE).asc" || true
 
-deploy-all: clean-all $(addprefix deploy-,$(MODULES))
+deploy-all: clean-all $(MODULES:%=deploy-%)
 
 deploy: deploy-all
 
@@ -89,7 +91,7 @@ sig-%:
 			@rm -f $(call pomfile,$*).asc
 			@gpg2 --armor --detach-sig $(call pomfile,$*)
 
-sigs: $(addprefix sig-,$(MODULES))
+sigs: $(MODULES:%=sig-%)
 
 sigs-all: sigs
 
