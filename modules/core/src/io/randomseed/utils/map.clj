@@ -6,9 +6,9 @@
 
     io.randomseed.utils.map
 
-  (:require [io.randomseed.utils :refer  [bytes-to-string
+  (:require [io.randomseed.utils    :refer  [bytes-to-string
                                           normalize-to-bytes]]
-            [lazy-map.core       :as                 lazy-map])
+            [io.randomseed.lazy-map :as              lazy-map])
 
   (:import  (clojure.lang  Associative IPersistentMap)
             (lazy_map.core LazyMapEntry LazyMap)))

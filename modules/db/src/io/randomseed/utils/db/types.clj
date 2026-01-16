@@ -7,6 +7,7 @@
     io.randomseed.utils.db.types
 
   (:require [io.randomseed.utils.db]
+            [io.randomseed.utils.ip]
             [potemkin             :as     p]
             [next.jdbc.result-set :as    rs]
             [next.jdbc.prepare    :as    jp]
@@ -19,8 +20,9 @@
             (java.util                    UUID Calendar GregorianCalendar TimeZone)
             (java.io                      Closeable)
             (inet.ipaddr.ipv4             IPv4Address)
-            (inet.ipaddr.ipv6             IPv6Address)
-            (com.google.i18n.phonenumbers Phonenumber$PhoneNumber)))
+            (inet.ipaddr.ipv6             IPv6Address)))
+
+(import '(com.google.i18n.phonenumbers Phonenumber$PhoneNumber))
 
 (set! *warn-on-reflection* true)
 

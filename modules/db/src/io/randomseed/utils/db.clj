@@ -43,7 +43,7 @@
   "Converts the given ID to a value suitable to be stored in a database. If `v` is a
   number, it is passed as is. Otherwise it is converted to a string."
   [v]
-  (when v (if (number? v) v (some-str v))))
+  (when v (if (number? v) v (u/some-str v))))
 
 (defn id-as-str
   "Tries to convert the given argument to a string identifier."

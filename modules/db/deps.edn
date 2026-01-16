@@ -1,17 +1,18 @@
 {:paths   ["src" "resources"]
- :deps    {io.randomseed/utils-core            {:local/root  "../core"}
-           io.randomseed/utils-time            {:local/root  "../time"}
-           io.randomseed/utils-log             {:local/root  "../log"}
-           potemkin/potemkin                   {:mvn/version "0.4.6"}      ;; var exposition
-           danlentz/clj-uuid                   {:mvn/version "0.2.0"}      ;; UUID support
-           org.clojure/core.memoize            {:mvn/version "1.1.266"}    ;; memoization
-           org.clojure/core.cache              {:mvn/version "1.1.234"}    ;; caching
-           org.clojure/core.async              {:mvn/version "1.8.741"}    ;; asynchronous operations
-           mvxcvi/puget                        {:mvn/version "1.3.4"}      ;; pretty printing
-           io.randomseed/phone-number          {:mvn/version "8.13.6-3"}   ;; phone number validation
-           com.github.seancorfield/next.jdbc   {:mvn/version "1.3.1086"}   ;; JDBC driver
-           com.taoensso/encore                 {:mvn/version "3.159.0"}    ;; explicit dependency for nippy
-           com.taoensso/nippy                  {:mvn/version "3.6.0"}}     ;; data serialization
+ :deps    {io.randomseed/utils-core          {:local/root "../core"}
+           io.randomseed/utils-time          {:local/root "../time"}
+           io.randomseed/utils-log           {:local/root "../log"}
+           io.randomseed/utils-ip            {:local/root "../ip"}
+           potemkin/potemkin                 {:mvn/version "0.4.6"}      ;; var exposition
+           danlentz/clj-uuid                 {:mvn/version "0.2.0"}      ;; UUID support
+           org.clojure/core.memoize          {:mvn/version "1.1.266"}    ;; memoization
+           org.clojure/core.cache            {:mvn/version "1.1.234"}    ;; caching
+           org.clojure/core.async            {:mvn/version "1.8.741"}    ;; asynchronous operations
+           mvxcvi/puget                      {:mvn/version "1.3.4"}      ;; pretty printing
+           io.randomseed/phone-number        {:mvn/version "8.13.6-3"}   ;; phone number validation
+           com.github.seancorfield/next.jdbc {:mvn/version "1.3.1086"}   ;; JDBC driver
+           com.taoensso/encore               {:mvn/version "3.159.0"}    ;; explicit dependency for nippy
+           com.taoensso/nippy                {:mvn/version "3.6.0"}}     ;; data serialization
  :aliases {:test      {:extra-paths ["test"]
                        :extra-deps  {org.clojure/test.check {:mvn/version "1.1.3"}
                                      ns-tracker/ns-tracker  {:mvn/version "1.0.0"}
