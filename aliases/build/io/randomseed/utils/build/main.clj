@@ -129,7 +129,7 @@
     (if (or (nil? mname) (= "all" mname))
       (jars opts)
       (let [m (ensure-module! mname)]
-        (sync-pom {:module m})
+        ;; (sync-pom {:module m})
         (let [jar-path (module-jar-path m version)
               basis    (basis-for m)]
           (io/make-parents (io/file jar-path))

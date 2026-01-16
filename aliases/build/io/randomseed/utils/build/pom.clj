@@ -5,9 +5,21 @@
             [clojure.string   :as str]
             [clojure.data.xml :as xml]))
 
-(defn- read-edn-file [path]
-  (with-open [r (io/reader path)]
+(defn- read-edn-file
+  [path]
+  (with-open [r (java.io.PushbackReader. (io/reader path))]
     (edn/read {:readers *data-readers*} r)))
+
+(defn- strip-xml-declaration
+  [s]
+  (-> s
+      (str/replace #"(?s)^\s*<\?xml[^>]*\?>\s*" "")
+      str/trim))
+
+(defn- provided-scope?
+  [{:keys [groupId artifactId]}]
+  (and (= groupId "org.clojure")
+       (= artifactId "clojure")))
 
 (defn- lib->ga
   "deps.edn lib symbol (group/artifact) -> [groupId artifactId]."
@@ -17,6 +29,11 @@
     (if (neg? i)
       [s s]
       [(subs s 0 i) (subs s (inc i))])))
+
+(defn- rel-local-root?
+  [^String root]
+  (or (str/starts-with? root "./")
+      (str/starts-with? root "../")))
 
 (defn- artifact-base
   "Given a lib symbol like io.randomseed/utils-log returns the artifact base,
@@ -47,8 +64,7 @@
 
     (contains? coord :local/root)
     (let [root (str (:local/root coord))
-          rel? (or (str/starts-with? root "./")
-                   (str/starts-with? root "../"))]
+          rel? (rel-local-root? root)]
       (cond
         (and rel?
              (some? name)
@@ -69,7 +85,8 @@
    [{:groupId .. :artifactId .. :version ..} ...] sorted deterministically.
 
    Options:
-     :local-root-version (default \"${project.version}\")"
+     :local-root-version (default \"${project.version}\")
+     :name (used only for relative :local/root replacement rule)"
   ([deps-edn-path] (deps->maven-deps deps-edn-path nil))
   ([deps-edn-path opts]
    (let [m    (read-edn-file deps-edn-path)
@@ -77,8 +94,10 @@
      (->> deps
           (keep (fn [[lib coord]]
                   (when-let [v (coord->version lib coord (or opts {}))]
-                    (let [[g a] (lib->ga lib)]
-                      {:groupId g :artifactId a :version v}))))
+                    (let [[g a] (lib->ga lib)
+                          dep   {:groupId g :artifactId a :version v}]
+                      (cond-> dep
+                        (provided-scope? dep) (assoc :scope "provided"))))))
           (sort-by (juxt :groupId :artifactId))
           vec))))
 
@@ -97,10 +116,11 @@
    dep-specs: vector of maps {:groupId :artifactId :version ...}
    Returns string WITHOUT leading indentation (you indent when splicing)."
   [dep-specs]
-  (xml/emit-str
-   {:tag     :dependencies
-    :attrs   nil
-    :content (mapv dependency-node dep-specs)}))
+  (strip-xml-declaration
+   (xml/emit-str
+    {:tag     :dependencies
+     :attrs   nil
+     :content (mapv dependency-node dep-specs)})))
 
 (defn- read-text [path]
   (slurp path :encoding "UTF-8"))
@@ -127,22 +147,21 @@
 
    Throws if </project> not found."
   [pom-text deps-xml]
-  (let [deps-re   #"(?s)(^[ \t]*)<dependencies\b.*?</dependencies>[ \t]*\r?\n?"
-        deps-re-m #"(?s)(?m)(^[ \t]*)<dependencies\b.*?</dependencies>[ \t]*\r?\n?"
-        m (re-find deps-re-m pom-text)]
+  (let [deps-re-m #"(?s)(?m)(^[ \t]*)<dependencies\b[^>]*(?:/>|>.*?</dependencies>)[ \t]*\r?\n?"
+        m         (re-find deps-re-m pom-text)]
     (if m
       (let [indent (nth m 1)
             repl   (str (indent-block indent deps-xml) "\n")]
         (str/replace-first pom-text deps-re-m repl))
       ;; no dependencies section: insert before </project>
       (let [proj-close-re #"(?m)^([ \t]*)</project>[ \t]*\r?$"
-            m2 (re-find proj-close-re pom-text)]
+            m2            (re-find proj-close-re pom-text)]
         (when-not m2
           (throw (ex-info "Cannot insert <dependencies>: missing </project> in pom.xml"
                           {})))
-        (let [indent-close (nth m2 1)
+        (let [indent-close   (nth m2 1)
               indent-section (str indent-close "  ")
-              insert (str (indent-block indent-section deps-xml) "\n" indent-close "</project>")]
+              insert         (str (indent-block indent-section deps-xml) "\n" indent-close "</project>")]
           (str/replace-first pom-text proj-close-re insert))))))
 
 (defn splice-dependencies-section!
