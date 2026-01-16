@@ -93,8 +93,7 @@
                        :main-opts   ["-m" "io.randomseed.utils.codox.main"]}
            :build     {:paths       ["."]
                        :extra-paths ["aliases/build"]
-                       :deps        {io.github.juxt/pack.alpha     {:git/sha "9fd4a63ddeec3bedcbc819422de5a40ccb9eb8c9"}
-                                     io.github.clojure/tools.build {:mvn/version "0.10.12"}
+                       :deps        {io.github.clojure/tools.build {:mvn/version "0.10.12"}
                                      org.clojure/data.zip          {:mvn/version "1.1.1"}
                                      org.clojure/data.xml          {:mvn/version "0.2.0-alpha10"}
                                      cambium/cambium.logback.core  {:mvn/version "0.4.6"}}

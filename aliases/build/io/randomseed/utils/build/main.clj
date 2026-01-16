@@ -2,9 +2,9 @@
 
   (:require [io.randomseed.utils.build.pom-sync :as pom-sync]
             [clojure.string                     :as      str]
+            [clojure.edn                        :as      edn]
             [clojure.java.io                    :as       io]
-            [clojure.tools.build.api            :as        b]
-            [juxt.pack.api                      :as     pack]))
+            [clojure.tools.build.api            :as        b]))
 
 (def repo-root ".")
 
@@ -23,7 +23,7 @@
 (defn- kw->name
   ^String [x]
   (cond
-    (ident? x)   (name x)
+    (ident?   x) (name x)
     (string?  x) x
     (nil?     x) nil
     :else        (str x)))
@@ -31,28 +31,38 @@
 (defn- module-dir ^String [module]
   (str "modules/" (kw->name module)))
 
+(defn- slurp-edn [^String path]
+  (when (.exists (io/file path))
+    (edn/read-string (slurp path))))
+
+(defn- module-root
+  [m]
+  (module-dir m))
+
 (defn- file-exists? [^String path]
   (.exists (io/file path)))
 
 (defn- module-files
   "Returns key module paths (deps/pom/src/resources) for a module."
   [module]
-  (let [dir  (module-dir module)
-        deps (str dir "/deps.edn")
-        pom  (str dir "/pom.xml")
-        src  (str dir "/src")
-        res  (str dir "/resources")]
-    {:module (keyword module)
-     :dir    dir
-     :deps   deps
-     :pom    pom
-     :src    src
-     :res    res}))
+  (let [dir       (module-dir module)
+        deps      (str dir "/deps.edn")
+        pom       (str dir "/pom.xml")
+        src       (str dir "/src")
+        res       (str dir "/resources")
+        class-dir (str dir "/target/classes")]
+    {:module    (keyword module)
+     :dir       dir
+     :class-dir class-dir
+     :deps      deps
+     :pom       pom
+     :src       src
+     :res       res}))
 
-(defn- module-available?
-  "A module is considered available if it has modules/<name>/deps.edn."
-  [module]
-  (file-exists? (str (module-dir module) "/deps.edn")))
+(defn- module-deps
+  "Reads `deps.edn`."
+  [m]
+  (slurp-edn (:deps (module-files m))))
 
 (defn- ensure-module!
   "Ensures module exists on disk (deps.edn + pom.xml). Returns module keyword."
@@ -66,6 +76,15 @@
       (throw (ex-info "Module missing pom.xml"
                       {:module m :dir dir :missing pom})))
     m))
+
+(defn- module-paths
+  "List of relative directories to be packed taken from `deps.edn` keys `:paths`.
+   Defaults to [\"src\" \"resources\"]."
+  [m]
+  (let [paths (or (:paths (module-deps m)) ["src" "resources"])]
+    (->> paths
+         (map #(str (module-root m) "/" %))
+         (filter #(-> % io/file .isDirectory)))))
 
 (defn- module-lib
   "io.randomseed/utils-<module> ; module is a keyword."
@@ -89,8 +108,8 @@
 (defn- basis-for
   "Basis created from module's deps.edn."
   [m]
-  (let [{:keys [deps]} (module-files m)]
-    (b/create-basis {:project deps})))
+  (let [{:keys [deps dir aliases] :or {aliases []}} (module-files m)]
+    (b/create-basis {:project deps :dir dir :aliases aliases})))
 
 (defn- discovered-modules
   "Discovers module names by scanning modules/* with deps.edn and pom.xml."
@@ -106,6 +125,17 @@
                         (file-exists? (str "modules/" nm "/pom.xml")))))
          (map keyword)
          (sort))))
+
+(defn- module-class-dir
+  [m]
+  (let [cd (:class-dir (module-files m))]
+    (when (or (not cd) (< (count cd) 18))
+      (throw (ex-info "Class directory is not long enough" {:data cd})))
+    cd))
+
+(defn- module-pom-file
+  [m]
+  (:pom (module-files m)))
 
 (defn sync-pom
   [{:keys [module local-root-version] :or {local-root-version "${project.version}"}}]
@@ -130,13 +160,21 @@
       (jars opts)
       (let [m (ensure-module! mname)]
         ;; (sync-pom {:module m})
-        (let [jar-path (module-jar-path m version)
-              basis    (basis-for m)]
+        (let [jar-path  (module-jar-path m version)
+              class-dir (module-class-dir m)
+              src-dirs  (module-paths     m)
+              basis     (basis-for        m)]
           (io/make-parents (io/file jar-path))
-          (pack/library {:basis basis
-                         :path  jar-path
-                         :lib   (module-lib m)
-                         :pom   (pom-stream m)}))))))
+          (b/delete      {:path class-dir})
+          (b/copy-dir    {:src-dirs src-dirs :target-dir class-dir})
+          (b/jar         {:class-dir class-dir
+                          :jar-file  jar-path
+                          :basis     basis})
+          ;; (pack/library {:basis basis
+          ;;                :path  jar-path
+          ;;                :lib   (module-lib m)
+          ;;                :pom   (pom-stream m)})
+          )))))
 
 (defn jars
   "Build all discovered module jars."
