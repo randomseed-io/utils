@@ -14,6 +14,7 @@ gh-pages
 .clj-kondo/.cache/
 .clj-kondo/imports/
 .cpcache/
+.clojars/login.env
 /DELETE_ME
 /.dir-locals.el
 /.shadow-cljs/

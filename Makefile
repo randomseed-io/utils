@@ -1,5 +1,6 @@
 SHELL         := /bin/sh
 BUILD         := bin/build
+DEPLOY        := bin/deploy
 VERSION       := $(shell awk 'NF{print $$1; exit}' VERSION)
 
 MODULES       := core bus crypto db ip log reitit time validators
@@ -38,7 +39,6 @@ test: tests
 
 test-all: tests
 
-
 sync-pom-%:
 			@echo "[sync-pom] $*"
 			$(BUILD) sync-pom :module :$*
@@ -53,7 +53,7 @@ pom-%: clean
 			@echo "[pom] $* -> $(VERSION)"
 			@mvn -f $(call pomfile,$*) versions:set versions:commit -DnewVersion="$(VERSION)"
 			@mvn -f $(call pomfile,$*) versions:set-scm-tag -DnewTag="$(VERSION)"
-			@rm -f $(call pomfile,$*).asc
+			@rm -f $(call pomfile,$*).asc || true
 			$(BUILD) sync-pom :module :$*
 
 poms: $(addprefix pom-,$(MODULES))
@@ -73,13 +73,12 @@ jar-all: jars
 jar: jars
 
 deploy-%: clean pom-% jar-%
-			@echo "[deploy] $*"
-			@rm -f $(call jarfile,$*)  $(call sigfile,$*)
-			@mvn gpg:sign-and-deploy-file \
-			  -Dfile=$(call jarfile,$*) \
-			  -DpomFile=$(call pomfile,$*) \
-			  -DrepositoryId=clojars \
-			  -Durl=https://clojars.org/repo
+			@echo "[deploy]"
+			@test -f "$(call jarfile,$*)" || (echo "Missing $(call jarfile,$*)"; exit 1)
+			@test -f "$(call pomfile,$*)" || (echo "Missing $(call pomfile,$*)"; exit 1)
+			@echo "[deploy] jar=$(call jarfile,$*)"
+			@echo @$(DEPLOY) deploy :artifact "\"$(call jarfile,$*)\""
+			@echo @test -f "$(APPNAME)-$(VERSION).pom.asc" && mv -f "$(APPNAME)-$(VERSION).pom.asc" "$(POMFILE).asc" || true
 
 deploy-all: clean-all $(addprefix deploy-,$(MODULES))
 
@@ -100,7 +99,7 @@ tag:
 			git tag -s "$(VERSION)" -m "Release $(VERSION)"
 
 clean-all: clean
-			rm -f target/*.jar modules/*/pom.xml.asc
+			@rm -f target/*.jar modules/*/pom.xml.asc || true
 
 clean:
-			find . -name .DS_Store -print0 | xargs -0 rm -f
+			@find . -name .DS_Store -print0 | xargs -0 rm -f
