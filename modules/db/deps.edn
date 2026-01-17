@@ -3,6 +3,7 @@
            io.randomseed/utils-time          {:local/root "../time"}
            io.randomseed/utils-log           {:local/root "../log"}
            io.randomseed/utils-ip            {:local/root "../ip"}
+           org.clojure/clojure               {:mvn/version "1.12.4"}     ;; clojure
            potemkin/potemkin                 {:mvn/version "0.4.6"}      ;; var exposition
            danlentz/clj-uuid                 {:mvn/version "0.2.0"}      ;; UUID support
            org.clojure/core.memoize          {:mvn/version "1.1.266"}    ;; memoization
