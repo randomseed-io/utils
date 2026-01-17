@@ -1,5 +1,3 @@
 #!/bin/sh
 
-echo "[random-utils] Building docs, please wait..."
-
 clojure -M:docs "${1}"
