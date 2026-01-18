@@ -1,5 +1,20 @@
 # History of random:utils releases
 
+## 2.0.0 (2026-01-18)
+
+Random Utilities is now distributed as 10 packages:
+
+- `utils-bus`: asynchronous worker bus
+- `utils-core`: helpers for basic type conversions and checks
+- `utils-crypto`: cryptographic helpers
+- `utils-db`: database abstractions with caching
+- `utils-ip`: IP address support functions
+- `utils-log`: opinionated logging facility
+- `utils-reitit`: Reitit support abstractions
+- `utils-time`: date and time operations
+- `utils-validators`: data validation helpers
+- `utils`: meta-package which holds dependencies for all of the above
+
 ## 1.2.39 (2026-01-13)
 
 - Added to `io.randomseed.utils`:
