@@ -1,186 +1,152 @@
 (ns io.randomseed.utils.build.main
 
-  (:require [io.randomseed.utils.build.pom-sync :as pom-sync]
-            [clojure.string                     :as      str]
-            [clojure.edn                        :as      edn]
-            [clojure.java.io                    :as       io]
-            [clojure.tools.build.api            :as        b]))
+  (:require [io.randomseed.utils.build.pom-sync   :as pom-sync]
+            [io.randomseed.utils.build.maven-meta :as    mmeta]
+            [clojure.edn                          :as      edn]
+            [clojure.java.io                      :as       io]
+            [clojure.tools.build.api              :as        b]))
 
-(def repo-root ".")
+(defn kw->name
+  [n]
+  (not-empty
+   (cond (ident?  n) (name n)
+         (string? n) n
+         (nil?    n) nil
+         :else       (str n))))
 
-(defn- first-nonblank-line
-  "Returns the first non-blank line (trimmed) from a text file.
-   Throws if file has no non-blank lines."
-  [path]
-  (with-open [r (io/reader path)]
-    (or (some (fn [^String line]
-                (let [s (str/trim line)]
-                  (when-not (str/blank? s) s)))
-              (line-seq r))
-        (throw (ex-info "VERSION file contains no non-blank lines"
-                        {:path path})))))
+(defn kw->symbol
+  [n]
+  (cond (nil?           n) nil
+        (simple-symbol? n) n
+        :else              (symbol (kw->name n))))
 
-(defn- kw->name
-  ^String [x]
-  (cond
-    (ident?   x) (name x)
-    (string?  x) x
-    (nil?     x) nil
-    :else        (str x)))
-
-(defn- module-dir ^String [module]
-  (str "modules/" (kw->name module)))
+(defn description [opts] (kw->name   (:description opts)))
+(defn app-version [opts] (kw->name   (:version     opts)))
+(defn app-group   [opts] (kw->name   (:group       opts)))
+(defn app-name    [opts] (kw->name   (:name        opts)))
+(defn app-scm     [opts] (kw->name   (:scm         opts)))
+(defn app-url     [opts] (kw->name   (:url         opts)))
+(defn aot-ns      [opts] (kw->symbol (:aot-ns      opts)))
+(defn lib-name    [opts] (str (app-group opts) "/" (app-name    opts)))
+(defn jar-name    [opts] (str (app-name  opts) "-" (app-version opts) ".jar"))
+(defn jar-file    [opts] (str "target/" (jar-name opts)))
 
 (defn- slurp-edn [^String path]
   (when (.exists (io/file path))
     (edn/read-string (slurp path))))
 
-(defn- module-root
-  [m]
-  (module-dir m))
+(defn- module-dir ^String [module]
+  (str "modules/" (kw->name module)))
 
 (defn- file-exists? [^String path]
   (.exists (io/file path)))
 
-(defn- module-files
-  "Returns key module paths (deps/pom/src/resources) for a module."
-  [module]
-  (let [dir       (module-dir module)
-        deps      (str dir "/deps.edn")
-        pom       (str dir "/pom.xml")
-        src       (str dir "/src")
-        res       (str dir "/resources")
-        class-dir (str dir "/target/classes")]
-    {:module    (keyword module)
-     :dir       dir
-     :class-dir class-dir
-     :deps      deps
-     :pom       pom
-     :src       src
-     :res       res}))
-
-(defn- module-deps
-  "Reads `deps.edn`."
-  [m]
-  (slurp-edn (:deps (module-files m))))
-
 (defn- ensure-module!
-  "Ensures module exists on disk (deps.edn + pom.xml). Returns module keyword."
-  [module]
-  (let [m                      (keyword module)
-        {:keys [dir deps pom]} (module-files m)]
-    (when-not (file-exists? deps)
-      (throw (ex-info "Unknown module (missing deps.edn)"
-                      {:module m :dir dir :missing deps})))
-    (when-not (file-exists? pom)
-      (throw (ex-info "Module missing pom.xml"
-                      {:module m :dir dir :missing pom})))
-    m))
+  "Ensures module exists on disk (deps.edn + pom.xml). Returns module files."
+  [{:keys [module dir deps pom] :as mfiles}]
+  (when-not module
+    (throw (ex-info "Unknown module name" {:module ::unknown})))
+  (when-not (file-exists? deps)
+    (throw (ex-info "Unknown module (missing deps.edn)"
+                    {:module (or module ::unknown) :dir dir :missing deps})))
+  (when-not (file-exists? pom)
+    (throw (ex-info "Module missing pom.xml"
+                    {:module (or module ::unknown) :dir dir :missing pom})))
+  mfiles)
+
+(defn module-files
+  "Returns key module paths (deps/pom/src/resources) for a module."
+  ([opts]
+   (let [module (kw->name (:module opts))
+         dir    (or (kw->name (:dir opts))
+                    (kw->name (:root-dir opts))
+                    (kw->name (:root opts))
+                    (module-dir module))]
+     (ensure-module!
+      {:module    (keyword module)
+       :dir       dir
+       :class-dir (or (kw->name (:class-dir opts)) (str dir "/target/classes"))
+       :deps      (or (kw->name (:deps      opts)) (str dir "/deps.edn"))
+       :pom       (or (kw->name (:pom       opts)) (str dir "/pom.xml"))
+       :src       (or (kw->name (:src       opts)) (str dir "/src"))
+       :res       (or (kw->name (:res       opts)) (str dir "/resources"))
+       :jar       (or (kw->name (:jar       opts)) (str "target/" (jar-name opts)))}))))
+
+(defn- read-deps
+  "Reads `deps.edn`."
+  [f]
+  (slurp-edn f))
 
 (defn- module-paths
   "List of relative directories to be packed taken from `deps.edn` keys `:paths`.
    Defaults to [\"src\" \"resources\"]."
-  [m]
-  (let [paths (or (:paths (module-deps m)) ["src" "resources"])]
+  [{:keys [dir deps]}]
+  (let [deps  (read-deps deps)
+        paths (or (:paths deps) ["src" "resources"])]
     (->> paths
-         (map #(str (module-root m) "/" %))
+         (map #(str dir "/" %))
          (filter #(-> % io/file .isDirectory)))))
 
-(defn- module-lib
-  "io.randomseed/utils-<module> ; module is a keyword."
-  [m]
-  (symbol (str "io.randomseed/utils-" (name m))))
-
-(defn- module-name
-  [m]
-  (symbol (str "io.randomseed/utils-" (name m))))
-
-(defn- module-jar-path
-  "target/utils-<module>-<version>.jar"
-  [m ^String v]
-  (format "target/utils-%s-%s.jar" (name m) v))
-
 (defn- pom-stream
-  [m]
-  (let [{:keys [pom]} (module-files m)]
-    (io/input-stream (io/file pom))))
+  [{:keys [pom]}]
+  (io/input-stream (io/file pom)))
 
 (defn- basis-for
   "Basis created from module's deps.edn."
-  [m]
-  (let [{:keys [deps dir aliases] :or {aliases []}} (module-files m)]
-    (b/create-basis {:project deps :dir dir :aliases aliases})))
+  [{:keys [deps dir aliases] :or {aliases []}}]
+  (b/create-basis {:project deps :dir dir :aliases aliases}))
 
-(defn- discovered-modules
-  "Discovers module names by scanning modules/* with deps.edn and pom.xml."
-  []
-  (let [mods-dir (io/file "modules")]
-    (when-not (.isDirectory mods-dir)
-      (throw (ex-info "Missing modules directory" {:dir "modules"})))
-    (->> (.listFiles mods-dir)
-         (filter #(.isDirectory ^java.io.File %))
-         (map #(.getName ^java.io.File %))
-         (filter (fn [nm]
-                   (and (file-exists? (str "modules/" nm "/deps.edn"))
-                        (file-exists? (str "modules/" nm "/pom.xml")))))
-         (map keyword)
-         (sort))))
-
-(defn- module-class-dir
-  [m]
-  (let [cd (:class-dir (module-files m))]
-    (when (or (not cd) (< (count cd) 18))
-      (throw (ex-info "Class directory is not long enough" {:data cd})))
-    cd))
-
-(defn- module-pom-file
-  [m]
-  (:pom (module-files m)))
+(defn- ensure-class-dir
+  [{:keys [class-dir]}]
+  (when (or (not class-dir) (< (count class-dir) 18))
+    (throw (ex-info "Class directory is not long enough" {:data class-dir})))
+  class-dir)
 
 (defn sync-pom
-  [{:keys [module local-root-version] :or {local-root-version "${project.version}"}}]
-  (let [{:keys [deps pom]} (module-files module)
-        modname            (module-name module)]
-    (pom-sync/sync-pom-deps! deps pom {:name modname :local-root-version local-root-version})))
-
-(def version
-  (first-nonblank-line (str repo-root "/VERSION")))
-
-(declare jars)
+  "Sync deps.edn -> pom.xml (dependency section).
+   - clojure -T:build sync-pom
+   - clojure -T:build sync-pom :name    \"utils-core\" \\
+                               :group   'io.randomseed \\
+                               :version \"1.0.0\"      \\
+                               :local-root-version \"${project.version}\""
+  [{:keys [local-root-version] :as opts}]
+  (let [{:keys [deps pom]} (module-files opts)]
+    (pom-sync/sync-pom-deps! deps pom
+                             {:name               (app-name    opts)
+                              :group              (app-group   opts)
+                              :lib-name           (lib-name    opts)
+                              :version            (app-version opts)
+                              :description        (description opts)
+                              :url                (app-url     opts)
+                              :scm                (app-scm     opts)
+                              :local-root-version (kw->name local-root-version)})))
 
 (defn jar
-  "Updates POM with dependencies and builds ONE module jar,
-   unless :module is missing or :all.
-   - clojure -T:build jar :module :core
-   - clojure -T:build jar                  ;; builds all
-   - clojure -T:build jar :module :all     ;; builds all"
-  [{:keys [module] :as opts}]
-  (let [mname (kw->name module)]
-    (if (or (nil? mname) (= "all" mname))
-      (jars opts)
-      (let [m (ensure-module! mname)]
-        ;; (sync-pom {:module m})
-        (let [jar-path  (module-jar-path m version)
-              class-dir (module-class-dir m)
-              src-dirs  (module-paths     m)
-              basis     (basis-for        m)]
-          (io/make-parents (io/file jar-path))
-          (b/delete      {:path class-dir})
-          (b/copy-dir    {:src-dirs src-dirs :target-dir class-dir})
-          (b/jar         {:class-dir class-dir
-                          :jar-file  jar-path
-                          :basis     basis})
-          ;; (pack/library {:basis basis
-          ;;                :path  jar-path
-          ;;                :lib   (module-lib m)
-          ;;                :pom   (pom-stream m)})
-          )))))
+  "Updates POM with dependencies and builds a single module JAR.
+   - clojure -T:build jar :module  :core          \\
+                          :name    \"utils-core\"  \\
+                          :group   'io.randomseed \\
+                          :version \"1.0.0\""
+  [opts]
+  (let [mfiles    (module-files     opts)
+        class-dir (ensure-class-dir mfiles)
+        src-dirs  (module-paths     mfiles)
+        basis     (basis-for        mfiles)
+        jar-path  (:jar             mfiles)]
+    (io/make-parents               (io/file jar-path))
+    (b/delete                      {:path class-dir})
+    (b/copy-dir                    {:src-dirs src-dirs :target-dir class-dir})
+    (b/compile-clj                 {:basis      basis
+                                    :class-dir  class-dir
+                                    :ns-compile (aot-ns opts)})
+    (mmeta/install-maven-metadata! {:artifact-id (app-name    opts)
+                                    :group-id    (app-group   opts)
+                                    :version     (app-version opts)
+                                    :class-dir   class-dir
+                                    :pom         (pom-stream mfiles)})
+    (b/jar                         {:class-dir class-dir
+                                    :jar-file  jar-path
+                                    :basis     basis})))
 
-(defn jars
-  "Build all discovered module jars."
-  [_]
-  (doseq [m (discovered-modules)]
-    (jar {:module m})))
-
-(defn -main [& _]
-  (jars nil))
+(defn -main [& opts]
+  (jar opts))
