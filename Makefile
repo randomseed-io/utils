@@ -18,6 +18,7 @@ POMTARG     ?= target/$(APPNAME)-$(VERSION).pom
 JARNAME     ?= $(APPNAME)-$(VERSION).jar
 JARFILE     ?= target/$(APPNAME)-$(VERSION).jar
 CLASSES     ?= target/classes
+CPCACHE     ?= .cpcache
 URL         ?= https://randomseed.io/software/$(APPNAME)/
 SCM         ?= github.com/randomseed-io/$(APPNAME)
 DOCPREFIX   := $(GROUP)/$(APPNAME)
@@ -29,6 +30,7 @@ jarname      = $(APPNAME)-$1-$(VERSION).jar
 pomverf      = modules/$1/$(APPNAME)-$1-$(VERSION).pom
 pomtarg      = target/$(APPNAME)-$1-$(VERSION).pom
 classes      = modules/$1/target/classes
+cpcache      = modules/$1/.cpcache
 jarfile      = target/$(APPNAME)-$1-$(VERSION).jar
 escape_dq    = $(subst \,\\,$(subst ",\",$1))
 firstline    = $(strip $(shell sed -n '1p' "$1" 2>/dev/null))
@@ -55,13 +57,17 @@ readme:
 	@$(UPREADME) "$(DOCPREFIX)" "$(VERSION)" README.md
 
 docs: readme
-	@echo "[docs]     -> docs/"
+	@echo "[doc]      -> docs/"
 	@echo "# Introduction" > doc/10_introduction.md
 	@tail -n +2 README.md >> doc/10_introduction.md
 	@$(DOCS) :version '"$(VERSION)"' :src-dirs '$(modsrcdirse)'
 
+doc: docs
+
 push-docs:
 	git subtree push --prefix=docs docs master
+
+push-doc: push-docs
 
 test-%:
 	@rm -rf $(call moddir,$*)/.cpcache || true
@@ -133,7 +139,8 @@ pom: poms
 
 meta-jar: meta-pom
 	@echo "[jar]      -> $(JARNAME)"
-	@rm -rf $(CLASSES) $(JARFILE) || true
+	@rm -rf $(CLASSES) $(CPCACHE) || true
+	@rm -f  $(JARFILE)            || true
 	@$(BUILD) jar               \
 	  :group   "\"$(GROUP)\""   \
 	  :name    "\"$(APPNAME)\"" \
@@ -142,7 +149,11 @@ meta-jar: meta-pom
 
 jar-%: pom-%
 	@echo "[jar]      -> $(call jarname,$*)"
-	@rm -rf $(CLASSES) $(call jarfile,$*) || true
+	@rm -rf $(CLASSES) || true
+	@rm -rf $(CPCACHE) || true
+	@rm -rf $(call cpcache,$*) || true
+	@rm -rf $(call classes,$*) || true
+	@rm -f  $(call jarfile,$*) || true
 	@$(BUILD) jar                       \
 	  :module  :$*                      \
 	  :group   "\"$(GROUP)\""           \
