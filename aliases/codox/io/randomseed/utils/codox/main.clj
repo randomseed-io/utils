@@ -1,39 +1,47 @@
 (ns io.randomseed.utils.codox.main
-  (:require [codox.main                      :as       c]
-            [clojure.java.io                 :as      io]
-            [clojure.edn                     :as     edn]
-            [clojure.tools.deps              :as    deps]
-            [clojure.string                  :as     str]))
+
+  (:require [codox.main         :as       c]
+            [clojure.java.io    :as      io]
+            [clojure.edn        :as     edn]
+            [clojure.tools.deps :as    deps]
+            [clojure.string     :as     str]))
+
+(defn- read-edn-config
+  [f]
+  (when-let [url (io/resource (or (not-empty f) "codox.edn"))]
+    (with-open [r (java.io.PushbackReader. (io/reader url))]
+      (edn/read r))))
 
 (defn- read-deps
   []
   (:project-edn (deps/find-edn-maps)))
 
-(defn- get-options [deps & more]
-  (let [key     (or (first more) :codox)
-        version (or (second more) "0.0.0")
-        codox   (key deps)
-        userdir (System/getProperty "user.dir")]
-    (merge {:source-paths (:paths deps ["src"])
-            :root-path    (:root-path deps userdir)
+(defn- get-options [deps config version src-dirs]
+  (let [version  (or version "0.0.0")
+        src-dirs (not-empty src-dirs)
+        codox    config
+        userdir  (System/getProperty "user.dir")]
+    ;;(println (vec (or src-dirs (:paths deps) ["src"])))
+    (merge {:source-paths (vec (or src-dirs (:paths deps) ["src"]))
+            :root-path    (or (:root config) (:root deps) (:root-path config) (:root-path deps) userdir)
             :output-path  (str (io/file (:target deps userdir) "docs"))}
            codox
-           {:name        (str/capitalize (:name codox (:name deps)))
-            :license     (:license     codox (:license deps))
-            :package     (:package     codox (:license deps))
+           {:name        (str/capitalize (or (:name codox) (:name deps)))
+            :license     (:license     codox (:license     deps))
+            :package     (:package     codox (:license     deps))
             :description (:description codox (:description deps))
-            :version     (or version (:version codox (:version deps)))})))
+            :version     (or version (:version codox) (:version deps))})))
 
 (defn codox
   "Generate API documentation from source code."
-  [key version]
+  [version src-dirs]
   (let [version (when version (str version))
         deps    (read-deps)
-        options (get-options deps key version)]
+        config  (read-edn-config "codox.edn")
+        options (get-options deps config version src-dirs)]
     (codox.main/generate-docs options)
-    (shutdown-agents)
-    (println "Generated HTML docs in" (:output-path options))))
+    (shutdown-agents)))
 
 (defn -main
-  [& args]
-  (codox :codox (first args)))
+  [& {:keys [version src-dirs] :as all}]
+  (codox version src-dirs))
