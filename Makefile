@@ -8,30 +8,34 @@ UPREADME    := bin/update-readme
 
 MODULES     := core bus crypto db ip log reitit time validators
 
-VERSION     ?= 2.0.0
+VERSION     ?= 2.0.1
 DESCRIPTION ?= Random Utilities for Clojure
 GROUP       ?= io.randomseed
 APPNAME     ?= utils
 POMFILE     := pom.xml
+
+TARGETDIR   := target
 POMVERF     ?= $(APPNAME)-$(VERSION).pom
-POMTARG     ?= target/$(APPNAME)-$(VERSION).pom
+POMTARG     ?= $(TARGETDIR)/$(APPNAME)-$(VERSION).pom
 JARNAME     ?= $(APPNAME)-$(VERSION).jar
-JARFILE     ?= target/$(APPNAME)-$(VERSION).jar
-CLASSES     ?= target/classes
+JARFILE     ?= $(TARGETDIR)/$(APPNAME)-$(VERSION).jar
+CLASSES     ?= $(TARGETDIR)/classes
 CPCACHE     ?= .cpcache
 URL         ?= https://randomseed.io/software/$(APPNAME)/
 SCM         ?= github.com/randomseed-io/$(APPNAME)
 DOCPREFIX   := $(GROUP)/$(APPNAME)
+SIGDIR      := sigs
 
 moddir       = modules/$1
 pomfile      = modules/$1/$(POMFILE)
 modname      = $(APPNAME)-$1
 jarname      = $(APPNAME)-$1-$(VERSION).jar
-pomverf      = modules/$1/$(APPNAME)-$1-$(VERSION).pom
-pomtarg      = target/$(APPNAME)-$1-$(VERSION).pom
-classes      = modules/$1/target/classes
+pomverf      = $(TARGETDIR)/$1/$(APPNAME)-$1-$(VERSION).pom
+pomtarg      = $(TARGETDIR)/$(APPNAME)-$1-$(VERSION).pom
+pompost      = $(APPNAME)-$1-$(VERSION).pom
+classes      = modules/$1/$(TARGETDIR)/classes
 cpcache      = modules/$1/.cpcache
-jarfile      = target/$(APPNAME)-$1-$(VERSION).jar
+jarfile      = $(TARGETDIR)/$(APPNAME)-$1-$(VERSION).jar
 escape_dq    = $(subst \,\\,$(subst ",\",$1))
 firstline    = $(strip $(shell sed -n '1p' "$1" 2>/dev/null))
 moddesc      = $(call escape_dq,$(if $(wildcard modules/$1/DESCRIPTION),$(call firstline,modules/$1/DESCRIPTION),$(DESCRIPTION)))
@@ -173,16 +177,19 @@ meta-deploy: clean meta-pom meta-jar
 	@test -f "$(JARFILE)" || (echo "Missing $(JARFILE)"; exit 1)
 	@test -f "$(POMFILE)" || (echo "Missing $(POMFILE)"; exit 1)
 	@$(DEPLOY) deploy :pom-file "\"$(POMFILE)\"" :artifact "\"$(JARFILE)\""
-	@test -f "$(POMVERF).asc" && mv -f "$(POMVERF).asc" "$(POMFILE).asc" || true
-	@test -f "$(POMTARG).asc" && mv -f "$(POMTARG).asc" "$(POMFILE).asc" || true
+	@test -f "$(POMVERF).asc" && mv -f "$(POMVERF).asc" "$(SIGDIR)/" || true
+	@test -f "$(POMTARG).asc" && mv -f "$(POMTARG).asc" "$(SIGDIR)/" || true
+	@test -f "$(JARFILE).asc" && mv -f "$(JARFILE).asc" "$(SIGDIR)/" || true
 
 deploy-%: clean pom-% jar-%
 	@echo "[deploy]   -> $(GROUP)/$(call modname,$*)-$(VERSION)"
 	@test -f "$(call jarfile,$*)" || (echo "Missing $(call jarfile,$*)"; exit 1)
 	@test -f "$(call pomfile,$*)" || (echo "Missing $(call pomfile,$*)"; exit 1)
 	@$(DEPLOY) deploy :pom-file "\"$(call pomfile,$*)\"" :artifact "\"$(call jarfile,$*)\""
-	@test -f "$(call pomverf,$*).asc" && mv -f "$(call pomverf,$*).asc" "$(call pomfile,$*).asc" || true
-	@test -f "$(call pomtarg,$*).asc" && mv -f "$(call pomtarg,$*).asc" "$(call pomfile,$*).asc" || true
+	@test -f "$(call pomverf,$*).asc" && mv -f "$(call pomverf,$*).asc" "$(SIGDIR)/" || true
+	@test -f "$(call pomtarg,$*).asc" && mv -f "$(call pomtarg,$*).asc" "$(SIGDIR)/" || true
+	@test -f "$(call pompost,$*).asc" && mv -f "$(call pompost,$*).asc" "$(SIGDIR)/" || true
+	@test -f "$(call jarfile,$*).asc" && mv -f "$(call jarfile,$*).asc" "$(SIGDIR)/" || true
 
 deploy-all: clean-all jars $(MODULES:%=deploy-%) meta-deploy
 
