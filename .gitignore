@@ -1,5 +1,7 @@
 /target
 /classes
+**/target/classes/
+.eastwood
 /checkouts
 *.jar
 *.class
