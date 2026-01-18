@@ -1,9 +1,8 @@
 {:paths   ["src" "resources"]
- :deps    {io.randomseed/lazy-map     {:mvn/version "1.0.1"}      ;; lazy maps
+ :deps    {org.clojure/clojure        {:mvn/version "1.12.4"}     ;; Clojure
            org.clojure/java.classpath {:mvn/version "1.1.1"}      ;; Java classpath tools
            fipp/fipp                  {:mvn/version "0.6.29"}     ;; pretty printing
-           mvxcvi/puget               {:mvn/version "1.3.4"}      ;; pretty printing
-           }
+           mvxcvi/puget               {:mvn/version "1.3.4"}}     ;; pretty printing
  :aliases {:mono      {:extra-paths ["modules/core/src"
                                      "modules/bus/src"
                                      "modules/crypto/src"
@@ -95,8 +94,7 @@
                        :extra-paths ["aliases/build"]
                        :deps        {io.github.clojure/tools.build {:mvn/version "0.10.12"}
                                      org.clojure/data.zip          {:mvn/version "1.1.1"}
-                                     org.clojure/data.xml          {:mvn/version "0.2.0-alpha10"}
-                                     cambium/cambium.logback.core  {:mvn/version "0.4.6"}}
+                                     org.clojure/data.xml          {:mvn/version "0.2.0-alpha10"}}
                        :ns-default  io.randomseed.utils.build.main}
            :deploy    {:paths       ["."]
                        :extra-paths ["aliases/deploy"]
