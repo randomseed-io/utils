@@ -2,4 +2,4 @@
 
 echo "[random-utils] Starting server, please wait..."
 
-clojure -A:server
+clojure -A:mono:server
