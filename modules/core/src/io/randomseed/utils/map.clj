@@ -11,7 +11,7 @@
             [io.randomseed.lazy-map :as              lazy-map])
 
   (:import  (clojure.lang  Associative IPersistentMap)
-            (lazy_map.core LazyMapEntry LazyMap)))
+            (io.randomseed.lazy_map    LazyMapEntry LazyMap)))
 
 (defmacro lazy-get
   "Like get but the default value is an expression that is going to be evaluated only

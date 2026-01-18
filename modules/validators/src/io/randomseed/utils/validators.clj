@@ -7,10 +7,8 @@
     io.randomseed.utils.validators
 
   (:require [clojure.spec.alpha      :as       s]
-            [io.randomseed.utils.map :as     map]
             [io.randomseed.utils.log :as     log]
-            [io.randomseed.utils.var :as     var]
-            [io.randomseed.utils     :refer :all])
+            [io.randomseed.utils     :as       u])
 
   (:import [java.util.regex Pattern]
            [clojure.spec.alpha Spec]))

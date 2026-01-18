@@ -6,16 +6,14 @@
 
     io.randomseed.utils.validators.common
 
-  (:import [org.apache.commons.validator.routines
-            EmailValidator
-            UrlValidator
-            DateValidator]
-           [java.util Locale])
+  (:import (org.apache.commons.validator.routines EmailValidator
+                                                  UrlValidator
+                                                  DateValidator)
+           (java.util Locale))
 
   (:require [trptr.java-wrapper.locale :as          l]
             [phone-number.core         :as      phone]
-            [io.randomseed.utils.map   :as        map]
-            [io.randomseed.utils       :refer    :all]))
+            [io.randomseed.utils       :as          u]))
 
 ;;
 ;; e-mail
