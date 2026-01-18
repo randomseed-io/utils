@@ -1,8 +1,9 @@
-:codox   {:name        "random:utils"
-           :description "Random Utilities"
-           :license     "GNU LGPL"
-           :package     io.randomseed/utils
-           :output-path "docs"
-           :source-uri  "https://github.com/randomseed-io/utils/tree/{version}/{filepath}#L{line}"
-           :metadata    {:doc/format :markdown}
-           :themes      [:default :randomseed]}}
+{:name         "random:utils"
+ :description  "Random Utilities"
+ :license      "GNU LGPL"
+ :package      io.randomseed/utils
+ :output-path  "docs"
+ :exclude-vars nil
+ :source-uri   "https://github.com/randomseed-io/utils/tree/{version}/{filepath}#L{line}"
+ :metadata     {:doc/format :markdown}
+ :themes       [:default :randomseed]}
