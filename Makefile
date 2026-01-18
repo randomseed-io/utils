@@ -51,11 +51,11 @@ lint:
 	@$(LINT)
 
 readme:
-	@echo "[readme]    -> README.md"
+	@echo "[readme]   -> README.md"
 	@$(UPREADME) "$(DOCPREFIX)" "$(VERSION)" README.md
 
 docs: readme
-	@echo "[docs]      -> docs/"
+	@echo "[docs]     -> docs/"
 	@echo "# Introduction" > doc/10_introduction.md
 	@tail -n +2 README.md >> doc/10_introduction.md
 	@$(DOCS) :version '"$(VERSION)"' :src-dirs '$(modsrcdirse)'
