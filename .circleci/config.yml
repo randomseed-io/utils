@@ -25,11 +25,11 @@ jobs:
           key: v1-dependencies-{{ checksum "deps.edn" }}
 
 workflows:
-  tagged-build:
+  build-master-and-tags:
     jobs:
       - build:
           filters:
-            tags:
-              only: /.*/        # set to /^v.*/ for version-tag only
             branches:
-              ignore: /.*/
+              only: master
+            tags:
+              only: /.*/
