@@ -71,13 +71,14 @@ test-all: tests
 
 sync-pom-%:
 	@echo "[sync-pom] -> $(call pomfile,$*)"
-	@$(BUILD) sync-pom :module :$* \
-	  :group "\"$(GROUP)\"" \
-	  :name "\"$(call modname,$*)\"" \
-	  :version "\"$(VERSION)\"" \
+	@$(BUILD) sync-pom                      \
+	  :module      :$*                      \
+	  :group       "\"$(GROUP)\""           \
+	  :name        "\"$(call modname,$*)\"" \
+	  :version     "\"$(VERSION)\""         \
 	  :description "\"$(call moddesc,$*)\"" \
-	  :scm "\"$(SCM)\"" \
-	  :url "\"$(URL)\""
+	  :scm         "\"$(SCM)\""             \
+	  :url         "\"$(URL)\""
 
 sync-poms: clean $(MODULES:%=sync-pom-%)
 
@@ -88,13 +89,14 @@ sync-pom: sync-poms
 pom-%:
 	@echo "[pom]      -> $(call pomfile,$*)"
 	@rm -f $(call pomfile,$*).asc || true
-	@$(BUILD) sync-pom :module :$* \
-	  :group "\"$(GROUP)\"" \
-	  :name "\"$(call modname,$*)\"" \
-	  :version "\"$(VERSION)\"" \
+	@$(BUILD) sync-pom                      \
+	  :module      :$*                      \
+	  :group       "\"$(GROUP)\""           \
+	  :name        "\"$(call modname,$*)\"" \
+	  :version     "\"$(VERSION)\""         \
 	  :description "\"$(call moddesc,$*)\"" \
-	  :scm "\"$(SCM)\"" \
-	  :url "\"$(URL)\""
+	  :scm         "\"$(SCM)\""             \
+	  :url         "\"$(URL)\""
 
 poms: clean $(MODULES:%=pom-%)
 
@@ -105,7 +107,11 @@ pom: poms
 jar-%: pom-%
 	@echo "[jar]      -> $(call jarname,$*)"
 	@rm -rf $(call classes,$*) $(call jarfile,$*) || true
-	@$(BUILD) jar :module :$* :group "\"$(GROUP)\"" :name "\"$(call modname,$*)\"" :version "\"$(VERSION)\""
+	@$(BUILD) jar                               \
+	          :module  :$*                      \
+	          :group   "\"$(GROUP)\""           \
+	          :name    "\"$(call modname,$*)\"" \
+	          :version "\"$(VERSION)\""
 
 jars: clean-all poms $(MODULES:%=jar-%)
 
