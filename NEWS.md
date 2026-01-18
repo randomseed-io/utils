@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 2.0.1 (2026-01-18)
+
+Package building fixes.
+
 ## 2.0.0 (2026-01-18)
 
 Random Utilities is now distributed as 10 packages:

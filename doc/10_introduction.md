@@ -24,13 +24,13 @@ Choose one:
 ### Meta-package (everything)
 
 ```clojure
-io.randomseed/utils {:mvn/version "2.0.0"}
+io.randomseed/utils {:mvn/version "2.0.1"}
 ```
 
 ### A single module
 
 ```clojure
-io.randomseed/utils-core {:mvn/version "2.0.0"}
+io.randomseed/utils-core {:mvn/version "2.0.1"}
 ```
 
 ## Modules
