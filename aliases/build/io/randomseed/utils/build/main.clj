@@ -36,7 +36,9 @@
     (edn/read-string (slurp path))))
 
 (defn- module-dir ^String [module]
-  (str "modules/" (kw->name module)))
+  (if-some [m (kw->name module)]
+    (str "modules/" m)
+    "."))
 
 (defn- file-exists? [^String path]
   (.exists (io/file path)))
@@ -44,13 +46,11 @@
 (defn- ensure-module!
   "Ensures module exists on disk (deps.edn + pom.xml). Returns module files."
   [{:keys [module dir deps pom] :as mfiles}]
-  (when-not module
-    (throw (ex-info "Unknown module name" {:module ::unknown})))
   (when-not (file-exists? deps)
-    (throw (ex-info "Unknown module (missing deps.edn)"
+    (throw (ex-info "Missing deps.edn"
                     {:module (or module ::unknown) :dir dir :missing deps})))
   (when-not (file-exists? pom)
-    (throw (ex-info "Module missing pom.xml"
+    (throw (ex-info "Missing pom.xml"
                     {:module (or module ::unknown) :dir dir :missing pom})))
   mfiles)
 
@@ -93,13 +93,13 @@
 
 (defn- basis-for
   "Basis created from module's deps.edn."
-  [{:keys [deps dir aliases] :or {aliases []}}]
+  [{:keys [deps dir]} {:keys [aliases] :or {aliases []}}]
   (b/create-basis {:project deps :dir dir :aliases aliases}))
 
 (defn- ensure-class-dir
   [{:keys [class-dir]}]
-  (when (or (not class-dir) (< (count class-dir) 18))
-    (throw (ex-info "Class directory is not long enough" {:data class-dir})))
+  (when (or (not class-dir) (< (count class-dir) 16))
+    (throw (ex-info (str "Class directory is not long enough: " class-dir) {:data class-dir})))
   class-dir)
 
 (defn sync-pom
@@ -109,7 +109,7 @@
                                :group   'io.randomseed \\
                                :version \"1.0.0\"      \\
                                :local-root-version \"${project.version}\""
-  [{:keys [local-root-version] :as opts}]
+  [{:keys [local-root-version aliases] :as opts}]
   (let [{:keys [deps pom]} (module-files opts)]
     (pom-sync/sync-pom-deps! deps pom
                              {:name               (app-name    opts)
@@ -119,6 +119,7 @@
                               :description        (description opts)
                               :url                (app-url     opts)
                               :scm                (app-scm     opts)
+                              :aliases            aliases
                               :local-root-version (kw->name local-root-version)})))
 
 (defn jar
@@ -131,19 +132,21 @@
   (let [mfiles    (module-files     opts)
         class-dir (ensure-class-dir mfiles)
         src-dirs  (module-paths     mfiles)
-        basis     (basis-for        mfiles)
-        jar-path  (:jar             mfiles)]
+        basis     (basis-for        mfiles opts)
+        jar-path  (:jar             mfiles)
+        aot-ns    (not-empty (:aot-ns opts))]
     (io/make-parents               (io/file jar-path))
     (b/delete                      {:path class-dir})
     (b/copy-dir                    {:src-dirs src-dirs :target-dir class-dir})
-    (b/compile-clj                 {:basis      basis
+    (when aot-ns (b/compile-clj    {:basis      basis
                                     :class-dir  class-dir
-                                    :ns-compile (aot-ns opts)})
+                                    :ns-compile (aot-ns opts)}))
     (mmeta/install-maven-metadata! {:artifact-id (app-name    opts)
                                     :group-id    (app-group   opts)
                                     :version     (app-version opts)
                                     :class-dir   class-dir
-                                    :pom         (pom-stream mfiles)})
+                                    :pom         (pom-stream mfiles)
+                                    :aliases     (:aliases opts)})
     (b/jar                         {:class-dir class-dir
                                     :jar-file  jar-path
                                     :basis     basis})))

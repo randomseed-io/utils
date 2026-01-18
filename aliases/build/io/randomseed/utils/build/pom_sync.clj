@@ -281,6 +281,30 @@
     :else
     nil))
 
+(defn- merge-alias-deps
+  "Return an effective deps after merging with the given aliases.
+   Minimal model:
+   - start: (:deps m)
+   - :replace-deps (if exists in alias) replaces all
+   - :extra-deps adds or overrides (if exists)
+   - :override-deps overrides or adds (if does not exist)"
+  [deps-edn {:keys [aliases]}]
+  (let [base-deps (or (:deps deps-edn) {})
+        alias-m   (or (:aliases deps-edn) {})
+        chosen    (keep alias-m aliases)]
+    (reduce
+     (fn [deps a]
+       (cond
+         (:replace-deps a)
+         (merge (or (:replace-deps a) {}) (or (:override-deps a) {}) (or (:extra-deps a) {}))
+
+         :else
+         (-> deps
+             (merge (or (:extra-deps a) {}))
+             (merge (or (:override-deps a) {})))))
+     base-deps
+     chosen)))
+
 (defn deps->maven-deps
   "Reads deps.edn and returns normalized Maven deps:
    [{:groupId .. :artifactId .. :version ..} ...] sorted deterministically.
@@ -292,7 +316,7 @@
   ([deps-edn-path] (deps->maven-deps deps-edn-path nil))
   ([deps-edn-path opts]
    (let [m    (read-edn-file deps-edn-path)
-         deps (:deps m)]
+         deps (merge-alias-deps m opts)]
      (->> deps
           (keep (fn [[lib coord]]
                   (when-let [v (coord->version lib coord (or opts {}))]
@@ -324,7 +348,8 @@
      :lib-name    (group/name)
      :version     (version)
      :description (description)
-     :local-root-version (fallback to version, then to \"${project.version}\")"
+     :local-root-version (fallback to version, then to \"${project.version}\")
+     :aliases     (a list used to get extra dependencies from deps.edn)"
   ([deps-edn-path pom-path]
    (sync-pom-deps! deps-edn-path pom-path nil))
   ([deps-edn-path pom-path opts]
