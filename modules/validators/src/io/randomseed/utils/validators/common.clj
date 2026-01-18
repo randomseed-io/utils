@@ -26,7 +26,7 @@
    (valid-email? e allow-local true))
   (^Boolean [e allow-local allow-tld]
    (boolean
-    (if-some [e (some-str e)]
+    (when-some [e (u/some-str e)]
       (.isValid ^EmailValidator (EmailValidator/getInstance ^Boolean (boolean allow-local)
                                                             ^Boolean (boolean allow-tld))
                 ^String e)))))
@@ -38,20 +38,20 @@
 (defn valid-date?
   (^Boolean [value]
    (boolean
-    (if-some [value (some-str value)]
+    (when-some [value (u/some-str value)]
       (.isValid ^DateValidator (DateValidator/getInstance) ^String value))))
   (^Boolean [value pattern]
    (boolean
-    (if-some [value (some-str value)]
-      (if-some [pattern (some-str pattern)]
+    (when-some [value (u/some-str value)]
+      (if-some [pattern (u/some-str pattern)]
         (.isValid ^DateValidator (DateValidator/getInstance)
                   ^String value ^String pattern)
         (.isValid ^DateValidator (DateValidator/getInstance)
                   ^String value)))))
   (^Boolean [value pattern locale]
    (boolean
-    (if-some [value (some-str value)]
-      (if-some [pattern (some-str pattern)]
+    (when-some [value (u/some-str value)]
+      (if-some [pattern (u/some-str pattern)]
         (if locale
           (.isValid ^DateValidator (DateValidator/getInstance)
                     ^String value ^String pattern ^Locale (l/locale locale))
@@ -97,5 +97,5 @@
 (defn valid-url?
   ^Boolean [u]
   (boolean
-   (if-some [u (some-str u)]
+   (when-some [u (u/some-str u)]
      (.isValid ^UrlValidator (UrlValidator/getInstance) ^String u))))

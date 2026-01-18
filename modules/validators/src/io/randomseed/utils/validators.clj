@@ -17,20 +17,29 @@
   (valid? [validator v]))
 
 (extend-protocol Validating
+
   clojure.lang.PersistentArrayMap
+
+  (valid? [validator v] (boolean (get validator v)))
+
   clojure.lang.PersistentHashMap
+
   (valid? [validator v] (boolean (get validator v)))
 
   clojure.lang.PersistentHashSet
+
   (valid? [validator v] (contains? validator v))
 
   clojure.lang.Keyword
+
   (valid? [validator v] (identical? validator (keyword v)))
 
   Spec
+
   (valid? [validator v] (s/valid? validator v))
 
   Pattern
+
   (valid? [validator v]
     (if v
       (if-some [m (re-matches validator v)]
@@ -41,25 +50,30 @@
       false))
 
   String
+
   (valid? [validator v] (= validator v))
 
   Number
+
   (valid? [validator v]
     (if v
       (if (number? v)
         (= validator v)
         (or (= v (str validator))
-            (= validator (safe-parse-num v))))
+            (= validator (u/safe-parse-num v))))
       false))
 
   clojure.lang.Fn
+
   (valid? [validator v] (boolean (validator v)))
 
   Boolean
-  (valid? [validator v] validator)
+
+  (valid? [validator _] validator)
 
   nil
-  (valid? [validator v] false))
+
+  (valid? [_ _] false))
 
 (defn has-required?
   ^Boolean [required-params m]
@@ -117,7 +131,7 @@
 (defn- first-bad-parameter
   [m vmap default-pass?]
   (loop [items (seq m)]
-    (if items
+    (when items
       (let [[k v] (first items)
             rest  (next items)]
         (if (contains? vmap k)
@@ -127,7 +141,7 @@
 (defn- first-missing-parameter
   [required-params m]
   (loop [items (seq required-params)]
-    (if items
+    (when items
       (let [k    (first items)
             rest (next items)]
         (if (contains? m k)
@@ -136,25 +150,25 @@
 
 (defn explain-required
   [required-params m]
-  (if-not (has-required? required-params m)
+  (when-not (has-required? required-params m)
     (map #(vector :parameter/missing %) required-params)))
 
 (defn explain-all-required
   [required-params m]
-  (if (some? m)
+  (when (some? m)
     (lazy-seq
-     (if-some [f (first-missing-parameter required-params m)]
+     (when-some [f (first-missing-parameter required-params m)]
        (let [[reason k rest] f]
          (cons [reason k] (explain-all-required rest m)))))))
 
 (defn explain-n-required
   [min-required required-params m]
   (let [min-required (min min-required (count required-params))]
-    (if (and (some? m) (pos? min-required))
+    (when (and (some? m) (pos? min-required))
       (loop [items       (seq required-params)
              to-be-found (unchecked-int min-required)
              to-report   nil]
-        (if (pos? to-be-found)
+        (when (pos? to-be-found)
           (if items
             (let [k    (first items)
                   rest (next items)]
@@ -166,7 +180,7 @@
 (defn validate-parameters
   [m vmap default-pass?]
   (lazy-seq
-   (if-some [f (first-bad-parameter m vmap default-pass?)]
+   (when-some [f (first-bad-parameter m vmap default-pass?)]
      (let [[reason k rest] f]
        (cons [reason k] (validate-parameters rest vmap default-pass?))))))
 
@@ -183,4 +197,4 @@
          reasons (if (nil? required-params) reasons
                      (let [required-check-fn (or required-check-fn explain-all-required)]
                        (concat (required-check-fn required-params m) reasons)))]
-     (if (first reasons) reasons))))
+     (when (first reasons) reasons))))
