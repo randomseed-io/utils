@@ -3,7 +3,7 @@
   <groupId>io.randomseed</groupId>
   <artifactId>utils-bus</artifactId>
   <packaging>jar</packaging>
-  <version>2.0.0</version>
+  <version>2.0.1</version>
   <name>utils-bus</name>
   <description>Random Utilities – asynchronous worker bus</description>
   <url>https://randomseed.io/software/utils/</url>
@@ -16,7 +16,7 @@
   <scm>
     <connection>scm:git:git://github.com/randomseed-io/utils.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/randomseed-io/utils.git</developerConnection>
-    <tag>2.0.0</tag>
+    <tag>2.0.1</tag>
     <url>https://github.com/randomseed-io/utils/</url>
   </scm>
   <build>
@@ -48,17 +48,17 @@
     <dependency>
       <groupId>io.randomseed</groupId>
       <artifactId>utils-core</artifactId>
-      <version>2.0.0</version>
+      <version>2.0.1</version>
     </dependency>
     <dependency>
       <groupId>io.randomseed</groupId>
       <artifactId>utils-log</artifactId>
-      <version>2.0.0</version>
+      <version>2.0.1</version>
     </dependency>
     <dependency>
       <groupId>io.randomseed</groupId>
       <artifactId>utils-time</artifactId>
-      <version>2.0.0</version>
+      <version>2.0.1</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
