@@ -172,7 +172,7 @@ meta-deploy: clean meta-pom meta-jar
 	@echo "[deploy]   -> $(GROUP)/$(APPNAME)-$(VERSION)"
 	@test -f "$(JARFILE)" || (echo "Missing $(JARFILE)"; exit 1)
 	@test -f "$(POMFILE)" || (echo "Missing $(POMFILE)"; exit 1)
-	echo @$(DEPLOY) deploy :artifact "\"$(JARFILE)\""
+	@$(DEPLOY) deploy :pom-file "\"$(POMFILE)\"" :artifact "\"$(JARFILE)\""
 	@test -f "$(POMVERF).asc" && mv -f "$(POMVERF).asc" "$(POMFILE).asc" || true
 	@test -f "$(POMTARG).asc" && mv -f "$(POMTARG).asc" "$(POMFILE).asc" || true
 
@@ -180,7 +180,7 @@ deploy-%: clean pom-% jar-%
 	@echo "[deploy]   -> $(GROUP)/$(call modname,$*)-$(VERSION)"
 	@test -f "$(call jarfile,$*)" || (echo "Missing $(call jarfile,$*)"; exit 1)
 	@test -f "$(call pomfile,$*)" || (echo "Missing $(call pomfile,$*)"; exit 1)
-	echo @$(DEPLOY) deploy :artifact "\"$(call jarfile,$*)\""
+	@$(DEPLOY) deploy :pom-file "\"$(call pomfile,$*)\"" :artifact "\"$(call jarfile,$*)\""
 	@test -f "$(call pomverf,$*).asc" && mv -f "$(call pomverf,$*).asc" "$(call pomfile,$*).asc" || true
 	@test -f "$(call pomtarg,$*).asc" && mv -f "$(call pomtarg,$*).asc" "$(call pomfile,$*).asc" || true
 
