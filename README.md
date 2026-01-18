@@ -3,19 +3,34 @@
 A small constellation of pragmatic Clojure utility libraries, published as **separate
 artifacts** (modules) plus a **meta-package** that depends on all of them.
 
-[![random:utils on cljdoc](https://cljdoc.org/badge/io.randomseed/utils)](https://cljdoc.org/d/io.randomseed/utils/CURRENT)
 [![CircleCI](https://circleci.com/gh/randomseed-io/utils.svg?style=svg)](https://circleci.com/gh/randomseed-io/utils)
 
-[![utils on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils.svg)](https://clojars.org/io.randomseed/utils)
 [![utils-core on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-core.svg)](https://clojars.org/io.randomseed/utils-core)
+[![utils-core on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-core)](https://cljdoc.org/d/io.randomseed/utils-core/CURRENT)
+
 [![utils-bus on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-bus.svg)](https://clojars.org/io.randomseed/utils-bus)
+[![utils-bus on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-bus)](https://cljdoc.org/d/io.randomseed/utils-bus/CURRENT)
+
 [![utils-crypto on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-crypto.svg)](https://clojars.org/io.randomseed/utils-crypto)
+[![utils-crypto on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-crypto)](https://cljdoc.org/d/io.randomseed/utils-crypto/CURRENT)
+
 [![utils-db on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-db.svg)](https://clojars.org/io.randomseed/utils-db)
+[![utils-db on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-db)](https://cljdoc.org/d/io.randomseed/utils-db/CURRENT)
+
 [![utils-ip on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-ip.svg)](https://clojars.org/io.randomseed/utils-ip)
+[![utils-ip on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-ip)](https://cljdoc.org/d/io.randomseed/utils-ip/CURRENT)
+
 [![utils-log on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-log.svg)](https://clojars.org/io.randomseed/utils-log)
+[![utils-log on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-log)](https://cljdoc.org/d/io.randomseed/utils-log/CURRENT)
+
 [![utils-reitit on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-reitit.svg)](https://clojars.org/io.randomseed/utils-reitit)
+[![utils-reitit on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-reitit)](https://cljdoc.org/d/io.randomseed/utils-reitit/CURRENT)
+
 [![utils-time on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-time.svg)](https://clojars.org/io.randomseed/utils-time)
+[![utils-time on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-time)](https://cljdoc.org/d/io.randomseed/utils-time/CURRENT)
+
 [![utils-validators on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-validators.svg)](https://clojars.org/io.randomseed/utils-validators)
+[![utils-validators on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-validators)](https://cljdoc.org/d/io.randomseed/utils-validators/CURRENT)
 
 ## Install
 
@@ -90,6 +105,14 @@ Typical flow (names may vary depending on your local setup):
 - build per-module JARs,
 - publish per-module artifacts.
 
+### Interactive development
+
+```bash
+bin/repl
+```
+
+Starts REPL and nREPL server (port number is stored in `.nrepl-port`).
+
 ## License
 
 Copyright © 2021-2025 Paweł Wilk
@@ -108,3 +131,4 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+[LICENSE]:    https://github.com/randomseed-io/utils/blob/master/LICENSE
