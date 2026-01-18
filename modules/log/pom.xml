@@ -5,7 +5,7 @@
   <packaging>jar</packaging>
   <version>2.0.0</version>
   <name>utils-log</name>
-  <description>Random Utilities for Clojure</description>
+  <description>Random Utilities – opinionated logging facility</description>
   <url>https://randomseed.io/software/utils/</url>
   <licenses>
     <license>
