@@ -43,5 +43,5 @@
     (shutdown-agents)))
 
 (defn -main
-  [& {:keys [version src-dirs] :as all}]
+  [& {:keys [version src-dirs] :as _all}]
   (codox version src-dirs))

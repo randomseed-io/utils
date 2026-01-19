@@ -39,6 +39,14 @@
 (defn reply?    [v] (instance? Reply    v))
 (defn outcome?  [v] (instance? Outcome  v))
 
+(defn bus?
+  "True if v is a Workers record or a derefable holding Workers (e.g. the global
+  `workers` atom)."
+  [v]
+  (or (workers? v)
+      (and (instance? clojure.lang.IDeref v)
+           (workers? @v))))
+
 ;;
 ;; shared workers data
 ;;
