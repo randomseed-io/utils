@@ -26,10 +26,10 @@
 (defn app-name    [opts] (kw->name   (:name        opts)))
 (defn app-scm     [opts] (kw->name   (:scm         opts)))
 (defn app-url     [opts] (kw->name   (:url         opts)))
-(defn aot-ns      [opts] (kw->symbol (:aot-ns      opts)))
 (defn lib-name    [opts] (str (app-group opts) "/" (app-name    opts)))
 (defn jar-name    [opts] (str (app-name  opts) "-" (app-version opts) ".jar"))
 (defn jar-file    [opts] (str "target/" (jar-name opts)))
+(defn aot-ns      [opts] (not-empty (mapv kw->symbol (:aot-ns opts))))
 
 (defn- slurp-edn [^String path]
   (when (.exists (io/file path))
@@ -129,18 +129,18 @@
                           :group   'io.randomseed \\
                           :version \"1.0.0\""
   [opts]
-  (let [mfiles    (module-files     opts)
+  (let [aot-ns    (aot-ns           opts)
+        mfiles    (module-files     opts)
         class-dir (ensure-class-dir mfiles)
         src-dirs  (module-paths     mfiles)
         basis     (basis-for        mfiles opts)
-        jar-path  (:jar             mfiles)
-        aot-ns    (not-empty (:aot-ns opts))]
+        jar-path  (:jar             mfiles)]
     (io/make-parents               (io/file jar-path))
     (b/delete                      {:path class-dir})
     (b/copy-dir                    {:src-dirs src-dirs :target-dir class-dir})
     (when aot-ns (b/compile-clj    {:basis      basis
                                     :class-dir  class-dir
-                                    :ns-compile (aot-ns opts)}))
+                                    :ns-compile aot-ns}))
     (mmeta/install-maven-metadata! {:artifact-id (app-name    opts)
                                     :group-id    (app-group   opts)
                                     :version     (app-version opts)
