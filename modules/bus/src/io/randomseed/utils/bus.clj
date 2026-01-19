@@ -8,20 +8,16 @@
 
   (:refer-clojure :exclude [load run parse-long uuid random-uuid])
 
-  (:require [clojure.set                     :as               set]
-            [clojure.string                  :as               str]
-            [io.randomseed.utils             :refer           :all]
-            [io.randomseed.utils.fs          :as                fs]
-            [io.randomseed.utils.map         :as               map]
-            [io.randomseed.utils.log         :as               log]
-            [io.randomseed.utils.time        :as              time]
-            [tick.core                       :as                 t]
-            [clojure.core.async              :as             async]
-            [clojure.core.async              :refer [<! <!! >! >!!
-                                                     alts! alts!!
-                                                     chan close!
-                                                     go go-loop
-                                                     put! thread]]))
+  (:require  [io.randomseed.utils             :refer           :all]
+             [io.randomseed.utils.log         :as               log]
+             [io.randomseed.utils.time        :as              time]
+             [clojure.core.async              :refer [<! <!! >! >!!
+                                                      alts! alts!!
+                                                      offer! poll!
+                                                      chan close!
+                                                      go go-loop
+                                                      put! take!
+                                                      thread]]))
 
 (def current-ns-str (str (ns-name *ns*)))
 
@@ -64,7 +60,7 @@
   (^Worker [v]
    (worker @workers v))
   (^Worker [^Workers workers v]
-   (if v
+   (when v
      (if (worker? v) v (get (.db workers) v)))))
 
 (defn worker-id
@@ -75,7 +71,7 @@
   ([v]
    (worker-exists? @workers v))
   ([workers v]
-   (if v
+   (when v
      (contains? (.db ^Workers workers)
                 (if (worker? v) (.id ^Worker v) v)))))
 
@@ -83,7 +79,7 @@
   ([]
    (list-workers workers))
   ([workers]
-   (if workers
+   (when workers
      (keys (.db ^Workers workers)))))
 
 (defn config
@@ -91,7 +87,7 @@
    (config @workers wid))
   ([workers wid]
    (assert (ident? wid) (str "Worker ID required but " wid " given."))
-   (if-some [wrk (worker workers wid)]
+   (when-some [wrk (worker workers wid)]
      (.config ^Worker wrk))))
 
 ;;
@@ -117,13 +113,13 @@
 (defn wait-for-data    [wrk]     (<!! (data-channel    wrk)))
 (defn wait-for-result  [wrk]     (<!! (.result ^Worker (worker wrk))))
 
-(defn try-put-command  [wrk msg] (async/offer! (control-channel wrk) msg))
-(defn try-put-data     [wrk msg] (async/offer! (data-channel    wrk) msg))
-(defn get-command      [wrk]     (async/poll!  (control-channel wrk)))
-(defn get-data         [wrk]     (async/poll!  (data-channel    wrk)))
-(defn get-result       [wrk]     (async/poll!  (.result ^Worker (worker wrk))))
+(defn try-put-command  [wrk msg] (offer! (control-channel wrk) msg))
+(defn try-put-data     [wrk msg] (offer! (data-channel    wrk) msg))
+(defn get-command      [wrk]     (poll!  (control-channel wrk)))
+(defn get-data         [wrk]     (poll!  (data-channel    wrk)))
+(defn get-result       [wrk]     (poll!  (.result ^Worker (worker wrk))))
 
-(defn handle-command   [wrk f]   (async/take! (control-channel wrk) f))
+(defn handle-command   [wrk f]   (take! (control-channel wrk) f))
 
 ;;
 ;; request and response constructors
@@ -176,41 +172,41 @@
   ([wrk req]
    (let [wrk (worker wrk)
          r   (new-request wrk req)]
-     (if (put-command wrk r) r)))
+     (when (put-command wrk r) r)))
   ([wrk req & args]
    (let [wrk (worker wrk)
          r   (apply new-request wrk req nil args)]
-     (if (put-command wrk r) r))))
+     (when (put-command wrk r) r))))
 
 (defn send-id-request
   ([wrk req id]
    (let [wrk (worker wrk)
          r   (new-request wrk req id)]
-     (if (put-command wrk r) r)))
+     (when (put-command wrk r) r)))
   ([wrk req id & args]
    (let [wrk (worker wrk)
          r   (apply new-request wrk req id args)]
-     (if (put-command wrk r) r))))
+     (when (put-command wrk r) r))))
 
 (defn try-send-request
   ([wrk req]
    (let [wrk (worker wrk)
          r   (new-request wrk req)]
-     (if (try-put-command wrk r) r)))
+     (when (try-put-command wrk r) r)))
   ([wrk req & args]
    (let [wrk (worker wrk)
          r   (apply new-request wrk req nil args)]
-     (if (try-put-command wrk r) r))))
+     (when (try-put-command wrk r) r))))
 
 (defn try-send-id-request
   ([wrk req id]
    (let [wrk (worker wrk)
          r   (new-request wrk req id)]
-     (if (try-put-command wrk r) r)))
+     (when (try-put-command wrk r) r)))
   ([wrk req id & args]
    (let [wrk (worker wrk)
          r   (apply new-request wrk req id args)]
-     (if (try-put-command wrk r) r))))
+     (when (try-put-command wrk r) r))))
 
 (defn send-response
   ([wrk res]
@@ -220,25 +216,25 @@
   ([wrk res req]
    (let [wrk (worker wrk)
          r   (new-response wrk res req)]
-     (if (put-data wrk r) r)))
-  ([wrk res req id & args]
+     (when (put-data wrk r) r)))
+  ([wrk res req id & _args]
    (let [wrk (worker wrk)
          r   (new-response wrk res req id)]
-     (if (put-data wrk r) r))))
+     (when (put-data wrk r) r))))
 
 (defn try-send-response
   ([wrk res]
    (let [wrk (worker wrk)
          r   (new-response wrk res)]
-     (if (try-put-data wrk r) r)))
+     (when (try-put-data wrk r) r)))
   ([wrk res req]
    (let [wrk (worker wrk)
          r   (new-response wrk res req)]
-     (if (try-put-data wrk r) r)))
-  ([wrk res req id & args]
+     (when (try-put-data wrk r) r)))
+  ([wrk res req id & _args]
    (let [wrk (worker wrk)
          r   (new-response wrk res req id)]
-     (if (try-put-data wrk r) r))))
+     (when (try-put-data wrk r) r))))
 
 ;;
 ;; complex operations on requests and responses
@@ -293,22 +289,22 @@
   "Sends a blocking request and waits for any response."
   ([wrk req]
    (let [wrk (worker wrk)]
-     (if (send-request wrk req)
+     (when (send-request wrk req)
        (wait-for-response wrk))))
   ([wrk req & args]
    (let [wrk (worker wrk)]
-     (if (apply send-request wrk req args)
+     (when (apply send-request wrk req args)
        (wait-for-response wrk)))))
 
 (defn id-request->response
   "Sends a blocking request and waits for any response."
   ([wrk req id]
    (let [wrk (worker wrk)]
-     (if (send-request wrk req id)
+     (when (send-request wrk req id)
        (wait-for-response wrk))))
   ([wrk req id & args]
    (let [wrk (worker wrk)]
-     (if (apply send-request wrk req id args)
+     (when (apply send-request wrk req id args)
        (wait-for-response wrk)))))
 
 (defn handle-request
@@ -319,18 +315,17 @@
       (do (log/warn "Ignoring unknown control message / not a request object")
           empty-outcome)
       (if-some [r (f wrk req handler-args)]
-        (do
-          (if (reply? r)
-            (if (identical? ::no-response (.body ^Reply r))
-              (do (log/trace "Handler requested to not send the response, omitting")
-                  (new-outcome req nil (.data ^Reply r)))
-              (do (log/trace "Sending response")
-                  (new-outcome req (new-response wrk (.body ^Reply r) req) (.data ^Reply r))))
-            (if (identical? ::no-response r)
-              (do (log/trace "Handler requested to not send the response, omitting")
-                  (new-outcome req))
-              (do (log/trace "Sending response")
-                  (new-outcome req (new-response wrk r req))))))
+        (if (reply? r)
+          (if (identical? ::no-response (.body ^Reply r))
+            (do (log/trace "Handler requested to not send the response, omitting")
+                (new-outcome req nil (.data ^Reply r)))
+            (do (log/trace "Sending response")
+                (new-outcome req (new-response wrk (.body ^Reply r) req) (.data ^Reply r))))
+          (if (identical? ::no-response r)
+            (do (log/trace "Handler requested to not send the response, omitting")
+                (new-outcome req))
+            (do (log/trace "Sending response")
+                (new-outcome req (new-response wrk r req)))))
         (do (log/debug "Handler returned nil, omitting response")
             empty-outcome)))))
 
@@ -422,10 +417,10 @@
 (defn new-worker-with-wid
   ([^Workers w id config f multi?]
    (let [id  (ensure-ident-keyword id)
-         num (if multi? (inc (get (.ids w) id -1)))
-         nst (if multi? (str "-" num))
+         num (when multi? (inc (get (.ids w) id -1)))
+         nst (when multi? (str "-" num))
          wid (keyword (namespace id) (str (name id) nst))]
-     [(if-not (contains? (.db w) wid)
+     [(when-not (contains? (.db w) wid)
         (let [wrk (Worker. wid f (new-control-channel) (new-data-channel) nil config)]
           (Workers. (assoc (.ids w)  id num)
                     (assoc (.db  w) wid wrk))))
@@ -433,7 +428,7 @@
 
 (defn new-worker
   ([w id config f]
-   (new-worker w id config false))
+   (new-worker w id config f false))
   ([w id config f multi?]
    (nth (new-worker-with-wid w id config f multi?) 0)))
 
@@ -477,7 +472,7 @@
 
 (defn update-config
   [workers wrk f & args]
-  (if-some [wrk (worker workers wrk)]
+  (when-some [wrk (worker workers wrk)]
     (let [db   (.db ^Workers workers)
           wid  (worker-id wrk)
           orig (get db wid)]
@@ -510,7 +505,7 @@
 (defn remove-worker!
   ([wrk]
    (swap! workers remove-worker wrk))
-  ([wrokers wrk]
+  ([workers wrk]
    (swap! workers remove-worker wrk)))
 
 ;;
@@ -520,7 +515,7 @@
 (defn start-worker
   [id config f & args]
   (let [wid (new-worker! id config f)]
-    (if-not (worker-exists? @workers wid)
+    (when-not (worker-exists? @workers wid)
       (throw (ex-info (str "Worker " wid " could not be added.") {:worker-id wid})))
     (worker
      (update-worker!
@@ -528,7 +523,7 @@
       (fn [w]
         (let [fun (.fn ^Worker w)
               ctx {:worker-id wid}
-              ctx (if-some [n (:name config)] (assoc ctx :module n))
+              ctx (when-some [n (:name config)] (assoc ctx :module n))
               res (thread
                     (log/with-ctx ctx
                       (log/debug (str "Calling runner: " (fn-name f)))
@@ -545,7 +540,7 @@
   ([wrk]
    (stop-worker wrk nil))
   ([wrk msg-or-fn]
-   (if-some [wrk (worker wrk)]
+   (when-some [wrk (worker wrk)]
      (let [wid (.id ^Worker wrk)]
        (when msg-or-fn
          (log/info (str "Shutting down worker: " (symbol wid)))

@@ -8,13 +8,16 @@
 
   (:refer-clojure :exclude [load run! stop! get parse-long uuid random-uuid])
 
-  (:require [clojure.set                     :as             set]
-            [clojure.string                  :as             str]
-            [io.randomseed.utils             :refer         :all]
-            [io.randomseed.utils.bus         :as             bus]
-            [io.randomseed.utils.log         :as             log])
+  (:require [io.randomseed.utils     :as   u]
+            [io.randomseed.utils.bus :as bus]
+            [io.randomseed.utils.log :as log])
 
-  (:import [io.randomseed.utils.bus Worker Workers Response Request Reply Outcome]))
+  (:import (io.randomseed.utils.bus Worker
+                                    Workers
+                                    Response
+                                    Request
+                                    Reply
+                                    Outcome)))
 
 (def current-ns-str
   (str (ns-name *ns*)))
@@ -27,40 +30,40 @@
 
 (defn bot-ns
   [v id]
-  (if (valuable? v)
+  (if (u/valuable? v)
     (if (qualified-ident? v)
       (symbol (if-some [nsp (namespace v)] (str nsp "." (name v)) (str (name v))))
-      (if-some [v (some-str v)] (symbol v)))
+      (when-some [v (u/some-str v)] (symbol v)))
     (symbol (if-some [nsp (namespace id)] (str nsp "." (name id)) (str (name id))))))
 
 (defn instance-config
   "Creates an instance of a configuration for the given instance (if a bot is
   instantiable)."
   [cfg instance-id]
-  (assert (or (nil? instance-id) (valuable? (clojure.core/get (:instances cfg) instance-id)))
+  (assert (or (nil? instance-id) (u/valuable? (clojure.core/get (:instances cfg) instance-id)))
           (str "Instance configuration is not present: " instance-id))
-  (assert (not (and (nil? instance-id) (valuable? (:instances cfg))))
+  (assert (not (and (nil? instance-id) (u/valuable? (:instances cfg))))
           (str "This bot requires instantiating but no instance ID was given: " (:name cfg)))
   (if (nil? instance-id)
     cfg
     (let [icfg  (clojure.core/get (:instances cfg) instance-id)
-          iname (some-str (:name icfg))]
+          iname (u/some-str (:name icfg))]
       (-> cfg
           (dissoc :instances)
           (merge  icfg)
-          (assoc  :name (or iname (str (:name cfg) " (" (some-str instance-id) ")"))
-                  :instance (keyword (some-str (:ns cfg)) (some-str-simple instance-id)))))))
+          (assoc  :name (or iname (str (:name cfg) " (" (u/some-str instance-id) ")"))
+                  :instance (keyword (u/some-str (:ns cfg)) (u/some-str-simple instance-id)))))))
 
 (defn parse-config
   ([cfg]
    (parse-config cfg nil))
   ([cfg instance-id]
-   (if-some [id (clojure.core/get cfg :bot)]
-     (let [id (ensure-ns id current-ns-str)]
+   (when-some [id (clojure.core/get cfg :bot)]
+     (let [id (u/ensure-ns id current-ns-str)]
        (-> cfg
            (assoc  :bot  id)
            (update :ns   bot-ns id)
-           (update :name some-str)
+           (update :name u/some-str)
            (instance-config instance-id))))))
 
 (defn bot?
@@ -71,14 +74,14 @@
 
 (defn load
   ([config-parser id]
-   (load id nil))
+   (load config-parser id nil))
   ([config-parser id instance-id]
-   (if-some [cfg (parse-config (load-config id) instance-id)]
+   (when-some [cfg (parse-config (load-config config-parser id) instance-id)]
      (let [[bid cid nsc] (map cfg [:bot :id :ns])]
-       (if nsc (try-require nsc))
-       (if (qualified-ident?  id) (try-require (namespace  id)))
-       (if (qualified-ident? bid) (try-require (namespace bid)))
-       (if (qualified-ident? cid) (try-require (namespace cid)))
+       (when nsc (u/try-require nsc))
+       (when (qualified-ident?  id) (u/try-require (namespace  id)))
+       (when (qualified-ident? bid) (u/try-require (namespace bid)))
+       (when (qualified-ident? cid) (u/try-require (namespace cid)))
        cfg))))
 
 (declare command)
@@ -106,17 +109,17 @@
            (when-not bot-session
              (throw (ex-info (str "Session is not initialized for the bot " nam) cfg)))
            (let [sid (:sid bot-session)
-                 sid (if sid (str " in session " (some-str sid)))
+                 sid (when sid (str " in session " (u/some-str sid)))
                  fnc (:fn cfg)
                  fnc (if (fn? fnc) fnc
                          (if (qualified-ident? fnc)
                            (resolve (symbol fnc))
-                           (if-some [n (:ns cfg)] (ns-resolve n (symbol (or fnc 'run!))))))
+                           (when-some [n (:ns cfg)] (ns-resolve n (symbol (or fnc 'run!))))))
                  cfg (assoc cfg :fn fnc :name nam :multiple mlt)]
              (log/info (str "Starting bot " nam sid))
              (when-some [wrk (bus/start-worker bid cfg fnc bot-session)]
                (Thread/sleep 1000)
-               (or (valuable
+               (or (u/valuable
                     (clojure.core/get (.db ^Workers (update-local-config! wrk))
                                       (bus/worker-id wrk)))
                    wrk)))))))))
@@ -128,7 +131,7 @@
 (defn generic-control
   "Common tasks which any bot should support."
   [bot-session f wrk req handler-args]
-  (let [args (.args ^Request req)]
+  (let [_args (.args ^Request req)]
     (bus/new-reply
      (case (.body ^Request req)
 
@@ -202,23 +205,23 @@
 
 (defn command
   [wrk command & args]
-  (if (valuable? command)
-    (:body (apply bus/request->response wrk (ensure-keyword command) args))))
+  (when (u/valuable? command)
+    (:body (apply bus/request->response wrk (u/ensure-keyword command) args))))
 
 (defn get-data
   [wrk k & args]
-  (if (valuable? k)
-    (:body (apply bus/request->response wrk ::data (ensure-keyword k) args))))
+  (when (u/valuable? k)
+    (:body (apply bus/request->response wrk ::data (u/ensure-keyword k) args))))
 
 (defn get-data!
   [wrk k & args]
-  (if (valuable? k)
-    (:body (apply bus/request->response wrk ::data! (ensure-keyword k) args))))
+  (when (u/valuable? k)
+    (:body (apply bus/request->response wrk ::data! (u/ensure-keyword k) args))))
 
 (defn update-local-config!
   [wid]
   (let [wid (if (bus/worker? wid) (:id wid) wid)]
-    (if wid
+    (when wid
       (let [res (bus/request->response wid ::config)]
         (when (bus/response? res)
           (log/debug (str "Updating supervised config of " (symbol wid)))
