@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 2.0.2 (2026-01-19)
+
+Tests added to `utils-bus`.
+
 ## 2.0.1 (2026-01-18)
 
 Package building fixes.

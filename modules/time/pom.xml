@@ -3,7 +3,7 @@
   <groupId>io.randomseed</groupId>
   <artifactId>utils-time</artifactId>
   <packaging>jar</packaging>
-  <version>2.0.1</version>
+  <version>2.0.2</version>
   <name>utils-time</name>
   <description>Random Utilities – date and time operations</description>
   <url>https://randomseed.io/software/utils/</url>
@@ -16,7 +16,7 @@
   <scm>
     <connection>scm:git:git://github.com/randomseed-io/utils.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/randomseed-io/utils.git</developerConnection>
-    <tag>2.0.1</tag>
+    <tag>2.0.2</tag>
     <url>https://github.com/randomseed-io/utils/</url>
   </scm>
   <build>
@@ -43,7 +43,7 @@
     <dependency>
       <groupId>io.randomseed</groupId>
       <artifactId>utils-core</artifactId>
-      <version>2.0.1</version>
+      <version>2.0.2</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
