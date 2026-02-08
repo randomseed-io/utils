@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 2.0.3 (2026-02-08)
+
+Added `io.randomseed.utils.qe` with `q=` macro for safe referential equality.
+
 ## 2.0.2 (2026-01-19)
 
 Tests added to `utils-bus`.

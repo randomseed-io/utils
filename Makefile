@@ -8,7 +8,7 @@ UPREADME    := bin/update-readme
 
 MODULES     := core bus crypto db ip log reitit time validators
 
-VERSION     ?= 2.0.2
+VERSION     ?= 2.0.3
 DESCRIPTION ?= Random Utilities for Clojure
 GROUP       ?= io.randomseed
 APPNAME     ?= utils
