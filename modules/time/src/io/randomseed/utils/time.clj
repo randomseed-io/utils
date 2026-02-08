@@ -8,8 +8,9 @@
 
   (:refer-clojure :exclude [parse-long uuid random-uuid])
 
-  (:import  [java.time Instant Duration ZoneRegion]
-            [java.util Date Calendar])
+  (:import  (java.time Instant Duration ZoneRegion)
+            (java.util Date Calendar)
+            (java.math BigDecimal))
 
   (:require [tick.core           :as       t]
             [tick.protocols      :as      tp]
