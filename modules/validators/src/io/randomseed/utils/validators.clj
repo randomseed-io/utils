@@ -8,7 +8,8 @@
 
   (:require [clojure.spec.alpha      :as       s]
             [io.randomseed.utils.log :as     log]
-            [io.randomseed.utils     :as       u])
+            [io.randomseed.utils     :as       u]
+            [io.randomseed.utils.qe  :refer [q=]])
 
   (:import [java.util.regex Pattern]
            [clojure.spec.alpha Spec]))
@@ -32,7 +33,7 @@
 
   clojure.lang.Keyword
 
-  (valid? [validator v] (identical? validator (keyword v)))
+  (valid? [validator v] (q= validator (keyword v)))
 
   Spec
 

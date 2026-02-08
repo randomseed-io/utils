@@ -9,6 +9,7 @@
   (:refer-clojure :exclude [load run parse-long uuid random-uuid])
 
   (:require  [io.randomseed.utils             :refer           :all]
+             [io.randomseed.utils.qe          :refer           [q=]]
              [io.randomseed.utils.log         :as               log]
              [io.randomseed.utils.time        :as              time]
              [clojure.core.async              :refer [<! <!! >! >!!
@@ -324,12 +325,12 @@
           empty-outcome)
       (if-some [r (f wrk req handler-args)]
         (if (reply? r)
-          (if (identical? ::no-response (.body ^Reply r))
+          (if (q= ::no-response (.body ^Reply r))
             (do (log/trace "Handler requested to not send the response, omitting")
                 (new-outcome req nil (.data ^Reply r)))
             (do (log/trace "Sending response")
                 (new-outcome req (new-response wrk (.body ^Reply r) req) (.data ^Reply r))))
-          (if (identical? ::no-response r)
+          (if (q= ::no-response r)
             (do (log/trace "Handler requested to not send the response, omitting")
                 (new-outcome req))
             (do (log/trace "Sending response")
@@ -356,12 +357,12 @@
   [wrk req f args]
   (if-some [r (apply f wrk req args)]
     (if (reply? r)
-      (if (identical? ::no-response (.body ^Reply r))
+      (if (q= ::no-response (.body ^Reply r))
         (do (log/trace "Handler requested to not send the response, omitting")
             (new-outcome req nil (.data ^Reply r)))
         (do (log/trace "Sending response")
             (new-outcome req (send-response wrk (.body ^Reply r) req)) (.data ^Reply r)))
-      (if (identical? ::no-response r)
+      (if (q= ::no-response r)
         (do (log/trace "Handler requested to not send the response, omitting")
             (new-outcome req))
         (do (log/trace "Sending response")

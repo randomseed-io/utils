@@ -22,6 +22,7 @@
             [io.randomseed.utils.var       :as            var]
             [io.randomseed.utils.map       :refer  [qassoc
                                                     map-keys]]
+            [io.randomseed.utils.qe        :refer        [q=]]
             [io.randomseed.utils.time      :as           time]
             [io.randomseed.utils.nop-cache :as      nop-cache])
 
@@ -68,7 +69,7 @@
          c           initial-map
          c           (if qsize (cache/fifo-cache-factory c :threshold qsize) c)
          c           (if ttl   (cache/ttl-cache-factory  c :ttl ttl) c)]
-     (if (identical? c initial-map)
+     (if (q= c initial-map)
        (nop-cache/factory)
        c))))
 
@@ -100,7 +101,7 @@
 (defn not-found?
   "Returns `true` when the given value equals to `:io.randomseed.utils.db/not-found`."
   [e]
-  (identical? ::not-found e))
+  (q= ::not-found e))
 
 (defn cache-lookup-coll
   "Looks for a collection of entries identified by the given ID in a cache which should
@@ -839,7 +840,7 @@
   "Returns true if getting from a database failed in post-processing
   phase (e.g. de-serialization) and the data were broken."
   [v]
-  (identical? ::get-failed v))
+  (q= ::get-failed v))
 
 (defn make-setting-getter
   "Returns a function which gets a setting for the given entity and de-serializes it to

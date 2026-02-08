@@ -8,6 +8,7 @@
 
   (:require [io.randomseed.utils    :refer  [bytes-to-string
                                           normalize-to-bytes]]
+            [io.randomseed.utils.qe :refer               [q=]]
             [io.randomseed.lazy-map :as              lazy-map])
 
   (:import  (clojure.lang  Associative IPersistentMap)
@@ -512,7 +513,7 @@
        (reduce-kv
         (fn ^Associative [^Associative mp k v]
           (let [r (if (fn? v) (v (get mp k)) v)]
-            (if (identical? r remove-key-mark)
+            (if (q= r remove-key-mark)
               (dissoc mp k)
               (qassoc mp k r))))
         map vmap)
@@ -520,7 +521,7 @@
         (fn ^Associative [^Associative mp k v]
           (if (contains? mp k)
             (let [r (if (fn? v) (v (get mp k)) v)]
-              (if (identical? r remove-key-mark)
+              (if (q= r remove-key-mark)
                 (dissoc mp k)
                 (qassoc mp k r)))
             mp))
