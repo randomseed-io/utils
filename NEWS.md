@@ -1,5 +1,15 @@
 # History of random:utils releases
 
+## 2.0.4 (2026-02-15)
+
+- In `utils-bus` (`io.randomseed.utils.bot`), normalized built-in bot control commands
+  to simple keywords: `:config`, `:session`, `:pause`, `:ping`, `:stop`.
+- Updated wrappers to use simple control commands (`get-config`, `get-session`,
+  `pause`, `ping`, `stop!`, `update-local-config!`).
+- Added regression tests confirming:
+  - built-in wrappers send simple control keywords,
+  - qualified custom commands are delegated to bot-specific handlers.
+
 ## 2.0.3 (2026-02-08)
 
 Added `io.randomseed.utils.qe` with `q=` macro for safe referential equality.
