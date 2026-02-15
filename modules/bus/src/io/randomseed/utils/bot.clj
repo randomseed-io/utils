@@ -201,7 +201,7 @@
 (defn stop!
   [wrk]
   (let [wrk (bus/worker wrk)]
-    (when (bus/stop-worker wrk (bus/new-request wrk ::stop)) true)))
+    (when (bus/stop-worker wrk (bus/new-request wrk :stop)) true)))
 
 (defn command
   [wrk command & args]
@@ -222,12 +222,12 @@
   [wid]
   (let [wid (if (bus/worker? wid) (:id wid) wid)]
     (when wid
-      (let [res (bus/request->response wid ::config)]
+      (let [res (bus/request->response wid :config)]
         (when (bus/response? res)
           (log/debug (str "Updating supervised config of " (symbol wid)))
           (bus/update-config! wid (.body ^Response res)))))))
 
-(defn get-config  [wrk] (command wrk ::config))
-(defn get-session [wrk] (command wrk ::session))
-(defn pause       [wrk] (command wrk ::pause))
-(defn ping        [wrk] (command wrk ::ping))
+(defn get-config  [wrk] (command wrk :config))
+(defn get-session [wrk] (command wrk :session))
+(defn pause       [wrk] (command wrk :pause))
+(defn ping        [wrk] (command wrk :ping))

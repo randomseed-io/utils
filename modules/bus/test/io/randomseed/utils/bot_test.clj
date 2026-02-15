@@ -1,7 +1,8 @@
 (ns io.randomseed.utils.bot-test
 
   (:require [clojure.test :refer [deftest is testing]]
-            [io.randomseed.utils.bot :as bot]))
+            [io.randomseed.utils.bot :as bot]
+            [io.randomseed.utils.bus :as bus]))
 
 (deftest bot-ns-always-a-symbol
   (testing "qualified keyword -> symbol namespace+name"
@@ -60,3 +61,58 @@
       (is (= 1 (:x cfg)))
       (is (nil? (:instances cfg))) ; bo instance-config robi (dissoc :instances)
       (is (bot/bot? cfg)))))
+
+(deftest builtin-command-wrappers-use-simple-keywords
+  (let [calls (atom [])]
+    (with-redefs [bus/request->response
+                  (fn [wrk req & args]
+                    (swap! calls conj [wrk req (vec args)])
+                    {:body :ok})]
+      (is (= :ok (bot/get-config :w1)))
+      (is (= :ok (bot/get-session :w2)))
+      (is (= :ok (bot/pause :w3)))
+      (is (= :ok (bot/ping :w4))))
+    (is (= [[:w1 :config []]
+            [:w2 :session []]
+            [:w3 :pause []]
+            [:w4 :ping []]]
+           @calls))))
+
+(deftest stop-bang-uses-simple-stop-command
+  (let [new-req-calls (atom [])
+        stop-calls    (atom [])]
+    (with-redefs [bus/worker      identity
+                  bus/new-request (fn [wrk req]
+                                    (swap! new-req-calls conj [wrk req])
+                                    (bus/->Request 1 wrk req []))
+                  bus/stop-worker (fn [wrk msg]
+                                    (swap! stop-calls conj [wrk msg])
+                                    :stopped)]
+      (is (true? (bot/stop! :w1))))
+    (is (= [[:w1 :stop]] @new-req-calls))
+    (is (= 1 (count @stop-calls)))))
+
+(deftest update-local-config-uses-simple-config-command
+  (let [request-calls (atom [])
+        update-calls  (atom [])]
+    (with-redefs [bus/request->response (fn [wid req & args]
+                                          (swap! request-calls conj [wid req (vec args)])
+                                          (bus/->Response 1 wid {:x 1} nil))
+                  bus/update-config!    (fn [wid cfg]
+                                          (swap! update-calls conj [wid cfg])
+                                          :updated)]
+      (bot/update-local-config! :worker-1))
+    (is (= [[:worker-1 :config []]] @request-calls))
+    (is (= [[:worker-1 {:x 1}]] @update-calls))))
+
+(deftest qualified-commands-are-delegated-to-custom-handler
+  (let [handled (atom nil)
+        wrk     (bus/->Worker :worker nil nil nil nil {:cfg true})
+        req     (bus/->Request 1 :worker ::extended [])
+        reply   (bot/generic-control {:stage :RUNNING}
+                                     (fn [_ _ r _]
+                                       (reset! handled (:body r))
+                                       :handled)
+                                     wrk req nil)]
+    (is (= ::extended @handled))
+    (is (= :handled (:body reply)))))
