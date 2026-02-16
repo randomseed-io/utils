@@ -9,6 +9,9 @@
 - Added regression tests confirming:
   - built-in wrappers send simple control keywords,
   - qualified custom commands are delegated to bot-specific handlers.
+- Clarified and covered with tests that `get-data` / `get-data!` use namespaced
+  extension commands: `:io.randomseed.utils.bot/data` and
+  `:io.randomseed.utils.bot/data!`.
 
 ## 2.0.3 (2026-02-08)
 

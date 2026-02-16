@@ -116,3 +116,26 @@
                                      wrk req nil)]
     (is (= ::extended @handled))
     (is (= :handled (:body reply)))))
+
+(deftest get-data-wrappers-use-bot-namespaced-commands
+  (let [calls (atom [])]
+    (with-redefs [bus/request->response
+                  (fn [wrk req & args]
+                    (swap! calls conj [wrk req (vec args)])
+                    {:body :ok})]
+      (is (= :ok (bot/get-data :w1 :foo)))
+      (is (= :ok (bot/get-data! :w2 :bar :x 1))))
+    (is (= [[:w1 :io.randomseed.utils.bot/data [:foo]]
+            [:w2 :io.randomseed.utils.bot/data! [:bar :x 1]]]
+           @calls))))
+
+(deftest data-command-can-be-matched-via-bot-alias
+  (let [wrk (bus/->Worker :worker nil nil nil nil {:cfg true})
+        req (bus/->Request 1 :worker :io.randomseed.utils.bot/data [:foo])
+        reply (bot/generic-control {:stage :RUNNING}
+                                   (fn [_ _ r _]
+                                     (case (:body r)
+                                       ::bot/data :handled-data
+                                       :fallback))
+                                   wrk req nil)]
+    (is (= :handled-data (:body reply)))))

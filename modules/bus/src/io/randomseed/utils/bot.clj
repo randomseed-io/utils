@@ -209,11 +209,18 @@
     (:body (apply bus/request->response wrk (u/ensure-keyword command) args))))
 
 (defn get-data
+  "Requests bot-specific data using namespaced command `:io.randomseed.utils.bot/data`.
+  Custom handlers should match this command explicitly (e.g. `::bot/data` with
+  `[io.randomseed.utils.bot :as bot]`)."
   [wrk k & args]
   (when (u/valuable? k)
     (:body (apply bus/request->response wrk ::data (u/ensure-keyword k) args))))
 
 (defn get-data!
+  "Requests bot-specific data with side effects using namespaced command
+  `:io.randomseed.utils.bot/data!`.
+  Custom handlers should match this command explicitly (e.g. `::bot/data!` with
+  `[io.randomseed.utils.bot :as bot]`)."
   [wrk k & args]
   (when (u/valuable? k)
     (:body (apply bus/request->response wrk ::data! (u/ensure-keyword k) args))))
