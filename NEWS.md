@@ -1,5 +1,13 @@
 # History of random:utils releases
 
+## 2.0.5 (2026-02-16)
+
+- Clarified and covered with tests that `get-data` / `get-data!` use namespaced
+  extension commands: `:io.randomseed.utils.bot/data` and
+  `:io.randomseed.utils.bot/data!`.
+- In `utils-time` (`io.randomseed.utils.time`), removed a reflection warning in
+  compact duration parsing by making `BigDecimal` constructor dispatch explicit.
+
 ## 2.0.4 (2026-02-15)
 
 - In `utils-bus` (`io.randomseed.utils.bot`), normalized built-in bot control commands
@@ -9,9 +17,6 @@
 - Added regression tests confirming:
   - built-in wrappers send simple control keywords,
   - qualified custom commands are delegated to bot-specific handlers.
-- Clarified and covered with tests that `get-data` / `get-data!` use namespaced
-  extension commands: `:io.randomseed.utils.bot/data` and
-  `:io.randomseed.utils.bot/data!`.
 
 ## 2.0.3 (2026-02-08)
 
