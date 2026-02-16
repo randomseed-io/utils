@@ -196,11 +196,11 @@
         :else
         (let [m (re-matches #"(?i)^\s*([+-]?\d+(?:\.\d+)?)\s*([a-zµ]+)\s*$" s)]
           (when m
-            (let [num-str  (nth m 1)
+            (let [^String num-str  (nth m 1)
                   unit-str (-> (nth m 2) str/lower-case)
                   unit     (get compact-duration-unit->canonical unit-str)]
               (when unit
-                (duration-from-decimal (java.math.BigDecimal. num-str) unit)))))))))
+                (duration-from-decimal (BigDecimal. num-str) unit)))))))))
 
 (defn- parse-ts-core
   [s multiply?]
