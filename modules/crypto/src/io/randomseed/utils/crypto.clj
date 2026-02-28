@@ -1,6 +1,6 @@
 (ns
 
-    ^{:doc    "Random utilities, crypto support functions."
+    ^{:doc    "Random Utilities, crypto support functions."
       :author "Paweł Wilk"
       :added  "1.0.0"}
 

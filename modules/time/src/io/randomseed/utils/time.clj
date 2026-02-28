@@ -1,6 +1,6 @@
 (ns
 
-    ^{:doc    "Random utilities, date and time functions."
+    ^{:doc    "Random Utilities, date and time functions."
       :author "Paweł Wilk"
       :added  "1.0.0"}
 
