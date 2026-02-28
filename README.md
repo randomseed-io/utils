@@ -9,6 +9,9 @@ artifacts** (modules) plus a **meta-package** that depends on all of them.
 [![utils-core on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-core)](https://cljdoc.org/d/io.randomseed/utils-core/CURRENT)
 [![utils-core on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-core.svg)](https://clojars.org/io.randomseed/utils-core)
 
+[![utils-crypto on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-auth)](https://cljdoc.org/d/io.randomseed/utils-auth/CURRENT)
+[![utils-crypto on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-auth.svg)](https://clojars.org/io.randomseed/utils-auth)
+
 [![utils-bus on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-bus)](https://cljdoc.org/d/io.randomseed/utils-bus/CURRENT)
 [![utils-bus on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-bus.svg)](https://clojars.org/io.randomseed/utils-bus)
 
@@ -53,15 +56,16 @@ io.randomseed/utils-core {:mvn/version "2.0.5"}
 
 Each module is a standalone artifact (same versioning across the set):
 
-- `utils` – meta-package: depends on all modules below
-- `utils-core` – helpers for basic type conversions and checks
-- `utils-bus` – asynchronous worker bus
-- `utils-crypto` – cryptographic helpers
-- `utils-db` – database abstractions with caching
-- `utils-ip` – IP address support functions
-- `utils-log` – opinionated logging facility
-- `utils-reitit` – Reitit support abstractions
-- `utils-time` – date and time operations
+- `utils           ` – meta-package: depends on all modules below
+- `utils-core      ` – helpers for basic type conversions and checks
+- `utils-auth      ` – authentication helpers
+- `utils-bus       ` – asynchronous worker bus
+- `utils-crypto    ` – cryptographic helpers
+- `utils-db        ` – database abstractions with caching
+- `utils-ip        ` – IP address support functions
+- `utils-log       ` – opinionated logging facility
+- `utils-reitit    ` – Reitit support abstractions
+- `utils-time      ` – date and time operations
 - `utils-validators` – data validation helpers
 
 ### Backward compatibility note
@@ -76,6 +80,15 @@ Current public namespaces (as published in the generated API docs):
 
 - `io.randomseed.utils`,
 - `io.randomseed.utils.bot`,
+- `io.randomseed.utils.auth`,
+- `io.randomseed.utils.auth.algo.append`,
+- `io.randomseed.utils.auth.algo.fail`,
+- `io.randomseed.utils.auth.algo.pbkdf2`,
+- `io.randomseed.utils.auth.algo.scrypt`,
+- `io.randomseed.utils.auth.algo.specs`,
+- `io.randomseed.utils.auth.locking`,
+- `io.randomseed.utils.auth.pwd`,
+- `io.randomseed.utils.auth.types`,
 - `io.randomseed.utils.bus`,
 - `io.randomseed.utils.crypto`,
 - `io.randomseed.utils.crypto.codecs`,
@@ -116,7 +129,7 @@ Starts REPL and nREPL server (port number is stored in `.nrepl-port`).
 
 ## License
 
-Copyright © 2021-2025 Paweł Wilk
+Copyright © 2021-2026 Paweł Wilk
 
 Random Utilities (utils) is copyrighted software owned by Paweł Wilk
 (pw@gnu.org). You may redistribute and/or modify this software as long as you comply

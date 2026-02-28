@@ -26,3 +26,4 @@ gh-pages
 node_modules/
 /cljs-test-runner-out
 pom.xml.versionsBackup
+/modules/auth/target/coverage
