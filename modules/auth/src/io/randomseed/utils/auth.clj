@@ -8,11 +8,11 @@
 
   (:refer-clojure :exclude [parse-long uuid random-uuid])
 
-  (:require [io.randomseed.utils.auth.types :as    types]
-            [io.randomseed.utils            :as    utils]
-            [io.randomseed.utils.auth.pwd   :as    pwd]
-            [io.randomseed.utils.time       :as    time]
-            [io.randomseed.utils.var        :as    var]))
+  (:require [io.randomseed.utils.auth.types :as types]
+            [io.randomseed.utils            :as utils]
+            [io.randomseed.utils.auth.pwd   :as   pwd]
+            [io.randomseed.utils.time       :as  time]
+            [io.randomseed.utils.var        :as   var]))
 
 (defonce ^:redef setup nil)
 
@@ -116,13 +116,13 @@
   (let [m (when (map? m) (or (:passwords m) m))]
     (when (map? m)
       (types/->AuthPasswords
-       (:id m)
-       (:suite m)
-       (or (:check m)        (:check-fn m))
-       (or (:check-json m)   (:check-json-fn m))
-       (or (:encrypt m)      (:encrypt-fn m))
+       (:id               m)
+       (:suite            m)
+       (or (:check        m) (:check-fn        m))
+       (or (:check-json   m) (:check-json-fn   m))
+       (or (:encrypt      m) (:encrypt-fn      m))
        (or (:encrypt-json m) (:encrypt-json-fn m))
-       (or (:wait m)         (:wait-fn m))))))
+       (or (:wait         m) (:wait-fn         m))))))
 
 (defn make-locking
   "Builds `AuthLocking` record from auth config map."
@@ -139,9 +139,9 @@
   ([k m]
    (let [m (or m {})]
      (assoc m
-            :id           (utils/some-keyword-simple (or (:id m) k))
-            :passwords    (make-passwords m)
-            :locking      (make-locking m)))))
+            :id        (utils/some-keyword-simple (or (:id m) k))
+            :passwords (make-passwords m)
+            :locking   (make-locking m)))))
 
 (defn init-auth
   "Authentication configurator."
