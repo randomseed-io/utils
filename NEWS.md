@@ -1,5 +1,9 @@
 # History of random:utils releases
 
+## 2.0.8 (2026-03-01)
+
+- Typo fixed in `deps.edn`.
+
 ## 2.0.7 (2026-03-01)
 
 - Added `utils-identity` module.
