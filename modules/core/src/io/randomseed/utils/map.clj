@@ -15,8 +15,9 @@
             (io.randomseed.lazy_map    LazyMapEntry LazyMap)))
 
 (defmacro lazy-get
-  "Like get but the default value is an expression that is going to be evaluated only
-  if the associative structure does not contain the given key."
+  "Like `clojure.core/get` but the default value is an expression
+  that is going to be evaluated only if the associative structure
+  does not contain the given key."
   [m k exp]
   `(let [m# ~m, k# ~k]
      (if (and (associative? m#) (contains? m# k#)) (get m# k#) ~exp)))
