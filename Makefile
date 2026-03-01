@@ -6,7 +6,7 @@ TEST        := bin/test
 LINT        := bin/lint
 UPREADME    := bin/update-readme
 
-MODULES     := core bus crypto auth db ip log reitit time validators
+MODULES     := core bus crypto identity auth db ip log reitit time validators
 
 VERSION     ?= 2.0.6
 DESCRIPTION ?= Random Utilities for Clojure

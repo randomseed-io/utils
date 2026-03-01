@@ -16,6 +16,7 @@
                                      "modules/core/resources"
                                      "modules/bus/resources"
                                      "modules/crypto/resources"
+                                     "modules/identity/resources"
                                      "modules/auth/resources"
                                      "modules/db/resources"
                                      "modules/ip/resources"
@@ -26,6 +27,7 @@
                        :extra-deps  {io.randomseed/utils-core       {:local/root "modules/core"}
                                      io.randomseed/utils-bus        {:local/root "modules/bus"}
                                      io.randomseed/utils-crypto     {:local/root "modules/crypto"}
+                                     io.randomseed/utils/identity   {:local/root "modules/identity"}
                                      io.randomseed/utils-auth       {:local/root "modules/auth"}
                                      io.randomseed/utils-db         {:local/root "modules/db"}
                                      io.randomseed/utils-ip         {:local/root "modules/ip"}
