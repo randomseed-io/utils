@@ -1,5 +1,15 @@
 # History of random:utils releases
 
+## 2.0.7 (2026-03-01)
+
+- Added `utils-identity` module.
+- Fixed a bug in `utils-db` causing `NOPCache` to be returned.
+- Dependencies updated (removed redundant dependencies).
+
+## 2.0.6 (2026-02-27)
+
+- Added `utils-auth` module.
+
 ## 2.0.5 (2026-02-16)
 
 - Clarified and covered with tests that `get-data` / `get-data!` use namespaced

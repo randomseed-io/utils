@@ -21,6 +21,9 @@ artifacts** (modules) plus a **meta-package** that depends on all of them.
 [![utils-db on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-db)](https://cljdoc.org/d/io.randomseed/utils-db/CURRENT)
 [![utils-db on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-db.svg)](https://clojars.org/io.randomseed/utils-db)
 
+[![utils-crypto on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-identity)](https://cljdoc.org/d/io.randomseed/utils-identity/CURRENT)
+[![utils-crypto on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-identity.svg)](https://clojars.org/io.randomseed/utils-identity)
+
 [![utils-ip on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-ip)](https://cljdoc.org/d/io.randomseed/utils-ip/CURRENT)
 [![utils-ip on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-ip.svg)](https://clojars.org/io.randomseed/utils-ip)
 
@@ -43,13 +46,13 @@ Choose one:
 ### Meta-package (everything)
 
 ```clojure
-io.randomseed/utils {:mvn/version "2.0.6"}
+io.randomseed/utils {:mvn/version "2.0.7"}
 ```
 
 ### A single module
 
 ```clojure
-io.randomseed/utils-core {:mvn/version "2.0.6"}
+io.randomseed/utils-core {:mvn/version "2.0.7"}
 ```
 
 ## Modules
@@ -62,6 +65,7 @@ Each module is a standalone artifact (same versioning across the set):
 - `utils-bus       ` – asynchronous worker bus
 - `utils-crypto    ` – cryptographic helpers
 - `utils-db        ` – database abstractions with caching
+- `utils-identity  ` – user identity abstration
 - `utils-ip        ` – IP address support functions
 - `utils-log       ` – opinionated logging facility
 - `utils-reitit    ` – Reitit support abstractions
@@ -95,6 +99,9 @@ Current public namespaces (as published in the generated API docs):
 - `io.randomseed.utils.db`,
 - `io.randomseed.utils.db.types`,
 - `io.randomseed.utils.fs`,
+- `io.randomseed.utils.identity`,
+- `io.randomseed.utils.identity.types`,
+- `io.randomseed.utils.identity.proto`,
 - `io.randomseed.utils.ip`,
 - `io.randomseed.utils.log`,
 - `io.randomseed.utils.log.logback`,
