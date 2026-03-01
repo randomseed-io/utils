@@ -1,7 +1,7 @@
 {:paths   ["src" "resources"]
  :deps    {io.randomseed/utils-core            {:local/root "../core"}    ;; utility functions
            io.randomseed/utils-log             {:local/root "../log"}     ;; logging
-           io.randomseed/phone-number          {:mvn/version "8.13.6-3"}   ;; phone number validation
+           io.randomseed/phone-number          {:mvn/version "9.0.23-2"}   ;; phone number validation
            org.clojure/clojure                 {:mvn/version "1.12.4"}     ;; clojure
            org.clojure/spec.alpha              {:mvn/version "0.6.249"}    ;; Clojure-spec
            trptr/java-wrapper                  {:mvn/version "0.2.3"}      ;; locale detection and coercion
