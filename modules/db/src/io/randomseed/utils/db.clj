@@ -55,8 +55,8 @@
 ;; Caching (more precise and granulate control over caching than memoization)
 
 (defn cache-prepare
-  "Prepares a cache object of the given TTL and/or queue size. Optionally it can get an
-  initial map of entries. Returns a cache object."
+  "Prepares a cache object of the given TTL and/or queue size. Optionally it can be
+  populated with an initial map of entries. Returns a cache object."
   ([ttl]
    (cache-prepare ttl nil nil))
   ([ttl queue-size]
@@ -69,9 +69,9 @@
          c           initial-map
          c           (if qsize (cache/fifo-cache-factory c :threshold qsize) c)
          c           (if ttl   (cache/ttl-cache-factory  c :ttl ttl) c)]
-     (if (q= c initial-map)
-       (nop-cache/factory)
-       c))))
+     (if (or qsize ttl)
+       c
+       (nop-cache/factory)))))
 
 (defn cache-create
   "Creates a cache object of the given TTL and/or queue size. Optionally it can get an
