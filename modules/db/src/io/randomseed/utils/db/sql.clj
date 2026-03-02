@@ -34,8 +34,25 @@
 
 ;; SQL helpers
 
-(p/import-vars [next.jdbc.sql
-                query update! delete! find-by-keys])
+(defn query
+  "Convenient delegator to `next.jdbc.sql/query`."
+  [& args]
+  (apply next.jdbc.sql/query args))
+
+(defn update!
+  "Convenient delegator to `next.jdbc.sql/update!`."
+  [& args]
+  (apply next.jdbc.sql/update! args))
+
+(defn delete!
+  "Convenient delegator to `next.jdbc.sql/delete!`."
+  [& args]
+  (apply next.jdbc.sql/delete! args))
+
+(defn find-by-keys
+  "Convenient delegator to `next.jdbc.sql/find-by-keys`."
+  [& args]
+  (apply next.jdbc.sql/find-by-keys args))
 
 (p/import-vars [io.randomseed.utils.db
                 for-replace for-insert-or for-replace-multi for-insert-multi-or
