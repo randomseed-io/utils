@@ -9,8 +9,8 @@ artifacts** (modules) plus a **meta-package** that depends on all of them.
 [![utils-core on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-core)](https://cljdoc.org/d/io.randomseed/utils-core/CURRENT)
 [![utils-core on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-core.svg)](https://clojars.org/io.randomseed/utils-core)
 
-[![utils-crypto on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-auth)](https://cljdoc.org/d/io.randomseed/utils-auth/CURRENT)
-[![utils-crypto on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-auth.svg)](https://clojars.org/io.randomseed/utils-auth)
+[![utils-auth on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-auth)](https://cljdoc.org/d/io.randomseed/utils-auth/CURRENT)
+[![utils-auth on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-auth.svg)](https://clojars.org/io.randomseed/utils-auth)
 
 [![utils-bus on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-bus)](https://cljdoc.org/d/io.randomseed/utils-bus/CURRENT)
 [![utils-bus on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-bus.svg)](https://clojars.org/io.randomseed/utils-bus)
@@ -21,8 +21,8 @@ artifacts** (modules) plus a **meta-package** that depends on all of them.
 [![utils-db on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-db)](https://cljdoc.org/d/io.randomseed/utils-db/CURRENT)
 [![utils-db on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-db.svg)](https://clojars.org/io.randomseed/utils-db)
 
-[![utils-crypto on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-identity)](https://cljdoc.org/d/io.randomseed/utils-identity/CURRENT)
-[![utils-crypto on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-identity.svg)](https://clojars.org/io.randomseed/utils-identity)
+[![utils-identity on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-identity)](https://cljdoc.org/d/io.randomseed/utils-identity/CURRENT)
+[![utils-identity on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-identity.svg)](https://clojars.org/io.randomseed/utils-identity)
 
 [![utils-ip on cljdoc](https://cljdoc.org/badge/io.randomseed/utils-ip)](https://cljdoc.org/d/io.randomseed/utils-ip/CURRENT)
 [![utils-ip on Clojars](https://img.shields.io/clojars/v/io.randomseed/utils-ip.svg)](https://clojars.org/io.randomseed/utils-ip)
@@ -46,13 +46,13 @@ Choose one:
 ### Meta-package (everything)
 
 ```clojure
-io.randomseed/utils {:mvn/version "2.0.8"}
+io.randomseed/utils {:mvn/version "2.0.9"}
 ```
 
 ### A single module
 
 ```clojure
-io.randomseed/utils-core {:mvn/version "2.0.8"}
+io.randomseed/utils-core {:mvn/version "2.0.9"}
 ```
 
 ## Modules
@@ -97,6 +97,8 @@ Current public namespaces (as published in the generated API docs):
 - `io.randomseed.utils.crypto`,
 - `io.randomseed.utils.crypto.codecs`,
 - `io.randomseed.utils.db`,
+- `io.randomseed.utils.db.coercers`,
+- `io.randomseed.utils.db.sql`,
 - `io.randomseed.utils.db.types`,
 - `io.randomseed.utils.fs`,
 - `io.randomseed.utils.identity`,

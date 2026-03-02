@@ -1,5 +1,35 @@
 # History of random:utils releases
 
+## 2.0.9 (2026-03-02)
+
+- In `utils-db` (`io.randomseed.utils.db.types`), DB type adapters (readers and
+  setters) are now dynamically registered via classpath-scanned `adders.edn` resources.
+  Hard dependencies on `utils-ip` and `phone-number` removed from `utils-db`.
+  New functions: `add-all-readers`, `add-all-setters`, `register-reader-adder`,
+  `register-setter-adder`.
+- In `utils-db`, added new namespace `io.randomseed.utils.db.coercion` with
+  extensible `in-coercer` and `out-coercer` multimethods for column-level
+  coercion, plus convenience re-exports of core db abstractions.
+- In `utils-db`, added new namespace `io.randomseed.utils.db.sql` with SQL-building
+  helpers.
+- In `utils-identity`, added independent DB adapter namespace
+  `io.randomseed.utils.db.types.identity` with a `next.jdbc` setter for the
+  `Identity` type, self-registering via `adders.edn`.
+- In `utils-ip`, added independent DB adapter namespace
+  `io.randomseed.utils.db.types.ip` with `next.jdbc` reader and setter for IP
+  address types (`IPAddress`, `InetAddress`, `IPv4Address`, `IPv6Address`),
+  self-registering via `adders.edn`.
+- In `utils-crypto` (`io.randomseed.utils.crypto`), hardened memory hygiene:
+  derived key bytes are now zeroed (`Arrays/fill`) after use in `encrypt-key` and
+  `decrypt-key`; `char[]` obtained from `Console.readPassword` is zeroed after
+  conversion to string in `read-pwd`.
+- In `utils-auth` (`io.randomseed.utils.auth.pwd`), re-encrypted password bytes
+  are now zeroed after comparison in `check-pwd`.
+- In `utils-ip` (`io.randomseed.utils.ip`), removed spurious `locking` on
+  locally-constructed Tries in `preprocess-ip-list` (they are not shared); improved
+  docstring to clarify idempotency and thread-safety contract.
+- Dependencies: `phone-number` bumped to `9.0.23-4`.
+
 ## 2.0.8 (2026-03-01)
 
 - Typo fixed in `deps.edn`.
