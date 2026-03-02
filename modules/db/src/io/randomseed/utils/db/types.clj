@@ -2,32 +2,138 @@
 
     ^{:doc    "Opinionated database type conversions."
       :author "Paweł Wilk"
-      :added  "1.0.0"}
+      :added  "2.0.9"}
 
     io.randomseed.utils.db.types
 
   (:require [io.randomseed.utils.db]
-            [io.randomseed.utils.ip]
-            [potemkin             :as     p]
-            [next.jdbc.result-set :as    rs]
-            [next.jdbc.prepare    :as    jp]
-            [clj-uuid             :as  uuid]
-            [phone-number.core    :as phone])
+            [clojure.edn            :as   edn]
+            [clojure.java.classpath :as    cp]
+            [clojure.java.io        :as    io]
+            [potemkin               :as     p]
+            [next.jdbc.result-set   :as    rs]
+            [next.jdbc.prepare      :as    jp]
+            [clj-uuid               :as  uuid])
 
-  (:import  (java.sql                     Blob Connection PreparedStatement Timestamp)
-            (javax.sql                    DataSource)
-            (java.lang.reflect            Method)
-            (java.util                    UUID Calendar GregorianCalendar TimeZone)
-            (java.io                      Closeable)
-            (inet.ipaddr.ipv4             IPv4Address)
-            (inet.ipaddr.ipv6             IPv6Address)))
-
-(import '(com.google.i18n.phonenumbers Phonenumber$PhoneNumber))
+  (:import  (java.sql  Blob PreparedStatement Timestamp)
+            (java.util UUID Calendar TimeZone)))
 
 (set! *warn-on-reflection* true)
 
 (defonce ^TimeZone utc-time-zone
   (TimeZone/getTimeZone "UTC"))
+
+;; Extensible adapter registry (for optional modules)
+
+(def ^{:doc "Classpath resource path used by optional DB adapter registration."}
+  adders-resource-path
+  "io/randomseed/utils/db/types/adders.edn")
+
+(defonce ^{:private true
+           :doc     "Registry of external reader adders. Each entry should be a var or a no-arg fn."}
+  registered-reader-adders
+  (atom []))
+
+(defonce ^{:private true
+           :doc     "Registry of external setter adders. Each entry should be a var or a no-arg fn."}
+  registered-setter-adders
+  (atom []))
+
+(defonce ^{:private true
+           :doc     "Guard ensuring optional adders are autoloaded at most once per runtime."}
+  optional-adders-autoloaded?
+  (atom false))
+
+(defn- register-adder!
+  [registry adder]
+  (when adder
+    (swap! registry
+           (fn [v]
+             (if (some #(identical? % adder) v)
+               v
+               (conj v adder)))))
+  nil)
+
+(defn register-reader-adder!
+  "Registers a no-arg reader-adder function (or var). Registered adders are executed
+  by `add-all-readers`."
+  [adder]
+  (register-adder! registered-reader-adders adder))
+
+(defn register-setter-adder!
+  "Registers a no-arg setter-adder function (or var). Registered adders are executed
+  by `add-all-setters`."
+  [adder]
+  (register-adder! registered-setter-adders adder))
+
+(defn- resolve-adder
+  [sym]
+  (try
+    (requiring-resolve sym)
+    (catch Throwable _
+      nil)))
+
+(defn- normalize-adders
+  [v]
+  (let [m (if (map? v) v {})]
+    {:readers (->> (:readers m) (filter symbol?) vec)
+     :setters (->> (:setters m) (filter symbol?) vec)}))
+
+(defn- parse-adders-resource
+  [r]
+  (try
+    (normalize-adders (edn/read-string (slurp r)))
+    (catch Throwable _
+      {:readers [] :setters []})))
+
+(defn- classpath-resources
+  []
+  (let [dirs    (for [dir (cp/classpath-directories)
+                      :let [f (io/file dir adders-resource-path)]
+                      :when (.isFile f)]
+                  f)
+        jars    (for [^java.util.jar.JarFile jar (cp/classpath-jarfiles)
+                      :when (some #(= adders-resource-path %) (cp/filenames-in-jar jar))]
+                  (str "jar:" (-> (.getName jar) io/file .toURI str) "!/" adders-resource-path))
+        loader  (try
+                  (let [^ClassLoader cl (or (.getContextClassLoader (Thread/currentThread))
+                                            (clojure.lang.RT/baseLoader))]
+                    (enumeration-seq (.getResources cl adders-resource-path)))
+                  (catch Throwable _
+                    []))]
+    (distinct (concat dirs jars loader))))
+
+(defn- discover-adder-symbols
+  []
+  (let [acc (reduce
+             (fn [{:keys [readers setters]} url]
+               (let [{rs :readers ss :setters} (parse-adders-resource url)]
+                 {:readers (into readers rs)
+                  :setters (into setters ss)}))
+             {:readers [] :setters []}
+             (classpath-resources))]
+    {:readers (vec (distinct (:readers acc)))
+     :setters (vec (distinct (:setters acc)))}))
+
+(defn- autoload-optional-adders!
+  []
+  (when (compare-and-set! optional-adders-autoloaded? false true)
+    (let [{:keys [readers setters]} (discover-adder-symbols)]
+      (doseq [sym readers]
+        (when-let [adder (resolve-adder sym)]
+          (register-reader-adder! adder)))
+      (doseq [sym setters]
+        (when-let [adder (resolve-adder sym)]
+          (register-setter-adder! adder))))))
+
+(defn- invoke-adders!
+  [adders]
+  (doseq [adder adders]
+    (let [f (cond
+              (var? adder) @adder
+              (fn? adder)  adder
+              :else nil)]
+      (when (fn? f) (f)))))
 
 ;; Type conversions when reading from a DB
 
@@ -65,10 +171,13 @@
       (read-column-by-index [^Blob v _2 _3] (.getBytes ^Blob v (long 1) ^long (.length ^Blob v))))))
 
 (defn add-all-readers
-  "Adds all opinionated readers by calling `add-reader-date` and `add-reader-blob`."
+  "Adds all opinionated readers by calling `add-reader-date`, `add-reader-blob`, and
+  reader adders registered with `register-reader-adder!`."
   []
+  (autoload-optional-adders!)
   (add-reader-date)
-  (add-reader-blob))
+  (add-reader-blob)
+  (invoke-adders! @registered-reader-adders))
 
 ;; Type conversions when writing to a DB
 
@@ -103,7 +212,7 @@
 
       java.time.ZonedDateTime
 
-      (set-parameter [^java.time.LocalDate v ^PreparedStatement ps ^long i]
+      (set-parameter [^java.time.ZonedDateTime v ^PreparedStatement ps ^long i]
         (.setTimestamp ^PreparedStatement ps i
                        ^Timestamp (Timestamp/from ^java.time.Instant (.toInstant ^java.time.ZonedDateTime v))
                        ^Calendar  (Calendar/getInstance ^TimeZone utc-time-zone)))
@@ -131,26 +240,6 @@
 
 (defonce
   ^{:arglists '([])
-    :doc      "Extends `next.jdbc.prepare/SettableParameter` protocol to support IP address
-  conversions so `inet.ipaddr.ipv4.IPv4Address` data are converted to `inet.ipaddr.ipv6.IPv6Address`,
-  then to an array of bytes and then saved using `.setBytes` method. Similarly,
-  `inet.ipaddr.ipv6.IPv6Address` data are converted to an array of bytes and then saved with `.setBytes`."}
-  add-setter-ip-address
-  (fn []
-    (extend-protocol jp/SettableParameter
-
-      IPv4Address
-
-      (set-parameter [^IPv4Address v ^PreparedStatement ps ^long i]
-        (.setBytes ^PreparedStatement ps i (.getBytes ^IPv6Address (.toIPv6 ^IPv4Address v))))
-
-      IPv6Address
-
-      (set-parameter [^IPv6Address v ^PreparedStatement ps ^long i]
-        (.setBytes ^PreparedStatement ps i (.getBytes ^IPv6Address v))))))
-
-(defonce
-  ^{:arglists '([])
     :doc      "Extends `next.jdbc.prepare/SettableParameter` protocol to support UUID
   conversions so `java.util.UUID` data are converted to an array of bytes and then
   saved using `.setBytes` method."}
@@ -163,27 +252,14 @@
       (set-parameter [^UUID v ^PreparedStatement ps ^long i]
         (.setBytes ^PreparedStatement ps i ^bytes (uuid/to-byte-array ^UUID v))))))
 
-(defonce
-  ^{:arglists '([])
-    :doc      "Extends `next.jdbc.prepare/SettableParameter` protocol to support phone number
-  conversions so `com.google.i18n.phonenumbers/Phonenumber$PhoneNumber` data are converted to
-  strings (in E.164 format) and then saved."}
-  add-setter-phone-number
-  (fn []
-    (extend-protocol jp/SettableParameter
-
-      Phonenumber$PhoneNumber
-
-      (set-parameter [^Phonenumber$PhoneNumber v ^PreparedStatement ps ^long i]
-        (.setString ^PreparedStatement ps i ^String (phone/format v nil :phone-number.format/e164))))))
-
 (defn add-all-setters
-  "Adds all opinionated setters by calling `add-setter-date` and `add-setter-ip-address`."
+  "Adds all opinionated setters by calling core setter adders and setter adders
+  registered with `register-setter-adder!`."
   []
+  (autoload-optional-adders!)
   (add-setter-date)
-  (add-setter-ip-address)
-  (add-setter-phone-number)
-  (add-setter-uuid))
+  (add-setter-uuid)
+  (invoke-adders! @registered-setter-adders))
 
 (defn add-all-accessors
   "Adds all opinionated readers and setters by calling `add-all-readers` and `add-all-setters`."

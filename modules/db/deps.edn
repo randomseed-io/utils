@@ -2,13 +2,12 @@
  :deps    {io.randomseed/utils-core          {:local/root "../core"}
            io.randomseed/utils-time          {:local/root "../time"}
            io.randomseed/utils-log           {:local/root "../log"}
-           io.randomseed/utils-ip            {:local/root "../ip"}
            org.clojure/clojure               {:mvn/version "1.12.4"}     ;; clojure
+           org.clojure/java.classpath        {:mvn/version "1.1.1"}      ;; classpath scanning
            potemkin/potemkin                 {:mvn/version "0.4.6"}      ;; var exposition
            danlentz/clj-uuid                 {:mvn/version "0.2.0"}      ;; UUID support
            org.clojure/core.memoize          {:mvn/version "1.1.266"}    ;; memoization
            org.clojure/core.cache            {:mvn/version "1.1.234"}    ;; caching
-           io.randomseed/phone-number        {:mvn/version "9.0.23-2"}   ;; phone number validation
            com.github.seancorfield/next.jdbc {:mvn/version "1.3.1086"}   ;; JDBC driver
            com.taoensso/encore               {:mvn/version "3.159.0"}    ;; explicit dependency for nippy
            com.taoensso/nippy                {:mvn/version "3.6.0"}}     ;; data serialization
@@ -17,7 +16,9 @@
                                      ns-tracker/ns-tracker  {:mvn/version "1.0.0"}
                                      orchestra/orchestra    {:mvn/version "2021.01.01-1"}
                                      expound/expound        {:mvn/version "0.9.0"}
-                                     lambdaisland/kaocha    {:mvn/version "1.91.1392"}}
+                                     lambdaisland/kaocha    {:mvn/version "1.91.1392"}
+                                     io.randomseed/utils-identity {:local/root "../identity"}
+                                     io.randomseed/phone-number   {:mvn/version "9.0.23-3"}}
                        :exec-fn     kaocha.runner/-main
                        :main-opts   ["-m" "kaocha.runner",
                                      "--config-file"   "tests.edn",
@@ -31,7 +32,9 @@
                                      orchestra/orchestra           {:mvn/version "2021.01.01-1"}
                                      lambdaisland/kaocha           {:mvn/version "1.91.1392"}
                                      lambdaisland/kaocha-cloverage {:mvn/version "1.1.89"}
-                                     expound/expound               {:mvn/version "0.9.0"}}
+                                     expound/expound               {:mvn/version "0.9.0"}
+                                     io.randomseed/utils-identity  {:local/root "../identity"}
+                                     io.randomseed/phone-number    {:mvn/version "9.0.23-3"}}
                        :exec-fn     kaocha.runner/-main
                        :main-opts   ["-m" "kaocha.runner",
                                      "--config-file"   "tests.edn",

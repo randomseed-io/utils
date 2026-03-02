@@ -62,17 +62,7 @@
     </dependency>
     <dependency>
       <groupId>io.randomseed</groupId>
-      <artifactId>phone-number</artifactId>
-      <version>9.0.23-2</version>
-    </dependency>
-    <dependency>
-      <groupId>io.randomseed</groupId>
       <artifactId>utils-core</artifactId>
-      <version>2.0.8</version>
-    </dependency>
-    <dependency>
-      <groupId>io.randomseed</groupId>
-      <artifactId>utils-ip</artifactId>
       <version>2.0.8</version>
     </dependency>
     <dependency>
@@ -100,6 +90,11 @@
       <groupId>org.clojure</groupId>
       <artifactId>core.memoize</artifactId>
       <version>1.1.266</version>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>java.classpath</artifactId>
+      <version>1.1.1</version>
     </dependency>
     <dependency>
       <groupId>potemkin</groupId>
