@@ -6,7 +6,7 @@
 
     io.randomseed.utils.identity
 
-  (:refer-clojure :exclude [parse-long random-uuid type])
+  (:refer-clojure :exclude [type])
 
   (:require  [clojure.string                     :as                     str]
              [clj-uuid                           :as                    uuid]
