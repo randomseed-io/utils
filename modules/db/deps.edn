@@ -18,7 +18,7 @@
                                      expound/expound        {:mvn/version "0.9.0"}
                                      lambdaisland/kaocha    {:mvn/version "1.91.1392"}
                                      io.randomseed/utils-identity {:local/root "../identity"}
-                                     io.randomseed/phone-number   {:mvn/version "9.0.23-3"}}
+                                     io.randomseed/phone-number   {:mvn/version "9.0.23-4"}}
                        :exec-fn     kaocha.runner/-main
                        :main-opts   ["-m" "kaocha.runner",
                                      "--config-file"   "tests.edn",
@@ -34,7 +34,7 @@
                                      lambdaisland/kaocha-cloverage {:mvn/version "1.1.89"}
                                      expound/expound               {:mvn/version "0.9.0"}
                                      io.randomseed/utils-identity  {:local/root "../identity"}
-                                     io.randomseed/phone-number    {:mvn/version "9.0.23-3"}}
+                                     io.randomseed/phone-number    {:mvn/version "9.0.23-4"}}
                        :exec-fn     kaocha.runner/-main
                        :main-opts   ["-m" "kaocha.runner",
                                      "--config-file"   "tests.edn",

@@ -53,7 +53,7 @@
     <dependency>
       <groupId>io.randomseed</groupId>
       <artifactId>phone-number</artifactId>
-      <version>9.0.23-3</version>
+      <version>9.0.23-4</version>
     </dependency>
     <dependency>
       <groupId>io.randomseed</groupId>

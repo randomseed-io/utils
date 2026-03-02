@@ -97,6 +97,8 @@ Current public namespaces (as published in the generated API docs):
 - `io.randomseed.utils.crypto`,
 - `io.randomseed.utils.crypto.codecs`,
 - `io.randomseed.utils.db`,
+- `io.randomseed.utils.db.coercers`,
+- `io.randomseed.utils.db.sql`,
 - `io.randomseed.utils.db.types`,
 - `io.randomseed.utils.fs`,
 - `io.randomseed.utils.identity`,
