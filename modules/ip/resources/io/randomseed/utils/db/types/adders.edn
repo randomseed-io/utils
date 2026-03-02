@@ -1,0 +1,2 @@
+{:readers [io.randomseed.utils.db.types.ip/add-reader-ip-address]
+ :setters [io.randomseed.utils.db.types.ip/add-setter-ip-address]}
