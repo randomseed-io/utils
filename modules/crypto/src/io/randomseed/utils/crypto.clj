@@ -11,7 +11,9 @@
             [buddy.core.nonce                  :as    nonce]
             [buddy.core.hash                   :as     hash]
             [io.randomseed.utils.crypto.codecs :as       cc]
-            [io.randomseed.utils               :as        u]))
+            [io.randomseed.utils               :as        u])
+
+  (:import  [java.util Arrays]))
 
 ;;
 ;; Key encryption
@@ -51,15 +53,19 @@
 
 (defn encrypt-key
   "Encrypts a private key `k` using random IV and the given password `password`.
-  Returns a map of Base64-encoded, url-safe strings: {:salt ..., :key ...}."
+  Returns a map of Base64-encoded, url-safe strings: {:salt ..., :key ...}.
+  Derived key material is zeroed after use."
   [k password]
   (when-some [k (u/some-str k)]
     (when-some [password (u/some-str password)]
       (let [^bytes p (pwd->bin password)
             ^bytes n (nonce/random-bytes 16)]
-        {:salt (salt-bin->b64 n)
-         :key  (key-bin->b64 (crypto/encrypt (key-text->bin k) p n
-                                             {:alg :aes128-cbc-hmac-sha256}))}))))
+        (try
+          {:salt (salt-bin->b64 n)
+           :key  (key-bin->b64 (crypto/encrypt (key-text->bin k) p n
+                                               {:alg :aes128-cbc-hmac-sha256}))}
+          (finally
+            (Arrays/fill p (byte 0))))))))
 
 (defn decrypt-key-core
   "Decrypts a binary cryptogram `encrypted` using a key `k` and random
@@ -90,22 +96,31 @@
   string) and `:salt` (expressed as a Base64-encoded string), and a
   password (expressed as a string), and decrypts the given key. The key and salt can
   be given as separate first arguments (`encrypted` and `salt`) instead of a
-  map. Returns decrypted, string representation of a key."
+  map. Returns decrypted, string representation of a key.
+  Derived key material is zeroed after use."
   ([m password]
    (decrypt-key (:key m) (:salt m) password))
   ([encrypted salt password]
-   (decrypt-key-bin
-    [(salt-b64->bin salt) (key-b64->bin encrypted)]
-    (pwd->bin password))))
+   (let [^bytes pwd-bin (pwd->bin password)]
+     (try
+       (decrypt-key-bin
+        [(salt-b64->bin salt) (key-b64->bin encrypted)]
+        pwd-bin)
+       (finally
+         (when pwd-bin (Arrays/fill pwd-bin (byte 0))))))))
 
 (defn read-pwd
   "Reads password from a console with an optional prompt. Returns a string or nil.
-  The default prompt is: \"Enter password: \")."
+  The default prompt is: \"Enter password: \").
+  The underlying char array is zeroed after conversion to string."
   ([]
    (read-pwd "Enter password: "))
   ([prompt]
    (when-some [c ^java.io.Console (System/console)]
-     (u/some-str (String/copyValueOf (.readPassword ^java.io.Console c prompt nil))))))
+     (when-some [^chars chars (.readPassword ^java.io.Console c prompt nil)]
+       (let [result (u/some-str (String. chars))]
+         (Arrays/fill chars \u0000)
+         result)))))
 
 (defn read-key
   "Reads a key from a console with an optional prompt. Returns a string or nil.

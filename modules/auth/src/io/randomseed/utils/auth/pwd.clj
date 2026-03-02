@@ -6,7 +6,8 @@
 
     io.randomseed.utils.auth.pwd
 
-  (:import  (java.security SecureRandom))
+  (:import  (java.security SecureRandom)
+            (java.util     Arrays))
 
   (:require [clojure.string                    :as          str]
             [clojure.spec.alpha                :as            s]
@@ -107,11 +108,14 @@
    (let [options   (if (or (nil? opts-or-enc) (map? opts-or-enc)) opts-or-enc {:password opts-or-enc})
          passwd    (get options :password)
          encrypted (when passwd (u/to-bytes passwd))
-         provided  (get (encrypt-fn plain options settings) :password)]
-     (if (and encrypted provided)
-       (crypto/eq? encrypted provided)
-       (crypto/eq? (u/to-bytes "@|-.-.-.-.-|@")
-                   (u/to-bytes "_ _ ! ! ! _ _"))))))
+         ^bytes provided  (get (encrypt-fn plain options settings) :password)]
+     (try
+       (if (and encrypted provided)
+         (crypto/eq? encrypted provided)
+         (crypto/eq? (u/to-bytes "@|-.-.-.-.-|@")
+                     (u/to-bytes "_ _ ! ! ! _ _")))
+       (finally
+         (when (bytes? provided) (Arrays/fill provided (byte 0))))))))
 
 (defn find-handler
   "Tries to get an encryption handler from an entry map by accessing :handler key or

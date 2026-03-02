@@ -275,8 +275,13 @@
   plain-ip-str)
 
 (defn preprocess-ip-list
-  "Takes a sequence of IP addresses and returns a vector of Trie trees with IP address
-  ranges."
+  "Takes a sequence of IP addresses and returns a map of `{:ipv4 trie4 :ipv6 trie6}`
+  where each trie is an immutable-after-construction lookup structure.
+
+  The returned tries are built locally and must not be mutated after this function
+  returns. Read-only access via `in4t?` / `in6t?` is thread-safe.
+
+  When the input is already a map of tries, it is returned as-is (idempotent)."
   [p]
   (when p
     (let [{a :ipv4 b :ipv6} (when (map? p) p)]
@@ -296,8 +301,8 @@
               p4 (seq (get p false))
               t6 (when p6 (IPv6AddressTrie.))
               t4 (when p4 (IPv4AddressTrie.))]
-          (when p6 (locking t6 (doseq [ip p6] (when-not (in6t? t6 ip)
-                                                (.add ^IPv6AddressTrie t6 ^IPv6Address ip)))))
-          (when p4 (locking t4 (doseq [ip p4] (when-not (in4t? t4 ip)
-                                                (.add ^IPv4AddressTrie t4 ^IPv4Address ip)))))
+          (when p6 (doseq [ip p6] (when-not (in6t? t6 ip)
+                                    (.add ^IPv6AddressTrie t6 ^IPv6Address ip))))
+          (when p4 (doseq [ip p4] (when-not (in4t? t4 ip)
+                                    (.add ^IPv4AddressTrie t4 ^IPv4Address ip))))
           {:ipv4 t4 :ipv6 t6})))))
