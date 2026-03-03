@@ -1,7 +1,8 @@
 # History of random:utils releases
 
-## 2.0.10 (2026-03-03)
+## 2.0.11 (2026-03-03)
 
+- Dependencies updated.
 - Documentation updated.
 
 ## 2.0.9 (2026-03-02)

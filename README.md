@@ -46,13 +46,13 @@ Choose one:
 ### Meta-package (everything)
 
 ```clojure
-io.randomseed/utils {:mvn/version "2.0.10"}
+io.randomseed/utils {:mvn/version "2.0.11"}
 ```
 
 ### A single module
 
 ```clojure
-io.randomseed/utils-core {:mvn/version "2.0.10"}
+io.randomseed/utils-core {:mvn/version "2.0.11"}
 ```
 
 ## Modules
