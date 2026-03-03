@@ -17,8 +17,7 @@
             [io.randomseed.utils.db        :as                     db]
             [io.randomseed.utils.db.types  :as               db-types]
             [io.randomseed.utils.map       :as                    map]
-            [io.randomseed.utils.db.sql    :as                    sql]
-)
+            [io.randomseed.utils.db.sql    :as                    sql])
 
   (:import (java.sql ResultSet ResultSetMetaData)))
 
@@ -149,10 +148,11 @@
 
 (defn coerce-in
   "Coerces the given value `v` to a database type by calling a function returned by
-  invoking `io.randomseed.utils.db/in-coercer` multimethod on a qualified keyword
-  `table-column` (or a qualified keyword made out of `table` and `column`). If there
-  is no coercer attached for the keyword, tries with a keyword created using the
-  `column-kw` function. If there is no coercer, returns unchanged `v`.
+  invoking `io.randomseed.utils.db.coercion/in-coercer` multimethod on a qualified
+  keyword `table-column` (or a qualified keyword made out of `table` and
+  `column`). If there is no coercer attached for the keyword, tries with a keyword
+  created using the `column-kw` function. If there is no coercer, returns unchanged
+  `v`.
 
   Will immediately return the given value `v` if the coercer exists but it is set to
   `false`."
@@ -166,11 +166,11 @@
 
 (defn coerce-out
   "Coerces the given value `v` from a database type by calling a function returned by
-  invoking `io.randomseed.utils.db/out-coercer` multimethod on a qualified keyword
-  `table-column` (or a qualified keyword made out of `table` and `column`). If there
-  is no coercer attached for the keyword, tries with a keyword created using the
-  `column-kw` function (to use column alone). If there is no coercer, returns
-  unchanged `v`.
+  invoking `io.randomseed.utils.db.coercion/out-coercer` multimethod on a qualified
+  keyword `table-column` (or a qualified keyword made out of `table` and
+  `column`). If there is no coercer attached for the keyword, tries with a keyword
+  created using the `column-kw` function (to use column alone). If there is no
+  coercer, returns unchanged `v`.
 
   Will immediately return the given value `v` if the coercer exists but it is
   set to `false`."
@@ -184,11 +184,11 @@
 
 (defn coerce-seq-in
   "Coerces a sequence of values `coll` to database types by calling a function returned
-  by invoking `io.randomseed.utils.db/in-coercer` multimethod on a qualified keyword
-  `table-column` (or a qualified keyword made out of `table` and `column`). If there
-  is no coercer attached for the keyword, tries with a keyword created using the
-  `column-kw` function (to use column alone). If there is no coercer, returns
-  unchanged `coll`."
+  by invoking `io.randomseed.utils.db.coercion/in-coercer` multimethod on a qualified
+  keyword `table-column` (or a qualified keyword made out of `table` and
+  `column`). If there is no coercer attached for the keyword, tries with a keyword
+  created using the `column-kw` function (to use column alone). If there is no
+  coercer, returns unchanged `coll`."
   ([table column coll] (if-let [f (get-in-coercer table column)] (map f coll) coll))
   ([table-column coll] (if-let [f (get-in-coercer table-column)] (map f coll) coll)))
 
@@ -199,11 +199,11 @@
 
 (defn coerce-seq-out
   "Coerces a sequence of values `coll` from database types by calling a function
-  returned by invoking `io.randomseed.utils.db/out-coercer` multimethod on a qualified keyword
-  `table-column` (or a qualified keyword made out of `table` and `column`). If there
-  is no coercer attached for the keyword, tries with a keyword created using the
-  `column-kw` function (to use column alone). If there is no coercer, returns
-  unchanged `coll`."
+  returned by invoking `io.randomseed.utils.db.coercion/out-coercer` multimethod on a
+  qualified keyword `table-column` (or a qualified keyword made out of `table` and
+  `column`). If there is no coercer attached for the keyword, tries with a keyword
+  created using the `column-kw` function (to use column alone). If there is no
+  coercer, returns unchanged `coll`."
   ([table column coll] (if-let [f (get-out-coercer table column)] (map f coll) coll))
   ([table-column coll] (if-let [f (get-out-coercer table-column)] (map f coll) coll)))
 
@@ -214,9 +214,9 @@
 
 (defmacro <-
   "Coerces value `v` to a database type by calling a function returned by invoking
-  `io.randomseed.utils.db/in-coercer` multimethod on a qualified keyword `table-column` (or a
-  qualified keyword made out of `table` and `column`). If there is no coercer
-  attached for the keyword, returns unchanged `v`.
+  `io.randomseed.utils.db.coercion/in-coercer` multimethod on a qualified keyword
+  `table-column` (or a qualified keyword made out of `table` and `column`). If there
+  is no coercer attached for the keyword, returns unchanged `v`.
 
   If a coercer can be obtained at compile-time, a coercion function-call form will be
   generated. If a coercer can be obtained at compile-time and the given value is
@@ -248,9 +248,9 @@
 
 (defn ->
   "Coerces value `v` from a database type by calling a function returned by invoking
-  `io.randomseed.utils.db/out-coercer` multimethod on a qualified keyword `table-column` (or a
-  qualified keyword made out of `table` and `column`). If there is no coercer
-  attached for the keyword, returns unchanged `v`.
+  `io.randomseed.utils.db.coercion/out-coercer` multimethod on a qualified keyword
+  `table-column` (or a qualified keyword made out of `table` and `column`). If there
+  is no coercer attached for the keyword, returns unchanged `v`.
 
   If a coercer can be obtained at compile-time, a coercion function-call form will be
   generated. If a coercer can be obtained at compile-time and the given value is
@@ -282,9 +282,10 @@
 
 (defmacro <-seq
   "Coerces a sequence of values `coll` to database types by calling a function returned
-  by invoking `io.randomseed.utils.db/in-coercer` multimethod on a qualified keyword
-  `table-column` (or a qualified keyword made out of `table` and `column`). If there
-  is no coercer attached for the keyword, returns unchanged `coll`.
+  by invoking `io.randomseed.utils.db.coercion/in-coercer` multimethod on a qualified
+  keyword `table-column` (or a qualified keyword made out of `table` and
+  `column`). If there is no coercer attached for the keyword, returns unchanged
+  `coll`.
 
   If both, a table and a column can be used to establish coercion function at
   compile-time, a mapping form will be generated which uses that function."
@@ -306,9 +307,10 @@
 
 (defmacro seq->
   "Coerces a sequence of values `coll` from database types by calling a function
-  returned by invoking `io.randomseed.utils.db/out-coercer` multimethod on a qualified keyword
-  `table-column` (or a qualified keyword made out of `table` and `column`). If there
-  is no coercer attached for the keyword, returns unchanged `coll`.
+  returned by invoking `io.randomseed.utils.db.coercion/out-coercer` multimethod on a
+  qualified keyword `table-column` (or a qualified keyword made out of `table` and
+  `column`). If there is no coercer attached for the keyword, returns unchanged
+  `coll`.
 
   If both, a table and a column can be used to establish coercion function at
   compile-time, a mapping form will be generated which uses that function."
@@ -580,16 +582,16 @@
   `email` and `expires` symbols. The above code will be expanded to:
 
   ```
-  [(io.randomseed.utils.db/<- :users/id id)
-   (io.randomseed.utils.db/<- :confirmations/email email)
-   (io.randomseed.utils.db/<- :confirmations/expires expires)]
+  [(io.randomseed.utils.db.coercion/<- :users/id id)
+   (io.randomseed.utils.db.coercion/<- :confirmations/email email)
+   (io.randomseed.utils.db.coercion/<- :confirmations/expires expires)]
   ```
 
   And then to:
 
   ```
   [(#<Fn@4d7e49d myapp.model.user/id_to_db> id)
-   (io.randomseed.utils.db/coerce-in* :confirmations/email email)
+   (io.randomseed.utils.db.coercion/coerce-in* :confirmations/email email)
    (#<Fn@3bf6fdc6 myapp.model.confirmation/to_expiry> expires)]
   ```
 
@@ -598,24 +600,24 @@
   `:confirmations/expires` were recognized as existing dispatch values when calling
   `in-coercer` internally. A coercer for the `email` symbol (using
   `:confirmations/email` dispatch value) was not recognized at compile-time so
-  the call to `io.randomseed.utils.db/coerce-in*` was generated instead.
+  the call to `io.randomseed.utils.db.coercion/coerce-in*` was generated instead.
 
   Let's have a quick look at some real-world example:
 
   ```
-  (io.randomseed.utils.db/<<-  [:confirmations id code token reason id-type expires id id])
+  (io.randomseed.utils.db.coercion/<<-  [:confirmations id code token reason id-type expires id id])
   ```
 
   And generated Clojure code (phase 1):
 
   ```
-  (let [DB__confirmations_id_id_54377141 (io.randomseed.utils.db/<- :confirmations/id id)]
+  (let [DB__confirmations_id_id_54377141 (io.randomseed.utils.db.coercion/<- :confirmations/id id)]
     [DB__confirmations_id_id_54377141
-     (io.randomseed.utils.db/<- :confirmations/code       code)
-     (io.randomseed.utils.db/<- :confirmations/token     token)
-     (io.randomseed.utils.db/<- :confirmations/reason   reason)
-     (io.randomseed.utils.db/<- :confirmations/id-type id-type)
-     (io.randomseed.utils.db/<- :confirmations/expires expires)
+     (io.randomseed.utils.db.coercion/<- :confirmations/code       code)
+     (io.randomseed.utils.db.coercion/<- :confirmations/token     token)
+     (io.randomseed.utils.db.coercion/<- :confirmations/reason   reason)
+     (io.randomseed.utils.db.coercion/<- :confirmations/id-type id-type)
+     (io.randomseed.utils.db.coercion/<- :confirmations/expires expires)
      DB__confirmations_id_id_54377141
      DB__confirmations_id_id_54377141])
   ```
@@ -690,7 +692,8 @@
   keyword having a namespace the same as the given table, and a name the same as
   currently processed column name, both in 2 variants: one for snake, and one for
   lisp case. Two multimethod definitions will be created for
-  `io.randomseed.utils.db/in-coercer` and two for `io.randomseed.utils.db/out-coercer`.
+  `io.randomseed.utils.db.coercion/in-coercer` and two for
+  `io.randomseed.utils.db.coercion/out-coercer`.
 
   If the given coercer is a literal `nil` or `false` value, it will be marked as
   undefined using `false` value. It is advised to use that approach instead of
@@ -702,20 +705,20 @@
 
   `(defcoercions :users :some-identifier str keyword)`
 
-  The above will expand the following code:
+  The above will expand to the following code:
 
   ```
-  (defmethod io.randomseed.utils.db/in-coercer  :users/some-identifier [_] str)
-  (defmethod io.randomseed.utils.db/in-coercer  :users/some_identifier [_] str)
-  (defmethod io.randomseed.utils.db/out-coercer :users/some-identifier [_] keyword)
-  (defmethod io.randomseed.utils.db/out-coercer :users/some_identifier [_] keyword)
+  (defmethod io.randomseed.utils.db.coercion/in-coercer  :users/some-identifier [_] str)
+  (defmethod io.randomseed.utils.db.coercion/in-coercer  :users/some_identifier [_] str)
+  (defmethod io.randomseed.utils.db.coercion/out-coercer :users/some-identifier [_] keyword)
+  (defmethod io.randomseed.utils.db.coercion/out-coercer :users/some_identifier [_] keyword)
   ```
 
   This will allow specialized database coercion functions to transformed values which
   are exchanged with a database.
 
   Optionally coercions can be defined without a table name. In such case the table
-  should be set to either `nil`, `false` or `:io.randomseed.utils.db/any`."
+  should be set to either `nil`, `false` or `:io.randomseed.utils.db.coercion/any`."
   [table & specs]
   (let [t# (if (identical? table ::any) nil (u/some-str table))]
     `(do
@@ -747,7 +750,7 @@
   "Adds coercion to a database result set `rs` handled by builder `builder` with result
   index `i`. For each result it reads its table name and column label (or name, if
   label is not set or is different from label but no coercer has been found), and
-  calls output coercer obtained using `io.randomseed.utils.db/out-coercer`. Each result is
+  calls output coercer obtained using `io.randomseed.utils.db.coercion/out-coercer`. Each result is
   wrapped in a Delay object unless it does not require coercion."
   [_builder ^ResultSet rs ^Integer i]
   (let [^ResultSetMetaData rsm (.getMetaData rs)
@@ -759,7 +762,7 @@
   "Adds coercion to a database result set `rs` handled by builder `builder` with result
   index `i`. For each result it reads its table name and column label (or name, if
   label is not set or is different from label but no coercer has been found), and
-  calls output coercer using `io.randomseed.utils.db/->` passing to it the mentioned names and
+  calls output coercer using `io.randomseed.utils.db.coercion/->` passing to it the mentioned names and
   a value."
   [_builder ^ResultSet rs ^Integer i]
   (let [^ResultSetMetaData rsm (.getMetaData rs)
@@ -769,13 +772,13 @@
 
 (defn gen-builder
   "Generates result set builder on a basis of the given builder `rs-builder`. Uses
-  `io.randomseed.utils.db/column-by-index-fn` to coerce the results."
+  `io.randomseed.utils.db.coercion/column-by-index-fn` to coerce the results."
   [rs-builder]
   (rs/builder-adapter rs-builder column-by-index-fn))
 
 (defn gen-builder-delayed
   "Generates result set builder on a basis of the given builder `rs-builder`. Uses
-  `io.randomseed.utils.db/delayed-column-by-index-fn` to coerce the results."
+  `io.randomseed.utils.db.coercion/delayed-column-by-index-fn` to coerce the results."
   [rs-builder]
   (rs/builder-adapter rs-builder delayed-column-by-index-fn))
 
@@ -1037,6 +1040,8 @@
 
 (comment
   (require '[io.randomseed.utils.identity :as identity])
+  (require '[io.randomseed.utils.ip       :as ip])
+
   (defn- email-to-db    ^String [v] (identity/->db :email v))
   (defn- phone-to-db    ^String [v] (identity/->db :phone v))
   (defn- long-or-nil    ^Long   [n] (when n (long n)))
