@@ -18,7 +18,7 @@
             [io.randomseed.utils.db.types  :as               db-types]
             [io.randomseed.utils.map       :as                    map]
             [io.randomseed.utils.db.sql    :as                    sql]
-            [io.randomseed.utils.identity  :as               identity])
+)
 
   (:import (java.sql ResultSet ResultSetMetaData)))
 
@@ -1036,6 +1036,7 @@
 ;; Coercion examples
 
 (comment
+  (require '[io.randomseed.utils.identity :as identity])
   (defn- email-to-db    ^String [v] (identity/->db :email v))
   (defn- phone-to-db    ^String [v] (identity/->db :phone v))
   (defn- long-or-nil    ^Long   [n] (when n (long n)))
