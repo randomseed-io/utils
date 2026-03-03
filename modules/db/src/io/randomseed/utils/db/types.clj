@@ -20,7 +20,9 @@
 
 (set! *warn-on-reflection* true)
 
-(defonce ^TimeZone utc-time-zone
+(defonce ^{:tag TimeZone
+            :doc "Cached UTC `TimeZone` instance used for timestamp conversions."}
+  utc-time-zone
   (TimeZone/getTimeZone "UTC"))
 
 ;; Extensible adapter registry (for optional modules)

@@ -12,11 +12,16 @@
             [io.randomseed.utils.map      :refer [qassoc]]
             [io.randomseed.utils          :as      utils]))
 
-(def ^:const default-options       {})
-(def ^:const required-keys         [:prefix :suffix])
-(def ^:const default-random-length 8)
-(def ^:const default-charset       (vec "abcdefghijklmnopqrstuvwzyxABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
-(def ^:const re-rnd                #"\{\{RND(?:\s*)(\d+)?\}\}")
+(def ^{:const true :doc "Default encryption options (empty map)."}
+  default-options {})
+(def ^{:const true :doc "Keys selected from options for the append operation."}
+  required-keys [:prefix :suffix])
+(def ^{:const true :doc "Default length of random salt strings generated for `{{RND}}` placeholders."}
+  default-random-length 8)
+(def ^{:const true :doc "Default character set (as vector) used for random salt generation."}
+  default-charset (vec "abcdefghijklmnopqrstuvwzyxABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
+(def ^{:const true :doc "Regex matching `{{RND}}` or `{{RND n}}` placeholders in prefix/suffix strings."}
+  re-rnd #"\{\{RND(?:\s*)(\d+)?\}\}")
 
 (defn parse-random
   "Expands `{{RND}}` / `{{RND n}}` placeholders in string `v`."
@@ -49,8 +54,10 @@
                                       (get options :suffix utils/bzero))]
      (qassoc options :password result))))
 
-(def check (partial pwd/standard-check encrypt))
+(def ^{:doc "Checker function for the append algorithm (partial of `standard-check`)."}
+  check (partial pwd/standard-check encrypt))
 
-(def handler
+(def ^{:doc "Handler map for the append algorithm, providing `:encrypt-fn` and `:check-fn`."}
+  handler
   {:encrypt-fn encrypt
    :check-fn   check})

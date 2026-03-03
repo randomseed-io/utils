@@ -22,8 +22,10 @@
      (qassoc options :password nil)
      {:password nil})))
 
-(def check (partial pwd/standard-check (constantly nil)))
+(def ^{:doc "Checker function for the fail algorithm (always fails)."}
+  check (partial pwd/standard-check (constantly nil)))
 
-(def handler
+(def ^{:doc "Handler map for the fail algorithm, providing `:encrypt-fn` and `:check-fn`."}
+  handler
   {:encrypt-fn encrypt
    :check-fn   check})

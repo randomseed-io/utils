@@ -146,7 +146,7 @@
 
   If `acceptable-tag` is given this function will in addition check if the given tag
   is a parent of the given type identifier or is `:io.randomseed.utils.identity/any`. To add
-  acceptable type(s) use `io.randomseed.utils.proto.identity/add-acceptable-type`."
+  acceptable type(s) use `io.randomseed.utils.identity.proto/add-acceptable-type`."
   ([t]
    (isa? p/type-hierarchy (some-keyword t) ::valid))
   ([t ^Keyword acceptable-tag]
@@ -158,7 +158,7 @@
 (defn check-type
   "Returns a keyword for the given identity type `identity-type` if it is a valid
   identity. Otherwise it returns `nil`. To add acceptable type(s) use
-  `io.randomseed.utils.proto.identity/add-acceptable-type`.
+  `io.randomseed.utils.identity.proto/add-acceptable-type`.
 
   If acceptable parent tag `acceptable-tag` is given, it must be a parent of the
   given identity type tag."
@@ -220,13 +220,13 @@
   identity will be performed.
 
   The given identity type must always be valid (registered with
-  `io.randomseed.utils.proto.identity/add-type!`) and the identity must not be `nil` nor
+  `io.randomseed.utils.identity.proto/add-type!`) and the identity must not be `nil` nor
   `false`. If any of these happens, `nil` will be returned.
 
   The `acceptable-tag` should be a tag type from which the given type is derived
-  within the hierarchy `io.randomseed.utils.proto.identity/type-hierarchy`.
+  within the hierarchy `io.randomseed.utils.identity.proto/type-hierarchy`.
 
-  To add acceptable type(s) use `io.randomseed.utils.proto.identity/add-acceptable-type`."
+  To add acceptable type(s) use `io.randomseed.utils.identity.proto/add-acceptable-type`."
   (^Keyword [user-identity ^Keyword acceptable-tag]
    (when (and user-identity acceptable-tag)
      (when-let [t (p/type user-identity)]
@@ -243,9 +243,9 @@
   "Returns `true` if the given value `v` is a user identity of the known type.
 
   If the `acceptable-tag` is present then it should be a tag type from which the
-  given type is derived within hierarchy `io.randomseed.utils.proto.identity/type-hierarchy`.
+  given type is derived within hierarchy `io.randomseed.utils.identity.proto/type-hierarchy`.
 
-  To add acceptable type(s) use `io.randomseed.utils.proto.identity/add-acceptable-type`."
+  To add acceptable type(s) use `io.randomseed.utils.identity.proto/add-acceptable-type`."
   ([v]
    (if v
      (if-let [t (p/type v)]
@@ -276,7 +276,7 @@
 (defmulti parser
   "Takes an identity type expressed as keyword and returns a parser suitable for that
   identity type. The parser function takes 1 argument and converts the given value to
-  identity record (of type `io.randomseed.utils.Identity`).
+  identity record (of type `io.randomseed.utils.identity.types.Identity`).
 
   Caution: The identity type must be a keyword (it will not be coerced)."
   (fn ^Keyword [identity-type] identity-type)
@@ -285,10 +285,10 @@
 (defn parse-group
   "Parses identity `identity-type` with `acceptable-type` tag which should be a parent
   tag grouping identity types (like `:io.randomseed.utils.identity/any` or another). Will use
-  `io.randomseed.utils.proto.identity/type` passing a tag to it to limit the parsers tried and
+  `io.randomseed.utils.identity.proto/type` passing a tag to it to limit the parsers tried and
   constrain the identity type to one that belongs to a parent tag in
-  `io.randomseed.utils.proto.identity/type-hierarchy`. Hint: new parent tags can be registered
-  with `io.randomseed.utils.proto.identity/add-acceptable-type!`.
+  `io.randomseed.utils.identity.proto/type-hierarchy`. Hint: new parent tags can be registered
+  with `io.randomseed.utils.identity.proto/add-acceptable-type!`.
 
   This is internal function. Use `of-type` instead, which will choose the appropriate
   parser via multimethod and cache the results."
@@ -299,7 +299,7 @@
 (defn parse-single
   "Parses identity `user-identity` by choosing the parser with `parser` multimethod on
   a basis of the given `identity-type` or a detected identity type (by getting it
-  with `io.randomseed.utils.proto.identity/type`). Returns user identity object or `nil`.
+  with `io.randomseed.utils.identity.proto/type`). Returns user identity object or `nil`.
 
   This is internal function. Use `of` or `of-type` instead, which will cache the
   results."
@@ -314,7 +314,7 @@
        :see-also ["of" "of-type"]}
   parse
   "Parses the given identity `user-identity` with optional `identity-type`
-  predefined. Returns an identity record of type `io.randomseed.utils.Identity`. Memoized proxy
+  predefined. Returns an identity record of type `io.randomseed.utils.identity.types.Identity`. Memoized proxy
   for parsing strings and other non-native data.
 
   Do not use it directly, use `of` or `of-type` instead.
@@ -416,13 +416,13 @@
 
 (defn of
   "For the given user identity `user-identity` tries to parse the identity and return
-  an `io.randomseed.utils.Identity` record object containing a detected identity type and
+  an `io.randomseed.utils.identity.types.Identity` record object containing a detected identity type and
   identity value in a form it expresses it best. If the identity type cannot be
   established and it was not given, `nil` is returned.
 
   Optional identity type `identity-type` (which must be a keyword) may be given as a
   first argument. It is used to pick the right parser (if parsing is needed) or to
-  simply reject wrong identity type (if `io.randomseed.utils.Identity` record is given).
+  simply reject wrong identity type (if `io.randomseed.utils.identity.types.Identity` record is given).
 
   A value of `identity-type` may also be an acceptable type tag (registered with
   `add-acceptable-type!`) which groups identity types. In such case parsing and
@@ -469,7 +469,7 @@
 
 (defn of-type
   "For the given user identity `user-identity` and identity type `identity-type` it
-  tries to parse the identity and return an `io.randomseed.utils.Identity` record containing an
+  tries to parse the identity and return an `io.randomseed.utils.identity.types.Identity` record containing an
   identity type and identity value in a form it expresses it best. If the identity
   type is `nil` then `nil` is returned.
 
@@ -490,7 +490,7 @@
 
 (defn opt-type
   "For the given user identity `user-identity` and identity type `identity-type` it
-  tries to parse it (if possible) and returns `io.randomseed.utils.Identity` object only if it
+  tries to parse it (if possible) and returns `io.randomseed.utils.identity.types.Identity` object only if it
   is of the given type or its child.
 
   This function differs from `of-type` in that it will return `nil` if
@@ -506,7 +506,7 @@
 
 (defn of-seq
   "For the given user identities `user-identities` tries to parse each identity and
-  return an `io.randomseed.utils.Identity` record containing a detected identity type and
+  return an `io.randomseed.utils.identity.types.Identity` record containing a detected identity type and
   identity value in a form it expresses it best. If the given identity type was given
   as an optional `identity-type` argument, it will be assumed as the expected type
   for all input values.
@@ -527,12 +527,12 @@
      (map #(p/make % identity-type) user-identities))))
 
 (defn some-seq
-  "Tries to coerce identities to `io.randomseed.utils.Identity` objects and filters out those who
+  "Tries to coerce identities to `io.randomseed.utils.identity.types.Identity` objects and filters out those who
   are not of the acceptable type (given by `acceptable-tag`, can be `:io.randomseed.utils.identity/any`
   to accept all types).
 
   Then it tries to parse each of the identities given and returns a sequence of
-  `io.randomseed.utils.Identity` objects. Returns `nil` if `acceptable-tag` is `nil` or if
+  `io.randomseed.utils.identity.types.Identity` objects. Returns `nil` if `acceptable-tag` is `nil` or if
   no identities are to be parsed or no identities have been parsed successfully."
   ([user-identities]
    (->> (of-seq user-identities) (filter identity) seq))
@@ -786,7 +786,7 @@
 
 (defmulti to-db*
   "For the given user identity `user-identity` which must be of type
-  `io.randomseed.utils.Identity`, tries to express the identity in a database suitable format.
+  `io.randomseed.utils.identity.types.Identity`, tries to express the identity in a database suitable format.
 
   If the given value cannot be used as valid identity, `nil` is returned.
 
@@ -811,7 +811,7 @@
 (defn to-db
   "For the given user identity `user-identity` tries to express the identity in a
   database-ready form. It uses a `formatter` function from
-  `io.randomseed.utils.proto.identity/type-formatters` or passes the value unchanged.
+  `io.randomseed.utils.identity.proto/type-formatters` or passes the value unchanged.
 
   Optional identity type `identity-type` is a type tag which can be used to check if
   the identity is of this type or its child.
@@ -838,13 +838,13 @@
   Uses `to-db*` multimethod to perform `user-identity` transformation on a basis of
   its identity type.
 
-  If the given identity is not a kind of `io.randomseed.utils.Identity` record, it will be
+  If the given identity is not a kind of `io.randomseed.utils.identity.types.Identity` record, it will be
   converted to it first. If the given value cannot be used as valid identity, `nil`
   is returned.
 
   If the `identity-type` is given, it should be a valid identity type. It instructs
   the function to treat the given identity as of this type during pre-conversion. If
-  the identity is already an `io.randomseed.utils.Identity` record but its type is different,
+  the identity is already an `io.randomseed.utils.identity.types.Identity` record but its type is different,
   `nil` will be returned.
 
   A value of `identity-type` may also be an acceptable type tag (registered with
@@ -856,11 +856,11 @@
 
   If `identity-type` is an acceptable literal (or not given at all) and
   `user-identity` expression is a value for which the function
-  `io.randomseed.utils.proto.identity/literal?` returns `true` then the conversion is done
+  `io.randomseed.utils.identity.proto/literal?` returns `true` then the conversion is done
   immediately, and its result replaces the macro call at compile-time.
 
   However, if the immediate conversion result is `nil`, or it is not a value for
-  which the function `io.randomseed.utils.proto.identity/literal?` returns `true`, an
+  which the function `io.randomseed.utils.identity.proto/literal?` returns `true`, an
   expression with call to `to-db` or `to-db*` will be generated as fallback to
   perform the conversion at run-time."
   {:see-also ["->str" "of"]}
@@ -951,7 +951,7 @@
   "Takes a user identity `user-identity` and optional identity type `identity-type`,
   and converts it to a string.
 
-  If the given identity is not a kind of `io.randomseed.utils.Identity` record it will be
+  If the given identity is not a kind of `io.randomseed.utils.identity.types.Identity` record it will be
   converted to it first. If the given value cannot be used as valid identity, `nil`
   is returned.
 
@@ -962,7 +962,7 @@
   `add-acceptable-type!`) which groups identity types. In such case parsing and
   detection will be constrained to identity types being its descendants.
 
-  If the identity is an `io.randomseed.utils.Identity` record but its type is different, `nil`
+  If the identity is an `io.randomseed.utils.identity.types.Identity` record but its type is different, `nil`
   will be returned."
   {:see-also ["->str" "->db" "of"]}
   (^String [^Identifiable user-identity]
@@ -977,13 +977,13 @@
   Uses `to-str*` multimethod to perform `user-identity` transformation on a basis of
   its identity type.
 
-  If the given identity is not a kind of `io.randomseed.utils.Identity` record, it will be
+  If the given identity is not a kind of `io.randomseed.utils.identity.types.Identity` record, it will be
   converted to it first. If the given value cannot be used as valid identity, `nil`
   is returned.
 
   If the `identity-type` is given, it should be a valid identity type. It instructs
   the function to treat the given identity as of this type during pre-conversion. If
-  the identity is already an `io.randomseed.utils.Identity` record but its type is different,
+  the identity is already an `io.randomseed.utils.identity.types.Identity` record but its type is different,
   `nil` will be returned.
 
   A value of `identity-type` may also be an acceptable type tag (registered with
@@ -995,11 +995,11 @@
 
   If `identity-type` is an acceptable literal (or not given at all) and
   `user-identity` expression is a value for which the function
-  `io.randomseed.utils.proto.identity/literal?` returns `true` then the conversion is done
+  `io.randomseed.utils.identity.proto/literal?` returns `true` then the conversion is done
   immediately, and its result replaces the macro call at compile-time.
 
   However, if the immediate conversion result is `nil`, or it is not a value for
-  which the function `io.randomseed.utils.proto.identity/literal?` returns `true`, an
+  which the function `io.randomseed.utils.identity.proto/literal?` returns `true`, an
   expression with call to `to-str` or `to-str*` will be generated as fallback to
   perform the conversion at run-time."
   {:see-also ["->str" "of"]}
@@ -1072,11 +1072,11 @@
   `:io.randomseed.utils.identity/valid` tag.
 
   Additionally, it makes an extra parent for the given acceptable tag in
-  `io.randomseed.utils.proto.identity/type-hierarchy` which is
-  `:io.randomseed.utils.proto.identity/group`. This special value is a valid dispatch for the
+  `io.randomseed.utils.identity.proto/type-hierarchy` which is
+  `:io.randomseed.utils.identity.proto/group`. This special value is a valid dispatch for the
   `parser` multimethod which uses `parse-group` to handle identity parsing with
   acceptable tag given explicitly as its identity type specification. If you don't
-  want that, use `io.randomseed.utils.proto.identity/add-acceptable-type!` directly.
+  want that, use `io.randomseed.utils.identity.proto/add-acceptable-type!` directly.
 
   Useful when there is a need to accept a limited set of recognized identity
   types. Then the detection function can check whether an identity belongs to a
@@ -1093,7 +1093,7 @@
 
 (defn unaccept-type!
   "Removes identity type `t` from the given parent `acceptable-tag` and removes parent
-  `:io.randomseed.utils.proto.identity/group` from the acceptable tag in the `io.randomseed.utils.proto.`
+  `:io.randomseed.utils.identity.proto/group` from the acceptable tag in the `io.randomseed.utils.identity.proto`
   hierarchy. Makes changes in the global identity type hierarchy
   `io.randomseed.utils.identity.proto/type-hierarchy`."
   ([^Keyword acceptable-tag ^Keyword t]

@@ -19,16 +19,19 @@
            [java.io File]
            [java.net URL]))
 
-(def ^"[Ljava.lang.String;"
+(def ^{:doc "Single-element String array used as varargs placeholder for `Paths/get`."
+       :tag "[Ljava.lang.String;"}
   empty-str-ary
   (into-array [""]))
 
 (defn absolute-path?
+  "Returns `true` if `pathname` represents an absolute path."
   ^Boolean [pathname]
   (.isAbsolute ^Path (Paths/get ^String (str pathname)
                                 ^"[Ljava.lang.String;" empty-str-ary)))
 
-(def ^Boolean relative-path?
+(def ^{:doc "Returns `true` if `pathname` represents a relative path." :tag Boolean}
+  relative-path?
   (complement absolute-path?))
 
 (defn get-java-classpath-folders
@@ -78,20 +81,24 @@
     (io/as-file ^URL (io/resource resource))))
 
 (defn resource-exists?
+  "Returns `true` if a classpath resource named `r` exists."
   [r]
   (some? (io/resource r)))
 
 (defn file
+  "Coerces `fname` to a `java.io.File`. Returns `nil` when `fname` is `nil`."
   ^File [fname]
   (if fname
     (io/as-file fname)))
 
 (defn basename
+  "Returns the filename component (without directory) of `f`."
   ^String [f]
   (if f
     (.getName ^File (io/as-file f))))
 
 (defn extension
+  "Returns the file extension (without the dot) of `f`, or `nil` if none."
   ^String [f]
   (if-some [^String n (basename f)]
     (let [^"long" idx (str/last-index-of n \.)]
@@ -99,6 +106,8 @@
         (subs ^String n (inc ^"long" idx))))))
 
 (defn abs-pathname
+  "Returns an absolute pathname string. Relative paths are prefixed with the user's
+  home directory."
   [path]
   (if (some? path)
     (if (relative-path? path)
@@ -153,22 +162,29 @@
   (.exists ^java.io.File (io/file filename)))
 
 (defn get-java-property
+  "Returns the value of the Java system property named `s`, or `nil`."
   [s]
   (if (some? s)
     (System/getProperty (str s))))
 
-(def ^:const prop-regex (re-pattern "\\$\\{[\\_\\-\\.a-zA-Z0-9]+\\}"))
+(def ^{:const true :doc "Regex matching `${property.name}` placeholders in strings."}
+  prop-regex (re-pattern "\\$\\{[\\_\\-\\.a-zA-Z0-9]+\\}"))
 
 (defn parse-java-property
+  "Resolves a single `${...}` placeholder string to its Java system property value."
   [s]
   (let [c (count s)]
     (if (< c 4) s
         (str (if (some? s) (System/getProperty (subs s 2 (dec (count s)))))))))
 
 (defn parse-java-properties
+  "Replaces all `${property.name}` placeholders in string `s` with their Java system
+  property values."
   [s]
   (if-not (string? s) s (str/replace s prop-regex parse-java-property)))
 
 (defn mapv-java-properties
+  "Applies `parse-java-properties` to each element of vector `v`, returning a new
+  vector. Returns `v` unchanged when it is falsy."
   [v]
   (if-not v v (mapv parse-java-properties v)))

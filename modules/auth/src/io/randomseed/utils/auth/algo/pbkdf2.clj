@@ -13,11 +13,13 @@
             [io.randomseed.utils.map      :refer [qassoc]]
             [io.randomseed.utils          :as      utils]))
 
-(def ^:const default-options
+(def ^{:const true :doc "Default PBKDF2 options: 100 000 iterations, HmacSHA256 algorithm."}
+  default-options
   {:iterations 100000
    :algorithm  "HmacSHA256"})
 
-(def ^:const required-keys
+(def ^{:const true :doc "Keys selected from options/settings for the PBKDF2 operation."}
+  required-keys
   [:salt :iterations :algorithm])
 
 (defn encrypt
@@ -46,9 +48,12 @@
                      (int 160))]
      (qassoc options :salt salt :password result))))
 
-(def check (partial pwd/standard-check encrypt))
+(def ^{:doc "Checker function for the PBKDF2 algorithm (partial of `standard-check`)."}
+  check (partial pwd/standard-check encrypt))
 
-(def handler
+(def ^{:doc "Handler map for the PBKDF2 algorithm: encryption/check functions, defaults,
+  and shared key list."}
+  handler
   {:encrypt-fn encrypt
    :check-fn   check
    :defaults   default-options

@@ -89,6 +89,7 @@
   [^bytes v]
   (codecs/bytes->b64-str v false))
 
-(def b64-to-bytes base64-url-safe->bin)
+(def ^{:doc "Alias for `base64-url-safe->bin`."}
+  b64-to-bytes base64-url-safe->bin)
 
 

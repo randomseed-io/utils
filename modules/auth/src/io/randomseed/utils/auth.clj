@@ -14,7 +14,9 @@
             [io.randomseed.utils.time       :as  time]
             [io.randomseed.utils.var        :as   var]))
 
-(defonce ^:redef setup nil)
+(defonce ^{:redef true
+            :doc   "Holds the current authentication setup. Intended to be re-bound at init time."}
+  setup nil)
 
 (declare make-passwords)
 

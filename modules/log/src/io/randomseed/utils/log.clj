@@ -32,6 +32,8 @@
 ;;
 
 (defn initialize-json-decoder!
+  "Configures the JSON decoder for structured logging: enables big-decimal parsing,
+  installs the cambium destringify codec and sets the global `FlatJsonLayout` decoder."
   []
   (alter-var-root #'cp/*use-bigdecimals?* (constantly true))
   (flat/set-decoder! codec/destringify-val)
@@ -135,14 +137,17 @@
 ;;
 
 (defmacro log-context
+  "Evaluates `body` with additional MDC logging `context` (a map)."
   [context & body]
   (apply #'log/with-logging-context &form &env context body))
 
 (defmacro with-ctx
+  "Alias for `log-context`. Evaluates `body` with additional MDC logging `context`."
   [context & body]
   (apply #'log/with-logging-context &form &env context body))
 
 (defmacro log
+  "Logs a message at the given `level`. Delegates to `cambium.core/log`."
   ([level msg-or-throwable]        (#'log/log &form &env level msg-or-throwable))
   ([level mdc throwable msg]       (#'log/log &form &env level mdc throwable msg))
   ([logger level msg-or-throwable] (#'log/log &form &env logger level msg-or-throwable))
@@ -150,71 +155,86 @@
    (#'log/log &form &env logger level mdc-or-throwable throwable msg)))
 
 (defmacro trace
+  "Logs a message at TRACE level."
   ([msg-or-throwable]     (#'log/trace &form &env msg-or-throwable))
   ([mdc-or-throwable msg] (#'log/trace &form &env mdc-or-throwable msg))
   ([mdc throwable msg]    (#'log/trace &form &env mdc throwable msg)))
 
 (defmacro debug
+  "Logs a message at DEBUG level."
   ([msg-or-throwable]     (#'log/debug &form &env msg-or-throwable))
   ([mdc-or-throwable msg] (#'log/debug &form &env mdc-or-throwable msg))
   ([mdc throwable msg]    (#'log/debug &form &env mdc throwable msg)))
 
 (defmacro info
+  "Logs a message at INFO level."
   ([msg-or-throwable]     (#'log/info &form &env msg-or-throwable))
   ([mdc-or-throwable msg] (#'log/info &form &env mdc-or-throwable msg))
   ([mdc throwable msg]    (#'log/info &form &env mdc throwable msg)))
 
 (defmacro warn
+  "Logs a message at WARN level."
   ([msg-or-throwable]     (#'log/warn &form &env msg-or-throwable))
   ([mdc-or-throwable msg] (#'log/warn &form &env mdc-or-throwable msg))
   ([mdc throwable msg]    (#'log/warn &form &env mdc throwable msg)))
 
 (defmacro warning
+  "Alias for `warn`. Logs a message at WARN level."
   ([msg-or-throwable]     (#'log/warn &form &env msg-or-throwable))
   ([mdc-or-throwable msg] (#'log/warn &form &env mdc-or-throwable msg))
   ([mdc throwable msg]    (#'log/warn &form &env mdc throwable msg)))
 
 (defmacro error
+  "Logs a message at ERROR level."
   ([msg-or-throwable]     (#'log/error &form &env msg-or-throwable))
   ([mdc-or-throwable msg] (#'log/error &form &env mdc-or-throwable msg))
   ([mdc throwable msg]    (#'log/error &form &env mdc throwable msg)))
 
 (defmacro fatal
+  "Logs a message at FATAL level."
   ([msg-or-throwable]     (#'log/fatal &form &env msg-or-throwable))
   ([mdc-or-throwable msg] (#'log/fatal &form &env mdc-or-throwable msg))
   ([mdc throwable msg]    (#'log/fatal &form &env mdc throwable msg)))
 
 (defmacro msg-with-val
+  "Logs `msg` (and optional extra parts) at INFO level. When extra arguments are
+  present, the last one is returned as the expression value."
   [msg & more]
   (if more
     (list 'do (#'log/info &form &env (list* #'util/some-str-spc msg (drop-last more))) (last more))
     (#'log/info &form &env (list #'clojure.core/str (list #'util/some-str msg)))))
 
 (defmacro err-with-val
+  "Logs `msg` (and optional extra parts) at ERROR level. When extra arguments are
+  present, the last one is returned as the expression value."
   [msg & more]
   (if more
     (list 'do (#'log/error &form &env (list* #'util/some-str-spc msg (drop-last more))) (last more))
     (#'log/error &form &env (list #'clojure.core/str (list #'util/some-str msg)))))
 
 (defmacro msg
+  "Logs a space-joined message at INFO level using `some-str-spc`."
   [msg & more]
   (if more
     (#'log/info &form &env (list* #'util/some-str-spc msg more))
     (#'log/info &form &env (list  #'clojure.core/str (list #'util/some-str msg)))))
 
 (defmacro err
+  "Logs a space-joined message at ERROR level using `some-str-spc`."
   [msg & more]
   (if more
     (#'log/error &form &env (list* #'util/some-str-spc msg more))
     (#'log/error &form &env (list  #'clojure.core/str (list #'util/some-str msg)))))
 
 (defmacro wrn
+  "Logs a space-joined message at WARN level using `some-str-spc`."
   [msg & more]
   (if more
     (#'log/warn &form &env (list* #'util/some-str-spc msg more))
     (#'log/warn &form &env (list  #'clojure.core/str (list #'util/some-str msg)))))
 
 (defmacro dbg
+  "Logs a space-joined message at DEBUG level using `some-str-spc`."
   [msg & more]
   (if more
     (#'log/debug &form &env (list* #'util/some-str-spc msg more))
@@ -224,7 +244,8 @@
 ;; Uncaught exception handler
 ;;
 
-(def ^:dynamic *already-logged* false)
+(def ^{:dynamic true :doc "When `true`, indicates the current exception has already been logged and should not be logged again by outer handlers."}
+  *already-logged* false)
 
 ;; (defn- set-exception-handler!
 ;;   []
@@ -241,6 +262,9 @@
 ;;
 
 (defmacro log-exceptions
+  "Wraps `body` in a try/catch that logs any `Throwable` at ERROR level (with the
+  exception stringified in the MDC context) and re-throws it with `*already-logged*`
+  bound to `true` so outer handlers can avoid duplicate logging."
   [& body]
   `(try
      ~@body
@@ -269,6 +293,8 @@
 ;;
 
 (defn start!
+  "Starts the logging subsystem by delegating to `unilog/start-logging!` with the
+  given `config` map."
   [config]
   (unilog/start-logging! config))
 
@@ -276,9 +302,14 @@
 ;; System handlers
 ;;
 
-(def default-config {:level "info" :console true})
+(def ^{:doc "Default logging configuration map: INFO level with console output enabled."}
+  default-config {:level "info" :console true})
 
 (defn preprocess-config
+  "Pre-processes logging `config` by expanding Java property placeholders in `:file`
+  paths of each appender entry. Marks the config as `:preprocessed` to avoid
+  repeated processing. Returns `config` unchanged when no `:appenders` key is present
+  or the config has already been preprocessed."
   [config]
   (if-some [ap (:appenders config)]
     (if (:preprocessed config)
@@ -289,6 +320,11 @@
     config))
 
 (defn init!
+  "Initialises the logging subsystem. Snapshots the current Logback state, detaches
+  previously installed appenders, configures the JSON decoder and the context
+  transformer, then starts unilog. Returns a map with `:config`,
+  `:previous-ctx-transformer`, `:previous-logback`, and `:unilog` keys suitable for
+  passing to `stop!` to restore the prior state."
   [config]
   (let [config          (if (and (contains? config :config) (contains? config :unilog)) (get config :config) config)
         config          (preprocess-config config)
@@ -306,6 +342,9 @@
        :unilog                   unilog-ret})))
 
 (defn stop!
+  "Tears down the logging subsystem and restores the state captured by `init!`.
+  Detaches appenders prefixed with `\"io.randomseed.utils.log.\"`, restores the
+  previous context transformer and the previous Logback snapshot. Returns `nil`."
   [{:keys [previous-ctx-transformer previous-logback]}]
   (logback/detach-appenders-by-prefix! "io.randomseed.utils.log.")
   (when previous-ctx-transformer

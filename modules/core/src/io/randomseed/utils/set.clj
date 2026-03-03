@@ -9,10 +9,13 @@
   (:require [clojure.set :as set]))
 
 (defn replace-in
+  "Replaces `old-val` with `new-val` in set `s`."
   [^clojure.lang.PersistentHashSet s old-val new-val]
   (conj (disj s old-val) new-val))
 
 (defn difference
+  "Like `clojure.set/difference` but optimized with transients and supports an
+  optional transducer `xform`."
   ([] [])
   ([of] of)
   ([of what]
@@ -51,6 +54,8 @@
          (meta of))))))
 
 (defn out-of
+  "Removes elements of `what` from set `of`. Uses `difference` when both are sets,
+  otherwise falls back to transient-based `disj`."
   ([] [])
   ([of] of)
   ([of what]

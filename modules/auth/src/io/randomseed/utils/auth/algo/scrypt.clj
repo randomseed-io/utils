@@ -13,12 +13,14 @@
             [io.randomseed.utils.map      :refer [qassoc]]
             [io.randomseed.utils          :as      utils]))
 
-(def ^:const default-options
+(def ^{:const true :doc "Default scrypt options: N=32768, r=8, p=1."}
+  default-options
   {:cpu-cost 32768
    :mem-cost     8
    :parallel     1})
 
-(def ^:const required-keys
+(def ^{:const true :doc "Keys selected from options/settings for the scrypt operation."}
+  required-keys
   [:salt :cpu-cost :mem-cost :parallel])
 
 (defn encrypt
@@ -47,9 +49,12 @@
                      (int 32))]
      (qassoc options :salt salt :password result))))
 
-(def check (partial pwd/standard-check encrypt))
+(def ^{:doc "Checker function for the scrypt algorithm (partial of `standard-check`)."}
+  check (partial pwd/standard-check encrypt))
 
-(def handler
+(def ^{:doc "Handler map for the scrypt algorithm: encryption/check functions, defaults,
+  and shared key list."}
+  handler
   {:encrypt-fn encrypt
    :check-fn   check
    :defaults   default-options

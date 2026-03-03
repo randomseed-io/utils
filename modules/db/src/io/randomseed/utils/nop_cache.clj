@@ -25,5 +25,7 @@
   (toString [_] (str "NOP Cache: " cache)))
 
 (defn factory
+  "Creates a `NOPCache` instance. All lookups return `not-found`, all mutations return
+  the cache unchanged. Useful as a no-op placeholder when caching is disabled."
   [& args]
   (NOPCache. (first args)))

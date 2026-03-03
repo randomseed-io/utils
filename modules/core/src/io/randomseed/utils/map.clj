@@ -28,6 +28,8 @@
   (if (nil? m) {} m))
 
 (defmacro qassoc*
+  "Macro that expands into a chain of `.assoc` calls on `mp` for the given key–value
+  pairs `kvs`. Expects an even number of key–value arguments."
   [mp & kvs]
   (when (odd? (count kvs))
     (throw (IllegalArgumentException. "qassoc* expects even number of kvs")))
@@ -160,6 +162,9 @@
      (qassoc coll k (if (ifn? fun) (apply fun (get coll k) more) fun)))))
 
 (defn update-if
+  "Updates the value at key `k` in `coll` by applying `fun` (with optional extra args)
+  only when the current value satisfies predicate `pred`. If `k` is absent or `pred`
+  returns false, `coll` is returned unchanged."
   {:added "1.0.0" :tag clojure.lang.Associative}
   (^Associative [^Associative coll k pred fun]
    (if (contains? coll k)
@@ -177,6 +182,9 @@
      coll)))
 
 (defn update-if-not
+  "Updates the value at key `k` in `coll` by applying `fun` (with optional extra args)
+  only when the current value does NOT satisfy predicate `pred`. If `k` is absent or
+  `pred` returns true, `coll` is returned unchanged."
   {:added "1.0.0" :tag clojure.lang.Associative}
   (^Associative [^Associative coll k pred fun]
    (if (contains? coll k)
@@ -194,6 +202,8 @@
      coll)))
 
 (defn update-to-bytes
+  "Converts the value(s) at the given key(s) in `coll` to byte arrays using
+  `normalize-to-bytes`, skipping values that are already byte arrays."
   {:added "1.0.0" :tag clojure.lang.Associative}
   (^Associative [^Associative coll k]
    (update-if-not coll k bytes? normalize-to-bytes))
@@ -201,6 +211,8 @@
    (reduce #(update-if-not ^Associative %1 %2 bytes? normalize-to-bytes) coll (cons k keys))))
 
 (defn update-bytes-to-strings
+  "Converts the value(s) at the given key(s) in `coll` from byte arrays to strings
+  using `bytes-to-string`, skipping values that are not byte arrays."
   {:added "1.0.0" :tag clojure.lang.Associative}
   (^Associative [^Associative coll k]
    (update-if coll k bytes? bytes-to-string))
@@ -208,6 +220,8 @@
    (reduce #(update-if ^Associative %1 %2 bytes? bytes-to-string) coll (cons k keys))))
 
 (defmacro assoc-if
+  "Associates `k` with `val` (and optional further pairs) in `coll` only when `pred`
+  is truthy. Returns `coll` unchanged otherwise."
   ([coll pred k val]
    `(let [kol# ~coll]
       (if ~pred
@@ -220,6 +234,8 @@
         kol#))))
 
 (defmacro assoc-if-not
+  "Associates `k` with `val` (and optional further pairs) in `coll` only when `pred`
+  is falsy. Returns `coll` unchanged otherwise."
   ([coll pred k val]
    `(let [kol# ~coll]
       (if ~pred
@@ -232,6 +248,8 @@
         (apply qassoc kol# ~k ~val ~@pairs)))))
 
 (defmacro assoc-if-key
+  "Associates `k` with `val` in `coll` only when the current value at `k` satisfies
+  predicate `pred`. Returns `coll` unchanged otherwise."
   ([coll k pred val]
    `(let [kol# ~coll
           key# ~k]
@@ -240,6 +258,8 @@
         kol#))))
 
 (defmacro assoc-if-not-key
+  "Associates `k` with `val` in `coll` only when the current value at `k` does NOT
+  satisfy predicate `pred`. Returns `coll` unchanged otherwise."
   [coll k pred val]
   `(let [kol# ~coll
          key# ~k]
@@ -248,12 +268,15 @@
        (qassoc kol# key# ~val))))
 
 (defn dissoc-if
+  "Removes key `k` from map `m` when the value at `k` satisfies predicate `pred`.
+  Returns `m` unchanged otherwise."
   {:added "1.0.0" :tag clojure.lang.Associative}
   ^Associative [^Associative m k
                 ^clojure.lang.IFn pred]
   (if (pred (get m k)) (dissoc m k) m))
 
 (defn remove-if-value
+  "Removes all entries from map `m` whose values satisfy predicate `pred`."
   {:added "1.0.0" :tag clojure.lang.Associative}
   ^Associative [^Associative m
                 ^clojure.lang.IFn pred]
@@ -263,6 +286,7 @@
    m m))
 
 (defn remove-if-value-in
+  "Removes all entries from map `m` whose values are contained in the collection `vals`."
   {:added "1.0.0" :tag clojure.lang.Associative}
   ^Associative [^Associative m vals]
   (if (nil? vals) m
@@ -271,6 +295,8 @@
             (remove-if-value m #(contains? vset %))))))
 
 (defn remove-if-value-not-in
+  "Removes all entries from map `m` whose values are NOT contained in the collection
+  `vals`. When `vals` is `nil`, returns an empty map."
   {:added "1.0.0" :tag clojure.lang.Associative}
   ^Associative [^Associative m vals]
   (if (nil? vals) (empty m)
@@ -280,11 +306,13 @@
             (remove-if-value m #(not-contains? vset %))))))
 
 (defn remove-except
+  "Returns a map containing only the keys from `keyseq`. Equivalent to `select-keys`."
   {:added "1.0.0" :tag clojure.lang.Associative}
   ^Associative [^Associative m ^clojure.lang.ISeq keyseq]
   (select-keys m keyseq))
 
 (defn remove-empty-values
+  "Removes all entries from map `m` whose values are `nil` or empty (in the `seq` sense)."
   {:added "1.0.0" :tag clojure.lang.Associative}
   ^Associative [^Associative m]
   (remove-if-value
@@ -636,6 +664,8 @@
      map kmap)))
 
 (defn nil-keys
+  "Sets the values of all given `keys` to `nil` in map `m`, adding keys that did not
+  exist. Returns `nil` when `m` is `nil`."
   {:added "1.0.0" :tag clojure.lang.Associative}
   ^Associative [^Associative m keys]
   (when (some? m)
@@ -644,6 +674,8 @@
       m)))
 
 (defn nil-existing-keys
+  "Sets the values of given `keys` to `nil` in map `m`, but only for keys that already
+  exist in the map. Returns `nil` when `m` is `nil`."
   {:added "1.0.0" :tag clojure.lang.Associative}
   ^Associative [^Associative m keys]
   (when (some? m)

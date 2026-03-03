@@ -24,7 +24,10 @@
 
 (defonce ^:private lock 'lock)
 
-(def ^:dynamic *default-settings*
+(def ^{:dynamic true
+       :doc     "Default password authentication timing settings: base wait (seconds),
+  random wait range, and extra delay when user does not exist."}
+  *default-settings*
   {:wait        1
    :wait-random [0 2]
    :wait-nouser 2})
@@ -297,7 +300,9 @@
     (codecs/bin->base64-url-safe v)
     v))
 
-(def json-write-translation
+(def ^{:doc "Translation map for JSON serialization: converts byte-array fields to
+  URL-safe Base64 strings."}
+  json-write-translation
   {:prefix   bytes->base64-url-safe
    :suffix   bytes->base64-url-safe
    :infix    bytes->base64-url-safe
@@ -332,7 +337,9 @@
     (catch Throwable _
       (codecs/base64->bin v))))
 
-(def json-translation
+(def ^{:doc "Translation map for JSON deserialization: converts Base64-encoded fields back
+  to byte arrays and `:handler-id` to a symbol."}
+  json-translation
   {:prefix     base64-any->bin
    :suffix     base64-any->bin
    :infix      base64-any->bin
@@ -388,7 +395,7 @@
   (s/assert :io.randomseed.utils.auth/crypto-suite suite)
   (map shared suite))
 
-(def shared-chain shared-suite)
+(def ^{:doc "Alias for `shared-suite`."} shared-chain shared-suite)
 
 (defn split
   "Splits a cipher entry or a password into two parts and returns a Suite record with
@@ -414,7 +421,7 @@
         (types/->Suites new-st-chain new-va-chain)
         (recur nexte new-st-chain new-va-chain)))))
 
-(def split-chain split-suite)
+(def ^{:doc "Alias for `split-suite`."} split-chain split-suite)
 
 (defn human-readable
   "Converts binary fields in a crypto entry to string representation."
@@ -430,7 +437,7 @@
   (s/assert :io.randomseed.utils.auth/crypto-suite suite)
   (map human-readable suite))
 
-(def human-readable-chain human-readable-suite)
+(def ^{:doc "Alias for `human-readable-suite`."} human-readable-chain human-readable-suite)
 
 ;;
 ;; Configuration

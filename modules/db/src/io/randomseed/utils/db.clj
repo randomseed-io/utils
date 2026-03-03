@@ -28,8 +28,11 @@
 
   (:import (javax.sql DataSource)))
 
-(def ^:const underscore (re-pattern "_"))
-(def ^:const dash       (re-pattern "-"))
+(def ^{:const true :doc "Compiled regex pattern matching underscore characters."}
+  underscore (re-pattern "_"))
+
+(def ^{:const true :doc "Compiled regex pattern matching dash (hyphen) characters."}
+  dash (re-pattern "-"))
 
 ;; Common identifier conversions
 
@@ -90,7 +93,8 @@
   ([cache-atom entry & more]
    (swap! cache-atom (partial reduce cache/evict) (cons entry more))))
 
-(def not-found ::not-found)
+(def ^{:doc "Sentinel value (`:io.randomseed.utils.db/not-found`) used to indicate a cache miss."}
+  not-found ::not-found)
 
 (defn cwr-lookup
   "Performs a cache lookup of `id` on `cache` and returns the hit. If there is no
@@ -309,14 +313,26 @@
 
 ;; Builder and conversion functions
 
-(def to-lisp          (memoize+ u/to-lisp-str         1024 512))
-(def to-lisp-simple   (memoize+ u/to-lisp-simple-str   512 128))
-(def to-lisp-slashed  (memoize+ u/to-lisp-slashed-str  512 128))
-(def to-snake         (memoize+ u/to-snake-str        1024 512))
-(def to-snake-simple  (memoize+ u/to-snake-simple-str  512 128))
-(def to-snake-slashed (memoize+ u/to-snake-slashed-str 512 128))
+(def ^{:doc "Memoized converter from snake_case to lisp-case (handles namespaced identifiers)."}
+  to-lisp (memoize+ u/to-lisp-str 1024 512))
 
-(def opts-map
+(def ^{:doc "Memoized converter from snake_case to lisp-case (simple, name-only)."}
+  to-lisp-simple (memoize+ u/to-lisp-simple-str 512 128))
+
+(def ^{:doc "Memoized converter from snake_case to lisp-case (uses slash as separator)."}
+  to-lisp-slashed (memoize+ u/to-lisp-slashed-str 512 128))
+
+(def ^{:doc "Memoized converter from lisp-case to snake_case (handles namespaced identifiers)."}
+  to-snake (memoize+ u/to-snake-str 1024 512))
+
+(def ^{:doc "Memoized converter from lisp-case to snake_case (simple, name-only)."}
+  to-snake-simple (memoize+ u/to-snake-simple-str 512 128))
+
+(def ^{:doc "Memoized converter from lisp-case to snake_case (uses slash as separator)."}
+  to-snake-slashed (memoize+ u/to-snake-slashed-str 512 128))
+
+(def ^{:doc "Default next.jdbc options for qualified map results with snake/lisp case conversion."}
+  opts-map
   {:return-keys  false
    :builder-fn   rs/as-modified-maps
    :column-fn    to-snake
@@ -324,7 +340,8 @@
    :qualifier-fn to-lisp
    :label-fn     to-lisp})
 
-(def opts-simple-map
+(def ^{:doc "Default next.jdbc options for unqualified map results with snake/lisp case conversion."}
+  opts-simple-map
   {:return-keys  false
    :builder-fn   rs/as-unqualified-modified-maps
    :column-fn    to-snake
@@ -332,7 +349,8 @@
    :qualifier-fn to-lisp
    :label-fn     to-lisp})
 
-(def opts-slashed-map
+(def ^{:doc "Default next.jdbc options for unqualified map results using slashed lisp-case labels."}
+  opts-slashed-map
   {:return-keys  false
    :builder-fn   rs/as-unqualified-modified-maps
    :column-fn    to-snake
@@ -340,7 +358,8 @@
    :qualifier-fn (constantly nil)
    :label-fn     to-lisp-slashed})
 
-(def opts-vec
+(def ^{:doc "Default next.jdbc options for qualified vector results with snake/lisp case conversion."}
+  opts-vec
   {:return-keys  false
    :builder-fn   rs/as-modified-arrays
    :column-fn    to-snake
@@ -348,7 +367,8 @@
    :qualifier-fn to-lisp
    :label-fn     to-lisp})
 
-(def opts-simple-vec
+(def ^{:doc "Default next.jdbc options for unqualified vector results with snake/lisp case conversion."}
+  opts-simple-vec
   {:return-keys  false
    :builder-fn   rs/as-unqualified-modified-arrays
    :column-fn    to-snake
@@ -356,7 +376,8 @@
    :qualifier-fn to-lisp
    :label-fn     to-lisp})
 
-(def opts-slashed-vec
+(def ^{:doc "Default next.jdbc options for unqualified vector results using slashed lisp-case labels."}
+  opts-slashed-vec
   {:return-keys  false
    :builder-fn   rs/as-unqualified-modified-arrays
    :column-fn    to-snake
@@ -365,34 +386,42 @@
    :label-fn     to-lisp-slashed})
 
 (defn join-col-names
+  "Joins column names into a comma-separated string after converting each to snake_case."
   [cols]
   (str/join "," (map to-snake-simple cols)))
 
 (defn braced-join-col-names
+  "Joins column names into a comma-separated, parenthesized string after converting each to snake_case."
   [cols]
   (str "(" (str/join "," (map to-snake-simple cols)) ")"))
 
 (defn braced-join-col-names-no-conv
+  "Joins column names into a comma-separated, parenthesized string without case conversion."
   [cols]
   (str "(" (str/join "," cols) ")"))
 
 (defn join-?
+  "Returns a comma-separated string of `?` placeholders, one per element in `ids`."
   [ids]
   (str/join "," (map (constantly "?") ids)))
 
 (defn braced-join-?
+  "Returns a parenthesized, comma-separated string of `?` placeholders, one per element in `ids`."
   [ids]
   (str "(" (str/join "," (map (constantly "?") ids)) ")"))
 
 (defn join-v=?
+  "Returns a comma-separated string of `col = ?` assignments, one per element in `ids`."
   [ids]
   (str/join ", " (map #(str % " = ?") ids)))
 
 (defn values-?
+  "Returns a `VALUES (?,?,...?)` SQL fragment with one placeholder per element in `coll`."
   [coll]
   (str "VALUES (" (str/join "," (map (constantly "?") coll)) ")"))
 
 (defn braced-?
+  "Returns a parenthesized, comma-separated string of `?` placeholders for `coll`."
   [coll]
   (str "(" (str/join "," (map (constantly "?") coll)) ")"))
 
@@ -410,6 +439,7 @@
 ;; Type checks
 
 (defn data-source?
+  "Returns `true` if `v` is an instance of `javax.sql.DataSource`."
   [v]
   (instance? DataSource v))
 
@@ -452,6 +482,9 @@
                   (reduce #(qassoc %1 (id-from-db (get %2 id-col)) %2) {})))))))))
 
 (defn make-getter
+  "Creates a database getter function for retrieving a single row by `id-col`. If `table`
+  is given, the table name is baked into the query. If `getter-coll-fn` is supplied,
+  variadic arity delegates to it for batch retrieval."
   ([id-col cols]
    (make-getter nil id-col cols nil))
   ([table id-col cols]
@@ -485,6 +518,8 @@
                               opts-simple-map)))))))
 
 (defn make-setter
+  "Creates a database setter function that updates a row identified by `id-col`.
+  If `table` is given, the table name is baked into the function."
   ([id-col]
    (make-setter nil id-col))
   ([table id-col]
@@ -498,6 +533,8 @@
          ([db table id kvs] (sql/update! db table kvs {id-col id} opts-simple-map)))))))
 
 (defn make-deleter
+  "Creates a database deleter function that removes a row identified by `id-col`.
+  If `table` is given, the table name is baked into the query."
   ([id-col]
    (make-deleter nil id-col))
   ([table id-col]
@@ -824,7 +861,8 @@
 
 ;; Settings abstraction
 
-(def listed-nil '(nil))
+(def ^{:doc "A single-element list containing `nil`, used as a padding sentinel for `partition`."}
+  listed-nil '(nil))
 
 (defn- prep-pairs
   [coll]
@@ -1068,6 +1106,7 @@
   nil)
 
 (defn print-caches
+  "Prints diagnostic info for each cache in `caches` (a map of id to cache atom/object)."
   [caches]
   (doseq [[id c] caches]
     (let [c     (if (u/atom? c) (deref c) c)

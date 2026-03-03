@@ -14,6 +14,8 @@
   (iterator-seq (.iteratorForAppenders logger)))
 
 (defn logger-context
+  "Returns the current Logback `LoggerContext`. Throws when the SLF4J factory is not
+  a Logback context."
   ^LoggerContext []
   (let [f (LoggerFactory/getILoggerFactory)]
     (when-not (instance? LoggerContext f)
@@ -21,6 +23,8 @@
     ^LoggerContext f))
 
 (defn detach-appenders-by-prefix!
+  "Detaches and stops all appenders from the root logger whose name starts with
+  `prefix`."
   [^String prefix]
   (let [^LoggerContext ctx (logger-context)
         ^Logger root (.getLogger ctx Logger/ROOT_LOGGER_NAME)]
@@ -58,6 +62,9 @@
      :additive       add-map}))
 
 (defn restore-logback!
+  "Restores Logback runtime state from a snapshot previously captured by
+  `snapshot-logback!`. Re-attaches root appenders, restores logger levels and
+  additive flags."
   [{:keys [root-level root-appenders levels additive]}]
   (let [^ch.qos.logback.classic.LoggerContext ctx (logger-context)
         ^ch.qos.logback.classic.Logger root (.getLogger ctx ch.qos.logback.classic.Logger/ROOT_LOGGER_NAME)]

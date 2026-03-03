@@ -36,10 +36,21 @@
 
 ;; Types
 
-(defn  atom?     ^Boolean [v] (instance? clojure.lang.Atom v))
-(defn instant?   ^Boolean [v] (instance? Instant   v))
-(defn exception? ^Boolean [v] (instance? Exception v))
-(defn throwable? ^Boolean [v] (instance? Throwable v))
+(defn atom?
+  "Returns `true` if `v` is an instance of `clojure.lang.Atom`."
+  ^Boolean [v] (instance? clojure.lang.Atom v))
+
+(defn instant?
+  "Returns `true` if `v` is an instance of `java.time.Instant`."
+  ^Boolean [v] (instance? Instant v))
+
+(defn exception?
+  "Returns `true` if `v` is an instance of `java.lang.Exception`."
+  ^Boolean [v] (instance? Exception v))
+
+(defn throwable?
+  "Returns `true` if `v` is an instance of `java.lang.Throwable`."
+  ^Boolean [v] (instance? Throwable v))
 
 ;; Values handling
 
@@ -106,12 +117,16 @@
      ~@more))
 
 (defmacro valuable
+  "Evaluates expressions from `more` and returns the result of the last one only when
+  it is valuable (not `nil` and not empty). Returns `nil` otherwise."
   [& more]
   (if-some [b (butlast more)]
     `(do ~@b (let [l# ~(last more)] (if (valuable? l#) l#)))
     `(let [l# ~(first more)] (if (valuable? l#) l#))))
 
 (defmacro not-valuable
+  "Evaluates expressions from `more` and returns the result of the last one only when
+  it is not valuable (`nil` or empty). Returns `nil` otherwise."
   [& more]
   (if-some [b (butlast more)]
     `(do ~@b (let [l# ~(last more)] (if (not-valuable? l#) l#)))
@@ -878,16 +893,21 @@
          buff)))))
 
 (defn text-to-bytes
+  "Converts `t` to a byte array. Returns `t` unchanged when it is already a byte
+  array, returns `bzero` when `t` is `nil`."
   ^"[B" [t]
   (if (bytes? t) t (if (nil? t) bzero (to-bytes t))))
 
 (defn normalize-to-bytes
+  "Normalizes `t` via `normalize-name` and then converts the result to a byte array."
   ^"[B" [t]
   (to-bytes (normalize-name t)))
 
 ;; Identifiers handling
 
 (defn must-have-ns
+  "Ensures that the identifier `id` has namespace `ns`. If `id` already has the given
+  namespace, returns it unchanged. Otherwise re-creates it with `ns` as its namespace."
   [id ^String ns]
   (s/assert ::not-empty-string ns)
   (s/assert ::identifier id)
@@ -896,12 +916,17 @@
     ((if (keyword? id) keyword symbol) ns (name id))))
 
 (defn ensure-str
+  "Converts `v` to a string, preserving namespaces for identifiers. Returns an empty
+  string when `v` is not valuable. With multiple arguments, concatenates results of
+  `some-str` applied to each."
   (^String [v]
    (or (when (valuable? v) (str (if (ident? v) (symbol v) v))) ""))
   (^String [v & more]
    (apply str (map some-str (cons v more)))))
 
 (defn ensure-str-simple
+  "Like `ensure-str` but removes namespace from identifiers, using only the name part.
+  With multiple arguments, concatenates results of `some-str-simple` applied to each."
   {:added "1.2.36"}
   (^String [v]
    (or (when (valuable? v) (if (ident? v) (name v) (str v))) ""))
@@ -933,14 +958,19 @@
         (keyword (when (valuable? id) id))))))
 
 (defn ensure-ident-keyword
+  "Returns `id` unchanged if it is an identifier. Otherwise converts it to a keyword
+  via `ensure-keyword`."
   [id]
   (if (ident? id) id (ensure-keyword id)))
 
 (defn ensure-keyword-having-ns
+  "Converts `id` to a keyword and ensures it has namespace `ns` using `must-have-ns`."
   [id ^String ns]
   (must-have-ns (ensure-keyword id) ns))
 
 (defn ensure-namespaced-keyword
+  "Converts `id` to a keyword and ensures it is namespace-qualified, adding `ns` as
+  namespace only if one is not already present."
   [id ^String ns]
   (ensure-ns (ensure-keyword id) ns))
 
@@ -1104,9 +1134,17 @@
 
 ;; Threads
 
-(defn current-thread-id   [] (.. Thread currentThread getId))
-(defn current-thread-name [] (.. Thread currentThread getName))
-(defn current-thread      [] (Thread/currentThread))
+(defn current-thread-id
+  "Returns the ID of the current thread."
+  [] (.. Thread currentThread getId))
+
+(defn current-thread-name
+  "Returns the name of the current thread."
+  [] (.. Thread currentThread getName))
+
+(defn current-thread
+  "Returns the current `Thread` object."
+  [] (Thread/currentThread))
 
 ;; Randomness
 
@@ -1230,7 +1268,9 @@
 
 ;; UUID
 
-(def ^{:arglists '(^java.util.UUID []) :tag java.util.UUID}
+(def ^{:doc "Generates a random UUID. Delegates to `clojure.core/random-uuid` when
+  available, otherwise uses `java.util.UUID/randomUUID` directly."
+       :arglists '(^java.util.UUID []) :tag java.util.UUID}
   random-uuid
   (or (ns-resolve 'clojure.core 'random-uuid)
       (fn ^java.util.UUID [] (java.util.UUID/randomUUID))))
@@ -1242,13 +1282,17 @@
   ([s]
    (when (valuable? s) (if (uuid? s) s (UUID/fromString (str s))))))
 
-(def uuid
+(def ^{:doc "Parses or generates a UUID. Delegates to `clojure.core/uuid` when available,
+  otherwise falls back to `to-uuid`."}
+  uuid
   (or (ns-resolve 'clojure.core 'uuid)
       to-uuid))
 
 ;; URL
 
 (defn sanitize-base-url
+  "Trims and normalizes a base URL string: prepends `https://` when no `http` scheme
+  is present and appends a trailing `/` when missing. Returns `nil` for empty input."
   [^String url]
   (when-some [url (str/trim (str url))]
     (when (some? (seq url))
@@ -1281,6 +1325,9 @@
   (when (and x (number? x) (pos? x)) x))
 
 (defn parse-num
+  "Parses `n` to a number. Returns `bigdec` for strings longer than 15 chars or
+  containing a decimal point, otherwise returns a `long`. Returns `nil` when `n` is
+  not valuable, or `default` when supplied."
   ([n default]
    (or (parse-num n) default))
   ([n]
@@ -1291,6 +1338,8 @@
          (parse-long-core ^String s))))))
 
 (defn some-long
+  "Converts `s` to a `long`. If `s` is already a number, coerces it; otherwise parses
+  it as a string. Returns `nil` when `s` is not valuable, or `default` when supplied."
   ([s default]
    (or (some-long s) default))
   ([s]
@@ -1298,11 +1347,14 @@
      (if (number? s) (long s)
          (parse-long-core ^String (str s))))))
 
-(def ^{:arglists '([s] [s default])}
+(def ^{:doc "Alias for `some-long`. Parses a value to `long`, with optional default."
+       :arglists '([s] [s default])}
   parse-long
   some-long)
 
 (defn safe-parse-num
+  "Like `parse-num` but catches any `Throwable` and returns `nil` (or `default`)
+  instead of throwing."
   ([v default]
    (or (safe-parse-num v) default))
   ([v]
@@ -1310,6 +1362,8 @@
         (catch Throwable _ nil))))
 
 (defn safe-parse-long
+  "Like `some-long` but catches any `Throwable` and returns `nil` (or `default`)
+  instead of throwing."
   ([v default]
    (or (safe-parse-long v) default))
   ([v]
@@ -1317,19 +1371,26 @@
         (catch Throwable _ nil))))
 
 (defn to-long
+  "Safely parses `s` to a `long`, returning `default` on failure. Asserts that
+  `default` is an integer."
   [s default]
   (s/assert ::integer default)
   (safe-parse-long s default))
 
 (defn parse-percent
+  "Parses `n` as a number and divides it by 100 to produce a fractional value.
+  Returns `nil` when `n` is not valuable, or `default` when supplied."
   ([n default]
    (or (parse-percent n) default))
   ([n]
    (when-some [n (parse-num n)] (/ n 100))))
 
-(def percent parse-percent)
+(def ^{:doc "Alias for `parse-percent`."}
+  percent parse-percent)
 
 (defn safe-parse-percent
+  "Like `parse-percent` but catches any `Throwable` and returns `nil` (or `default`)
+  instead of throwing."
   ([v default]
    (or (safe-parse-percent v) default))
   ([v]
@@ -1337,18 +1398,24 @@
         (catch Throwable _ nil))))
 
 (defn parse-re
+  "Compiles the string `v` into a regex pattern. Returns `nil` when `v` is not a
+  valuable string."
   [v]
   (when (and (valuable? v) (string? v)) (re-pattern v)))
 
 ;; Identifiers
 
 (defn some-keyword
+  "Converts `v` to a keyword, preserving namespace. Returns `v` unchanged if already
+  a keyword, `nil` when `v` is not valuable."
   [v]
   (if (keyword? v) v
       (when (valuable? v)
         (keyword (if (symbol? v) v (str v))))))
 
 (defn some-keyword-up
+  "Converts `v` to an upper-cased keyword, preserving namespace. Returns `nil` when
+  `v` is not valuable."
   [v]
   (when (valuable? v)
     (keyword
@@ -1356,6 +1423,8 @@
       (str (if (keyword? v) (symbol v) v))))))
 
 (defn some-keyword-down
+  "Converts `v` to a lower-cased keyword, preserving namespace. Returns `nil` when
+  `v` is not valuable."
   [v]
   (when (valuable? v)
     (keyword
@@ -1363,6 +1432,8 @@
       (str (if (keyword? v) (symbol v) v))))))
 
 (defn some-keyword-down-tr
+  "Converts `v` to a lower-cased, trimmed keyword, preserving namespace. Returns `nil`
+  when `v` is not valuable."
   [v]
   (when (valuable? v)
     (keyword
@@ -1371,22 +1442,29 @@
        (str (if (keyword? v) (symbol v) v)))))))
 
 (defn some-keyword-simple
+  "Converts `v` to a simple (unqualified) keyword, stripping namespace. Returns `nil`
+  when `v` is not valuable."
   [v]
   (when-some [v (some-keyword v)]
     (if (simple-keyword? v) v (keyword (name v)))))
 
 (defn simple-keyword-up
+  "Converts `v` to a simple (unqualified), upper-cased keyword. Returns `nil` when
+  `v` is not valuable."
   [v]
   (when-some [v (some-keyword-up v)]
     (if (simple-keyword? v) v (keyword (name v)))))
 
 (defn some-symbol
+  "Converts `v` to a symbol, preserving namespace. Returns `v` unchanged if already
+  a symbol, `nil` when `v` is not valuable."
   [v]
   (if (symbol? v) v
       (when (valuable? v)
         (symbol (if (ident? v) v (str v))))))
 
 (defn some-symbol-up
+  "Converts `v` to an upper-cased symbol. Returns `nil` when `v` is not valuable."
   [v]
   (when (valuable? v)
     (symbol
@@ -1394,11 +1472,15 @@
       (str (if (keyword? v) (symbol v) v))))))
 
 (defn some-symbol-simple
+  "Converts `v` to a simple (unqualified) symbol, stripping namespace. Returns `nil`
+  when `v` is not valuable."
   [v]
   (when-some [v (some-symbol v)]
     (if (simple-symbol? v) v (symbol (name v)))))
 
 (defn simple-symbol-up
+  "Converts `v` to a simple (unqualified), upper-cased symbol. Returns `nil` when
+  `v` is not valuable."
   [v]
   (when-some [v (some-symbol-up v)]
     (if (simple-symbol? v) v (symbol (name v)))))
@@ -1503,6 +1585,7 @@
 
 ;; Documentation strings
 
-(defmacro defdoc! [v docstr]
+(defmacro defdoc!
   "Replaces documentation string of a Var."
+  [v docstr]
   `(alter-meta! (var ~v) #(update-in % [:doc] (constantly (str ~docstr)))))

@@ -9,7 +9,10 @@
   (:require [tick.core                :as    t]
             [io.randomseed.utils.time :as time]))
 
-(def ^:dynamic *lock-wait-default*
+(def ^{:dynamic true
+       :doc     "Default soft-lock wait duration (10 minutes). Used as fallback when auth
+  config does not specify `:locking/lock-wait`."}
+  *lock-wait-default*
   (t/new-duration 10 :minutes))
 
 (defn hard-lock-time

@@ -328,7 +328,9 @@
          `(coerce-seq-out* ~tc ~coll)))
      `(coerce-seq-out ~table-column ~coll))))
 
-(defrecord QSlot [^String t ^String c v])
+(defrecord ^{:doc "Internal record holding a pre-parsed conversion slot: table name `t`, column name
+  `c`, and a vector of values `v` to be coerced."}
+  QSlot [^String t ^String c v])
 
 (defn- not-empty-qslot?
   "Returns `true` if the given `e` is of type `QSlot` and all of its essential fields
@@ -586,9 +588,9 @@
   And then to:
 
   ```
-  [(#<Fn@4d7e49d ferment.model.user/id_to_db> id)
+  [(#<Fn@4d7e49d myapp.model.user/id_to_db> id)
    (io.randomseed.utils.db/coerce-in* :confirmations/email email)
-   (#<Fn@3bf6fdc6 ferment.model.confirmation/to_expiry> expires)]
+   (#<Fn@3bf6fdc6 myapp.model.confirmation/to_expiry> expires)]
   ```
 
   We can see that coercers for `id` and `expires` symbols were resolved and function
@@ -621,13 +623,13 @@
   And fully expanded:
 
   ```
-  (let* [DB__confirmations_id_id_54377141 (#<Fn@5a424a5a ferment.identity/__GT_db> id)]
+  (let* [DB__confirmations_id_id_54377141 (#<Fn@5a424a5a io.randomseed.utils.identity/__GT_db> id)]
     [DB__confirmations_id_id_54377141
      (#<Fn@279d4dd9 io.randomseed.utils/safe_parse_long>       code)
      (#<Fn@7f1abd95 io.randomseed.utils/some_str>             token)
      (#<Fn@7f1abd95 io.randomseed.utils/some_str>            reason)
      (#<Fn@7f1abd95 io.randomseed.utils/some_str>           id-type)
-     (#<Fn@4ac5d426 ferment.model.confirmation/to_expiry> expires)
+     (#<Fn@4ac5d426 myapp.model.confirmation/to_expiry> expires)
      DB__confirmations_id_id_54377141
      DB__confirmations_id_id_54377141])
   ```
@@ -635,7 +637,7 @@
   A SQL query which uses the sequence of values presented above needs one of
   them (identified with the `id`) to be repeated. We can observe that the macro
   generated `let` binding for it to assign the result of calling
-  `ferment.identity/->db` on `id` to auto-generated symbol named
+  `io.randomseed.utils.identity/->db` on `id` to auto-generated symbol named
   `DB__confirmations_id_id_54377141`. This symbol is then re-used in output vector
   multiple times so the calculation is performed just once.
 
@@ -661,11 +663,16 @@
    `(into (or (<<- ~@(cons spec (butlast specs))) []) ~(last specs))))
 
 (defn simple->
+  "Coerces map values from database types using `out-coercer`, qualifying each key
+  with `table` as the namespace. Returns a new map with coerced values."
   [table m]
   (let [table (u/some-str table)]
     (map/map-vals-by-kv #(-> (keyword table (name %1)) %2) m)))
 
 (defn map->
+  "Coerces map values from database types using `out-coercer`. In the 1-arity form,
+  each key is used as-is (must be qualified) to dispatch the coercer. In the 2-arity
+  form, unqualified keys are qualified with `table` as the namespace."
   ([m]
    (map/map-vals-by-kv -> m))
   ([table m]
@@ -774,18 +781,30 @@
 
 ;; Predefined database options
 
-(def opts-map               (update db/opts-map         :builder-fn gen-builder))
-(def opts-simple-map        (update db/opts-simple-map  :builder-fn gen-builder))
-(def opts-vec               (update db/opts-vec         :builder-fn gen-builder))
-(def opts-simple-vec        (update db/opts-simple-vec  :builder-fn gen-builder))
-(def opts-slashed-map       (update db/opts-slashed-map :builder-fn gen-builder))
-(def opts-slashed-vec       (update db/opts-slashed-vec :builder-fn gen-builder))
-(def opts-lazy-vec          (update db/opts-vec         :builder-fn gen-builder-delayed))
-(def opts-lazy-simple-vec   (update db/opts-simple-vec  :builder-fn gen-builder-delayed))
-(def opts-lazy-slashed-vec  (update db/opts-slashed-vec :builder-fn gen-builder-delayed))
-(def opts-lazy-map          (update db/opts-map         :builder-fn gen-builder-delayed))
-(def opts-lazy-simple-map   (update db/opts-simple-map  :builder-fn gen-builder-delayed))
-(def opts-lazy-slashed-map  (update db/opts-slashed-map :builder-fn gen-builder-delayed))
+(def ^{:doc "next.jdbc options map: lisp-cased keys, map results, with coercing builder."}
+  opts-map               (update db/opts-map         :builder-fn gen-builder))
+(def ^{:doc "next.jdbc options map: simple lisp-cased keys (no table prefix), map results, with coercing builder."}
+  opts-simple-map        (update db/opts-simple-map  :builder-fn gen-builder))
+(def ^{:doc "next.jdbc options map: lisp-cased keys, vector results, with coercing builder."}
+  opts-vec               (update db/opts-vec         :builder-fn gen-builder))
+(def ^{:doc "next.jdbc options map: simple lisp-cased keys, vector results, with coercing builder."}
+  opts-simple-vec        (update db/opts-simple-vec  :builder-fn gen-builder))
+(def ^{:doc "next.jdbc options map: lisp-cased slashed keys, map results, with coercing builder."}
+  opts-slashed-map       (update db/opts-slashed-map :builder-fn gen-builder))
+(def ^{:doc "next.jdbc options map: lisp-cased slashed keys, vector results, with coercing builder."}
+  opts-slashed-vec       (update db/opts-slashed-vec :builder-fn gen-builder))
+(def ^{:doc "next.jdbc options map: lisp-cased keys, vector results, with delayed coercing builder."}
+  opts-lazy-vec          (update db/opts-vec         :builder-fn gen-builder-delayed))
+(def ^{:doc "next.jdbc options map: simple lisp-cased keys, vector results, with delayed coercing builder."}
+  opts-lazy-simple-vec   (update db/opts-simple-vec  :builder-fn gen-builder-delayed))
+(def ^{:doc "next.jdbc options map: lisp-cased slashed keys, vector results, with delayed coercing builder."}
+  opts-lazy-slashed-vec  (update db/opts-slashed-vec :builder-fn gen-builder-delayed))
+(def ^{:doc "next.jdbc options map: lisp-cased keys, map results, with delayed coercing builder."}
+  opts-lazy-map          (update db/opts-map         :builder-fn gen-builder-delayed))
+(def ^{:doc "next.jdbc options map: simple lisp-cased keys, map results, with delayed coercing builder."}
+  opts-lazy-simple-map   (update db/opts-simple-map  :builder-fn gen-builder-delayed))
+(def ^{:doc "next.jdbc options map: lisp-cased slashed keys, map results, with delayed coercing builder."}
+  opts-lazy-slashed-map  (update db/opts-slashed-map :builder-fn gen-builder-delayed))
 
 ;; Query params
 
@@ -897,6 +916,8 @@
 ;; Main wrappers
 
 (defn lazy-execute-one!
+  "Executes a SQL query via `next.jdbc/execute-one!` with lazy coercing options. The
+  result map is converted to a lazy map. Returns `nil` when no row is found."
   ([connectable sql-params opts]
    (let [m (jdbc/execute-one! connectable sql-params (conj opts-lazy-simple-map opts))]
      (if m (map/to-lazy m) m)))
@@ -904,6 +925,9 @@
    (lazy-execute-one! connectable sql-params nil)))
 
 (defn lazy-execute!
+  "Executes a SQL query via `next.jdbc/execute!` with lazy coercing options. Each
+  result map in the returned vector is converted to a lazy map. Returns `nil` when
+  no rows are found."
   ([connectable sql-params opts]
    (when-some [coll (jdbc/execute! connectable sql-params (conj opts-lazy-simple-map opts))]
      (mapv #(if % (map/to-lazy %) %) coll)))
@@ -911,18 +935,23 @@
    (lazy-execute! connectable sql-params nil)))
 
 (defn execute-one!
+  "Executes a SQL query via `next.jdbc/execute-one!` with coercing options (simple
+  lisp-cased keys, map result). Returns `nil` when no row is found."
   ([connectable sql-params opts]
    (jdbc/execute-one! connectable sql-params (conj opts-simple-map opts)))
   ([connectable sql-params]
    (execute-one! connectable sql-params nil)))
 
 (defn execute!
+  "Executes a SQL query via `next.jdbc/execute!` with coercing options (simple
+  lisp-cased keys, map results). Returns a vector of result maps."
   ([connectable sql-params opts]
    (jdbc/execute! connectable sql-params (conj opts-simple-map opts)))
   ([connectable sql-params]
    (execute! connectable sql-params nil)))
 
 (defmacro lazy-do
+  "Evaluates `cmd` and converts a non-nil result to a lazy map using `map/to-lazy`."
   [& cmd]
   `(let [r# ~@cmd] (if r# (map/to-lazy r#) r#)))
 
@@ -939,6 +968,10 @@
 ;; Abstract getters and setters
 
 (defn make-getter
+  "Creates a coercion-aware database getter. Uses `f` (typically `execute-one!` or
+  `lazy-execute-one!`) with the given `opts` to execute a SELECT query. When `table`
+  is provided, it is baked into the query; otherwise it must be passed at call-time.
+  When `getter-coll-fn` is provided, calls with extra IDs are delegated to it."
   ([f opts id-col cols]
    (make-getter f opts nil id-col cols nil))
   ([f opts table id-col cols]

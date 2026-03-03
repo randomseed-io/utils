@@ -64,10 +64,12 @@
     v))
 
 (defmacro reset
+  "Resets the root binding of Var `v` to `val` using `alter-var-root`."
   [v val]
   `(alter-var-root (var ~v) (constantly ~val)))
 
 (defmacro alter
+  "Applies `f` (with optional `args`) to the root binding of Var `v` via `alter-var-root`."
   [v f & args]
   `(alter-var-root (var ~v) ~f ~@args))
 
